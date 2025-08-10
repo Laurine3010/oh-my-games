@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oh My Games - Joueurs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <h1>Oh My Games</h1>
+  <h2>Joueurs</h2>
+  <img src="img_jeux.png" alt="Fond" class="background-image">
+
+  <div class="buttons-container">
+    <button class="btn-add">➕ Ajouter un joueur</button>
+  </div>
+
+  <div id="modal-ajout" class="modal">
+    <div id="modal-content" class="modal-content">
+      <button id="btn-fermer" class="close-button">&times;</button>
+      <h3>Ajouter/Modifier un joueur</h3>
+      <form id="form-ajout">
+        <input type="hidden" id="joueur-id">
+        <label for="nom-joueur">Nom du joueur :</label>
+        <input type="text" id="nom-joueur" name="nom-joueur" required><br><br>
+        <button type="submit">Ajouter/Modifier</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="liste-joueurs"></div>
+
+  <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
+
+  <script type="module">
+    console.log("Script joueurs.html chargé.");
+
+    // --- NOUVEAU : Importation du client Supabase ---
+    import { supabase } from './supabase-config.js';
+
+    let joueurs = [];
+    let parties = [];
+
+    // Références DOM (inchangées)
+    const modal = document.getElementById('modal-ajout');
+    const btnAdd = document.querySelector('.btn-add');
+    const btnFermer = document.getElementById('btn-fermer');
+    const formAjout = document.getElementById('form-ajout');
+    const joueurIdInput = document.getElementById('joueur-id');
+    const nomJoueurInput = document.getElementById('nom-joueur');
+    const listeJoueursConteneur = document.getElementById('liste-joueurs');
+
+    // --- NOUVEAU : Fonctions de communication avec Supabase ---
+    async function chargerJoueurs() {
+        try {
+            const { data, error } = await supabase.from('joueurs').select('*');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des joueurs:", error);
+            alert(`Une erreur est survenue lors du chargement des joueurs: ${error.message}`);
+            return [];
+        }
+    }
+
+    async function chargerParties() {
+        try {
+            const { data, error } = await supabase.from('parties').select('*');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des parties:", error);
+            return [];
+        }
+    }
+
+    async function ajouterJoueur(joueurData) {
+        try {
+            const { data, error } = await supabase.from('joueurs').insert(joueurData).select();
+            if (error) throw error;
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error("Erreur lors de l'ajout du joueur:", error);
+            alert(`Une erreur est survenue lors de l'ajout du joueur: ${error.message}`);
+            return { success: false, error };
+        }
+    }
+
+    async function modifierJoueur(id, joueurData) {
+        try {
+            const { data, error } = await supabase.from('joueurs').update(joueurData).eq('id', id).select();
+            if (error) throw error;
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error("Erreur lors de la modification du joueur:", error);
+            alert(`Une erreur est survenue lors de la modification du joueur: ${error.message}`);
+            return { success: false, error };
+        }
+    }
+
+    async function supprimerJoueur(id) {
+        try {
+            const { error } = await supabase.from('joueurs').delete().eq('id', id);
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            console.error("Erreur lors de la suppression du joueur:", error);
+            alert(`Une erreur est survenue lors de la suppression du joueur: ${error.message}`);
+            return { success: false, error };
+        }
+    }
+
+    // --- Gestion de la modale et du formulaire (inchangée) ---
+
+    btnAdd.addEventListener('click', () => {
+        formAjout.reset();
+        joueurIdInput.value = '';
+        formAjout.querySelector('button[type="submit"]').textContent = 'Ajouter';
+        modal.style.display = 'flex';
+    });
+
+    btnFermer.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    formAjout.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const id = joueurIdInput.value;
+      const nom = nomJoueurInput.value.trim();
+
+      if (!nom) {
+        alert('Le nom du joueur est obligatoire.');
+        return;
+      }
+
+      const nomExisteDeja = joueurs.some(j => j.nom.toLowerCase() === nom.toLowerCase() && j.id !== id);
+      if (nomExisteDeja) {
+          alert('Un joueur avec ce nom existe déjà. Veuillez choisir un nom unique.');
+          return;
+      }
+
+      const joueurData = { nom: nom };
+
+      let result;
+      if (id) {
+          result = await modifierJoueur(id, joueurData);
+      } else {
+          result = await ajouterJoueur(joueurData);
+      }
+
+      if (result.success) {
+          alert(`Joueur "${nom}" ${id ? 'modifié' : 'ajouté'} avec succès !`);
+          await chargerEtAfficherJoueurs();
+          modal.style.display = 'none';
+          this.reset();
+      } else {
+          console.error('Erreur lors de l\'opération:', result.error);
+      }
+    });
+
+    // --- Fonction d'affichage des joueurs (optimisée) ---
+
+    async function chargerEtAfficherJoueurs() {
+        console.log("Chargement et affichage des joueurs depuis Supabase...");
+        joueurs = await chargerJoueurs();
+        parties = await chargerParties();
+
+        listeJoueursConteneur.innerHTML = '';
+
+        if (joueurs.length === 0) {
+            listeJoueursConteneur.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun joueur enregistré. Ajoutez-en un !</p>';
+            return;
+        }
+
+        const joueursTries = [...joueurs].sort((a, b) => a.nom.localeCompare(b.nom));
+
+        joueursTries.forEach((joueur) => {
+            const divJoueur = document.createElement('div');
+            divJoueur.className = 'joueur-item';
+            divJoueur.style.display = 'flex';
+            divJoueur.style.justifyContent = 'space-between';
+            divJoueur.style.alignItems = 'center';
+            divJoueur.style.padding = '8px';
+            divJoueur.style.border = '1px solid #ccc';
+            divJoueur.style.marginTop = '6px';
+            divJoueur.style.borderRadius = '6px';
+
+            const nomSpan = document.createElement('span');
+            nomSpan.textContent = joueur.nom;
+            nomSpan.style.cursor = 'pointer';
+            nomSpan.style.flexGrow = '1';
+
+            // Utilisation des propriétés 'parties_jouees' et 'parties_gagnees' du joueur
+            // Si la logique de mise à jour des stats est déjà dans parties.html, on peut les réutiliser ici
+            const partiesJouees = joueur.parties_jouees || 0;
+            const partiesGagnees = joueur.parties_gagnees || 0;
+
+            nomSpan.addEventListener('click', () => {
+                document.querySelectorAll('.joueur-details').forEach(fiche => {
+                    if (fiche.previousSibling !== divJoueur) {
+                        fiche.remove();
+                    }
+                });
+
+                if (divJoueur.nextSibling && divJoueur.nextSibling.classList.contains('joueur-details')) {
+                    divJoueur.parentNode.removeChild(divJoueur.nextSibling);
+                    return;
+                }
+
+                const details = document.createElement('div');
+                details.className = 'joueur-details';
+                details.style.padding = '10px';
+                details.style.border = '1px solid #007acc';
+                details.style.borderRadius = '6px';
+                details.style.marginTop = '4px';
+                details.style.backgroundColor = 'rgba(0, 122, 204, 0.1)';
+
+                const pPartiesJouees = document.createElement('p');
+                pPartiesJouees.textContent = `Parties jouées : ${partiesJouees}`;
+                details.appendChild(pPartiesJouees);
+
+                const ratio = partiesJouees > 0
+                    ? `${((partiesGagnees / partiesJouees) * 100).toFixed(1)} %`
+                    : 'Aucune partie jouée';
+
+                const pRatio = document.createElement('p');
+                pRatio.textContent = `Taux de victoire : ${ratio}`;
+                details.appendChild(pRatio);
+
+                divJoueur.parentNode.insertBefore(details, divJoueur.nextSibling);
+            });
+
+            divJoueur.appendChild(nomSpan);
+
+            const btnsContainer = document.createElement('div');
+
+            const btnModifier = document.createElement('button');
+            btnModifier.textContent = '✏️';
+            btnModifier.title = "Modifier ce joueur";
+            btnModifier.style.marginLeft = '10px';
+            btnModifier.style.cursor = 'pointer';
+            btnModifier.addEventListener('click', (e) => {
+                e.stopPropagation();
+                ouvrirModaleModifier(joueur.id);
+            });
+            btnsContainer.appendChild(btnModifier);
+
+            const btnSupprimer = document.createElement('button');
+            btnSupprimer.textContent = '🗑️';
+            btnSupprimer.title = "Supprimer ce joueur";
+            btnSupprimer.style.marginLeft = '5px';
+            btnSupprimer.style.cursor = 'pointer';
+
+            btnSupprimer.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`Supprimer le joueur "${joueur.nom}" ?`)) {
+                    const result = await supprimerJoueur(joueur.id);
+                    if (result.success) {
+                        alert(`Joueur "${joueur.nom}" supprimé avec succès !`);
+                        await chargerEtAfficherJoueurs();
+                    } else {
+                        console.error("Erreur lors de la suppression:", result.error);
+                    }
+                }
+            });
+            btnsContainer.appendChild(btnSupprimer);
+
+            divJoueur.appendChild(btnsContainer);
+            listeJoueursConteneur.appendChild(divJoueur);
+        });
+    }
+
+    // Pré-remplir la modale pour modification (inchangée)
+    function ouvrirModaleModifier(id) {
+        const joueur = joueurs.find(j => j.id === id);
+        if (!joueur) {
+            alert("Erreur: Joueur non trouvé pour modification.");
+            return;
+        }
+        joueurIdInput.value = joueur.id;
+        nomJoueurInput.value = joueur.nom;
+        formAjout.querySelector('button[type="submit"]').textContent = 'Modifier';
+        modal.style.display = 'flex';
+    }
+
+    // Chargement initial au chargement de la page
+    document.addEventListener('DOMContentLoaded', async () => {
+        await chargerEtAfficherJoueurs();
+    });
+
+    // Re-charger les données si la page est de nouveau visible
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        await chargerEtAfficherJoueurs();
+      }
+    });
+  </script>
+</body>
+</html>

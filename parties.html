@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oh My Games - Parties</title>
+  <link rel="stylesheet" href="styles.css" />
+
+  <style>
+    /* Style simple pour la liste des parties */
+    #historique-parties {
+      margin-top: 30px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+    #historique-parties table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #historique-parties th, #historique-parties td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    #historique-parties th {
+      background-color: #f4f4f4;
+    }
+
+    /* Styles du formulaire d'édition */
+    #edition-partie {
+      max-width: 900px;
+      margin: 20px auto;
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #edition-partie h3 {
+      margin-top: 0;
+    }
+    #edition-partie button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Oh My Games</h1>
+  <h2>Nouvelle partie</h2>
+
+  <img src="img_jeux.png" alt="Fond" class="background-image" />
+  <button class="btn-home" onclick="location.href='index.html'">&#127968; Home</button>
+
+  <form id="form-partie">
+    <label for="jeu-select">Jeu :</label><br />
+    <select id="jeu-select" required></select><br /><br />
+
+    <label>Joueurs participants :</label><br />
+    <div id="liste-joueurs-participation"></div><br />
+
+    <label>Vainqueur :</label><br />
+    <div id="liste-vainqueurs"></div><br />
+
+    <button type="submit">Enregistrer la partie</button>
+  </form>
+
+  <section id="historique-parties">
+    <h2>Historique des parties jouées</h2>
+
+    <label for="filtre-jeu">Filtrer par jeu :</label>
+    <select id="filtre-jeu">
+      <option value="">Tous les jeux</option>
+    </select>
+
+    <label for="filtre-joueur" style="margin-left: 20px;">Filtrer par joueur :</label>
+    <select id="filtre-joueur">
+      <option value="">Tous les joueurs</option>
+    </select>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Jeu</th>
+          <th>Joueurs</th>
+          <th>Vainqueur</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-body-parties"></tbody>
+    </table>
+  </section>
+
+  <section id="edition-partie">
+    <h3>Modifier la partie</h3>
+    <form id="form-edition">
+      <input type="hidden" id="partie-id-edition">
+      <label for="edit-jeu-select">Jeu :</label><br />
+      <select id="edit-jeu-select" required></select><br /><br />
+
+      <label>Joueurs participants :</label><br />
+      <div id="edit-liste-joueurs-participation"></div><br />
+
+      <label>Vainqueur :</label><br />
+      <div id="edit-liste-vainqueurs"></div><br />
+
+      <button type="submit">Sauvegarder les modifications</button>
+      <button type="button" id="btn-annuler-edition" style="margin-left:10px;">Annuler</button>
+    </form>
+  </section>
+
+  <script type="module">
+    console.log("Script parties.html chargé.");
+
+    // --- NOUVEAU : Importation du client Supabase ---
+    import { supabase } from './supabase-config.js';
+
+    let joueurs = [];
+    let jeux = [];
+    let parties = [];
+
+    // DOM References - New Party Form
+    const jeuSelect = document.getElementById('jeu-select');
+    const joueursParticipationDiv = document.getElementById('liste-joueurs-participation');
+    const vainqueursDiv = document.getElementById('liste-vainqueurs');
+
+    // DOM References - Filters & Table
+    const filtreJeu = document.getElementById('filtre-jeu');
+    const filtreJoueur = document.getElementById('filtre-joueur');
+    const tbodyParties = document.getElementById('table-body-parties');
+
+    // DOM References - Edit Form
+    const editionSection = document.getElementById('edition-partie');
+    const formEdition = document.getElementById('form-edition');
+    const partieIdEditionInput = document.getElementById('partie-id-edition');
+    const editJeuSelect = document.getElementById('edit-jeu-select');
+    const editJoueursParticipationDiv = document.getElementById('edit-liste-joueurs-participation');
+    const editListeVainqueurs = document.getElementById('edit-liste-vainqueurs');
+    const btnAnnulerEdition = document.getElementById('btn-annuler-edition');
+
+    // --- NOUVEAU : Fonctions de communication avec Supabase ---
+
+    async function chargerJeux() {
+        try {
+            const { data, error } = await supabase.from('jeux').select('id, nom');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des jeux:", error);
+            return [];
+        }
+    }
+
+    async function chargerJoueurs() {
+        try {
+            const { data, error } = await supabase.from('joueurs').select('id, nom');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des joueurs:", error);
+            return [];
+        }
+    }
+
+    async function chargerParties() {
+        try {
+            const { data, error } = await supabase.from('parties').select('*');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des parties:", error);
+            return [];
+        }
+    }
+
+    async function ajouterPartie(partieData) {
+      try {
+          const { data, error } = await supabase.from('parties').insert(partieData).select();
+          if (error) throw error;
+          return { success: true, data: data[0] };
+      } catch (error) {
+          console.error("Erreur lors de l'enregistrement de la partie:", error);
+          alert(`Une erreur est survenue lors de l'enregistrement de la partie: ${error.message}`);
+          return { success: false, error };
+      }
+    }
+
+    async function modifierPartie(id, partieData) {
+      try {
+          const { data, error } = await supabase.from('parties').update(partieData).eq('id', id).select();
+          if (error) throw error;
+          return { success: true, data: data[0] };
+      } catch (error) {
+          console.error("Erreur lors de la modification de la partie:", error);
+          alert(`Une erreur est survenue lors de la modification de la partie: ${error.message}`);
+          return { success: false, error };
+      }
+    }
+
+    async function supprimerPartie(id) {
+      try {
+          const { error } = await supabase.from('parties').delete().eq('id', id);
+          if (error) throw error;
+          return { success: true };
+      } catch (error) {
+          console.error("Erreur lors de la suppression de la partie:", error);
+          alert(`Une erreur est survenue lors de la suppression de la partie: ${error.message}`);
+          return { success: false, error };
+      }
+    }
+    
+    // --- Helper Functions to Populate Forms/Filters (inchangées) ---
+
+    function remplirSelect(selectElem, optionsArray, valeurVide = true, allText = 'Tous') {
+      selectElem.innerHTML = '';
+      if (valeurVide) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = `${allText} ${selectElem === filtreJeu || selectElem === editJeuSelect ? 'les jeux' : 'les joueurs'}`;
+        selectElem.appendChild(option);
+      }
+      optionsArray.forEach(opt => {
+        const option = document.createElement('option');
+        const value = opt.nom || opt;
+        const textContent = opt.nom || opt;
+        const existingOption = Array.from(selectElem.options).find(o => o.value === value);
+        if (!existingOption) {
+          const newOption = document.createElement('option');
+          newOption.value = value;
+          newOption.textContent = textContent;
+          selectElem.appendChild(newOption);
+        }
+      });
+    }
+
+    function afficherJoueursCheckboxesAndRadios(targetDivCheckboxes, targetDivRadios, currentPlayers = [], currentWinner = '') {
+      targetDivCheckboxes.innerHTML = '';
+      targetDivRadios.innerHTML = '';
+      if (joueurs.length === 0) {
+        targetDivCheckboxes.innerHTML = '<p>Aucun joueur enregistré. Veuillez en ajouter sur la page "Joueurs".</p>';
+        return;
+      }
+      joueurs.forEach(joueur => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = `${targetDivCheckboxes.id}-joueurs-participation`;
+        checkbox.value = joueur.nom;
+        checkbox.id = `${targetDivCheckboxes.id}-part-joueur-${joueur.id}`;
+        if (Array.isArray(currentPlayers) && currentPlayers.includes(joueur.nom)) checkbox.checked = true;
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.textContent = joueur.nom;
+        targetDivCheckboxes.appendChild(checkbox);
+        targetDivCheckboxes.appendChild(label);
+        targetDivCheckboxes.appendChild(document.createElement('br'));
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = `${targetDivRadios.id}-vainqueur-radio`;
+        radio.value = joueur.nom;
+        radio.id = `${targetDivRadios.id}-vainqueur-${joueur.id}`;
+        if (joueur.nom === currentWinner) radio.checked = true;
+        const labelRadio = document.createElement('label');
+        labelRadio.htmlFor = radio.id;
+        labelRadio.textContent = joueur.nom;
+        targetDivRadios.appendChild(radio);
+        targetDivRadios.appendChild(labelRadio);
+        targetDivRadios.appendChild(document.createElement('br'));
+      });
+    }
+
+    // --- Main Data Loading and Display Function ---
+
+    async function chargerEtAfficherToutesLesDonnees() {
+        console.log("Chargement initial des données depuis Supabase...");
+        jeux = await chargerJeux();
+        joueurs = await chargerJoueurs();
+        parties = await chargerParties();
+
+        remplirSelect(jeuSelect, jeux, false);
+        remplirSelect(filtreJeu, jeux, true, 'Tous');
+        remplirSelect(filtreJoueur, joueurs, true, 'Tous');
+        afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv);
+        remplirSelect(editJeuSelect, jeux, false);
+
+        afficherParties();
+    }
+
+    // --- Display Parties History (inchangée dans sa logique de filtrage et d'affichage) ---
+
+    function afficherParties() {
+      tbodyParties.innerHTML = '';
+      const filtreNomJeu = filtreJeu.value;
+      const filtreNomJoueur = filtreJoueur.value;
+      let partiesFiltrees = parties.filter(p => {
+        let matchJeu = filtreNomJeu === '' || p.nom_jeu === filtreNomJeu;
+        let matchJoueur = filtreNomJoueur === '' || (Array.isArray(p.joueurs) && p.joueurs.includes(filtreNomJoueur));
+        return matchJeu && matchJoueur;
+      });
+      partiesFiltrees.sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (partiesFiltrees.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="5" style="text-align:center; font-style: italic;">Aucune partie trouvée correspondant aux filtres.</td>`;
+        tbodyParties.appendChild(tr);
+        return;
+      }
+      partiesFiltrees.forEach((p) => {
+        const tr = document.createElement('tr');
+        const date = new Date(p.date);
+        tr.innerHTML = `
+          <td>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</td>
+          <td>${p.nom_jeu}</td> <td>${Array.isArray(p.joueurs) ? p.joueurs.join(', ') : p.joueurs}</td>
+          <td>${p.gagnant}</td>
+          <td>
+            <button class="btn-modifier" data-partie-id="${p.id}">✏️</button>
+            <button class="btn-supprimer" data-partie-id="${p.id}">🗑️</button>
+          </td>
+        `;
+        tbodyParties.appendChild(tr);
+      });
+    }
+
+    // --- Event Listeners for Filters (inchangés) ---
+    filtreJeu.addEventListener('change', afficherParties);
+    filtreJoueur.addEventListener('change', afficherParties);
+
+    // --- New Party Submission ---
+    document.getElementById('form-partie').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const nomJeu = jeuSelect.value;
+      const joueursPartie = [...document.querySelectorAll('#liste-joueurs-participation input[name="liste-joueurs-participation-joueurs-participation"]:checked')].map(j => j.value);
+      const vainqueur = document.querySelector('#liste-vainqueurs input[name="liste-vainqueurs-vainqueur-radio"]:checked')?.value;
+      if (!nomJeu) {
+          alert("Veuillez sélectionner un jeu.");
+          return;
+      }
+      if (joueursPartie.length === 0) {
+          alert("Veuillez sélectionner au moins un joueur participant.");
+          return;
+      }
+      if (!vainqueur || !joueursPartie.includes(vainqueur)) {
+        alert("Le vainqueur doit faire partie des joueurs sélectionnés.");
+        return;
+      }
+      const nouvellePartie = {
+        date: new Date().toISOString(),
+        nom_jeu: nomJeu,
+        joueurs: joueursPartie,
+        gagnant: vainqueur,
+      };
+      const result = await ajouterPartie(nouvellePartie);
+      if (result.success) {
+          alert("Partie enregistrée !");
+          this.reset();
+          afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv);
+          await chargerEtAfficherToutesLesDonnees();
+      } else {
+          console.error('Erreur lors de l\'enregistrement de la partie:', result.error);
+      }
+    });
+
+    // --- Table Actions (Modify/Delete) ---
+    tbodyParties.addEventListener('click', async (e) => {
+      const target = e.target;
+      const partieId = target.getAttribute('data-partie-id');
+      if (!partieId) return;
+      if (target.classList.contains('btn-supprimer')) {
+        if (confirm("Confirmer la suppression de cette partie ?")) {
+          const result = await supprimerPartie(partieId);
+          if (result.success) {
+            alert("Partie supprimée !");
+            await chargerEtAfficherToutesLesDonnees();
+          } else {
+            console.error("Erreur lors de la suppression de la partie:", result.error);
+          }
+        }
+      } else if (target.classList.contains('btn-modifier')) {
+        ouvrirEdition(partieId);
+      }
+    });
+
+    // --- Edit Form Logic ---
+    function ouvrirEdition(partieId) {
+      const partie = parties.find(p => p.id === partieId);
+      if (!partie) {
+        alert("Erreur: Partie non trouvée pour modification.");
+        console.error("Partie non trouvée avec l'ID:", partieId);
+        return;
+      }
+      partieIdEditionInput.value = partie.id;
+      editJeuSelect.value = partie.nom_jeu;
+      afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, partie.joueurs, partie.gagnant);
+      editionSection.style.display = 'block';
+      editionSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    formEdition.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const partieId = partieIdEditionInput.value;
+      if (!partieId) {
+          alert("Erreur: ID de partie manquant pour la modification.");
+          return;
+      }
+      const nomJeu = editJeuSelect.value;
+      const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-liste-joueurs-participation-joueurs-participation"]:checked')].map(j => j.value);
+      const vainqueur = document.querySelector('#edit-liste-vainqueurs input[name="edit-liste-vainqueurs-vainqueur-radio"]:checked')?.value;
+      if (!nomJeu) {
+          alert("Veuillez sélectionner un jeu.");
+          return;
+      }
+      if (joueursSelectionnes.length === 0) {
+          alert("Veuillez sélectionner au moins un joueur participant.");
+          return;
+      }
+      if (!vainqueur || !joueursSelectionnes.includes(vainqueur)) {
+        alert("Le vainqueur doit faire partie des joueurs sélectionnés.");
+        return;
+      }
+      const partieModifiee = {
+          nom_jeu: nomJeu,
+          joueurs: joueursSelectionnes,
+          gagnant: vainqueur,
+      };
+      const result = await modifierPartie(partieId, partieModifiee);
+      if (result.success) {
+          alert("Partie modifiée !");
+          editionSection.style.display = 'none';
+          await chargerEtAfficherToutesLesDonnees();
+      } else {
+          alert("Erreur lors de la modification de la partie.");
+          console.error("Erreur lors de la modification de la partie:", result.error);
+      }
+    });
+
+    btnAnnulerEdition.addEventListener('click', () => {
+      editionSection.style.display = 'none';
+    });
+
+    // --- Initial Load & Visibility Changes ---
+    document.addEventListener('DOMContentLoaded', async () => {
+      await chargerEtAfficherToutesLesDonnees();
+      const urlParams = new URLSearchParams(window.location.search);
+      const jeuFiltre = urlParams.get('jeu');
+      if (jeuFiltre) {
+          filtreJeu.value = jeuFiltre;
+          afficherParties();
+      }
+    });
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        await chargerEtAfficherToutesLesDonnees();
+      }
+    });
+  </script>
+</body>
+</html>

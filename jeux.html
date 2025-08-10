@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oh My Games - Jeux</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <h1>Oh My Games</h1>
+  <h2>Liste des jeux</h2>
+  <img src="img_jeux.png" alt="Fond" class="background-image" />
+
+  <button class="btn-add">➕ Ajouter un jeu</button>
+
+  <div id="alpha-filter-container">
+  </div>
+
+  <div id="player-filter-container" style="margin-top: 15px; margin-bottom: 15px;">
+  </div>
+
+  <input type="text" id="recherche-jeux" placeholder="🔍 Rechercher un jeu..." />
+
+  <div id="liste-jeux">
+  </div>
+
+  <div id="modal-ajout" class="modal">
+    <div id="modal-content" class="modal-content">
+      <button id="btn-fermer" class="close-button">&times;</button>
+      <h3>Ajouter/Modifier un jeu</h3>
+      <form id="form-ajout">
+        <input type="hidden" id="jeu-id">
+        <label for="nom-jeu">Nom du jeu :</label>
+        <input type="text" id="nom-jeu" name="nom-jeu" required><br><br>
+
+        <label for="photos-jeu">Photos du jeu (optionnel) :</label>
+        <input type="file" id="photos-jeu" name="photos-jeu" accept="image/*" multiple><br><br>
+
+        <label for="min-joueurs">Min. Joueurs :</label>
+        <input type="number" id="min-joueurs" name="min-joueurs" min="1" value="1"><br><br>
+
+        <label for="max-joueurs">Max. Joueurs :</label>
+        <input type="number" id="max-joueurs" name="max-joueurs" min="1" value="4"><br><br>
+
+        <input type="checkbox" id="prete" name="prete">
+        <label for="prete">Prêté à quelqu'un</label><br>
+        <input type="text" id="prete-a" name="prete-a" placeholder="Nom de la personne" style="display: none;"><br><br>
+
+        <input type="checkbox" id="emprunte" name="emprunte">
+        <label for="emprunte">Emprunté (ne nous appartient pas)</label><br>
+        <input type="text" id="emprunte-a" name="emprunte-a" placeholder="Nom de la personne" style="display: none;"><br><br>
+
+        <button type="submit">Ajouter le jeu</button>
+      </form>
+    </div>
+  </div>
+
+  <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
+
+  <script type="module">
+    console.log("Script jeux.html chargé.");
+
+    // --- NOUVEAU : Importation du client Supabase ---
+    import { supabase } from './supabase-config.js';
+
+    // Variables pour stocker les données (chargées depuis Supabase)
+    let jeux = [];
+    let parties = [];
+
+    // Références DOM (inchangées)
+    const modal = document.getElementById('modal-ajout');
+    const btnAdd = document.querySelector('.btn-add');
+    const btnFermer = document.getElementById('btn-fermer');
+    const formAjout = document.getElementById('form-ajout');
+    const listeJeux = document.getElementById('liste-jeux');
+    const inputRecherche = document.getElementById('recherche-jeux');
+    const alphaFilterContainer = document.getElementById('alpha-filter-container');
+    const playerFilterContainer = document.getElementById('player-filter-container');
+
+    // Champs du formulaire (inchangés)
+    const jeuIdInput = document.getElementById('jeu-id');
+    const nomJeuInput = document.getElementById('nom-jeu');
+    const photosJeuInput = document.getElementById('photos-jeu');
+    const minJoueursInput = document.getElementById('min-joueurs');
+    const maxJoueursInput = document.getElementById('max-joueurs');
+    const preteCheckbox = document.getElementById('prete');
+    const preteAInput = document.getElementById('prete-a');
+    const emprunteCheckbox = document.getElementById('emprunte');
+    const emprunteAInput = document.getElementById('emprunte-a');
+
+    let currentAlphaFilter = '';
+    let currentPlayerFilter = 0;
+
+    // --- NOUVEAU : Fonctions de communication avec Supabase ---
+    async function chargerJeux() {
+        try {
+            const { data, error } = await supabase.from('jeux').select('*');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des jeux:", error);
+            alert(`Une erreur est survenue lors du chargement des jeux: ${error.message}`);
+            return [];
+        }
+    }
+
+    async function chargerParties() {
+        try {
+            const { data, error } = await supabase.from('parties').select('*');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des parties:", error);
+            return [];
+        }
+    }
+
+    async function ajouterJeu(jeuData) {
+        try {
+            const { data, error } = await supabase.from('jeux').insert(jeuData).select();
+            if (error) throw error;
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error("Erreur lors de l'ajout du jeu:", error);
+            alert(`Une erreur est survenue lors de l'ajout du jeu: ${error.message}`);
+            return { success: false, error };
+        }
+    }
+
+    async function modifierJeu(id, jeuData) {
+        try {
+            const { data, error } = await supabase.from('jeux').update(jeuData).eq('id', id).select();
+            if (error) throw error;
+            return { success: true, data: data[0] };
+        } catch (error) {
+            console.error("Erreur lors de la modification du jeu:", error);
+            alert(`Une erreur est survenue lors de la modification du jeu: ${error.message}`);
+            return { success: false, error };
+        }
+    }
+
+    async function supprimerJeu(id) {
+        try {
+            const { error } = await supabase.from('jeux').delete().eq('id', id);
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            console.error("Erreur lors de la suppression du jeu:", error);
+            alert(`Une erreur est survenue lors de la suppression du jeu: ${error.message}`);
+            return { success: false, error };
+        }
+    }
+
+    // --- Fonctions utilitaires du formulaire (inchangées) ---
+    preteCheckbox.addEventListener('change', () => {
+        preteAInput.style.display = preteCheckbox.checked ? 'block' : 'none';
+        if (!preteCheckbox.checked) {
+            preteAInput.value = '';
+        }
+    });
+
+    emprunteCheckbox.addEventListener('change', () => {
+        emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
+        if (!emprunteCheckbox.checked) {
+            emprunteAInput.value = '';
+        }
+    });
+
+    btnAdd.addEventListener('click', () => {
+        formAjout.reset();
+        jeuIdInput.value = '';
+        formAjout.querySelector('button[type="submit"]').textContent = 'Ajouter le jeu';
+        modal.style.display = 'flex';
+        preteAInput.style.display = 'none';
+        emprunteAInput.style.display = 'none';
+    });
+
+    btnFermer.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Soumission du formulaire (ajout ou modification)
+    formAjout.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const id = jeuIdInput.value;
+        const nomJeu = nomJeuInput.value.trim();
+        const photosFiles = photosJeuInput.files;
+        const minJoueurs = Number(minJoueursInput.value);
+        const maxJoueurs = Number(maxJoueursInput.value);
+        const prete = preteCheckbox.checked;
+        const preteA = preteCheckbox.checked ? preteAInput.value.trim() : '';
+        const emprunte = emprunteCheckbox.checked;
+        const emprunteA = emprunteCheckbox.checked ? emprunteAInput.value.trim() : '';
+
+        if (!nomJeu) {
+            alert('Le nom du jeu est obligatoire.');
+            return;
+        }
+        if (minJoueurs > maxJoueurs) {
+            alert('Le nombre de joueurs minimum ne peut pas être supérieur au nombre de joueurs maximum.');
+            return;
+        }
+        if (isNaN(minJoueurs) || isNaN(maxJoueurs)) {
+            alert('Veuillez entrer des nombres valides pour les joueurs.');
+            return;
+        }
+
+        let photosEncodées = [];
+        if (photosFiles.length > 0) {
+            const readerPromises = [];
+            for (let i = 0; i < photosFiles.length; i++) {
+                readerPromises.push(new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(photosFiles[i]);
+                }));
+            }
+            photosEncodées = await Promise.all(readerPromises);
+        } else if (id) {
+            const jeuExistant = jeux.find(j => j.id === id);
+            if (jeuExistant) {
+                photosEncodées = jeuExistant.photos || [];
+            }
+        }
+
+        const jeuData = {
+            nom: nomJeu,
+            photos: photosEncodées,
+            min_joueurs: minJoueurs,
+            max_joueurs: maxJoueurs,
+            prete: prete,
+            prete_a: preteA,
+            emprunte: emprunte,
+            emprunte_a: emprunteA,
+        };
+
+        let result;
+        if (id) {
+            result = await modifierJeu(id, jeuData);
+        } else {
+            result = await ajouterJeu(jeuData);
+        }
+
+        if (result.success) {
+            alert(`Jeu "${nomJeu}" ${id ? 'modifié' : 'ajouté'} avec succès !`);
+            await chargerEtAfficherJeux();
+            modal.style.display = 'none';
+            formAjout.reset();
+            photosJeuInput.value = '';
+            preteAInput.style.display = 'none';
+            emprunteAInput.style.display = 'none';
+        }
+    });
+
+    // Fonctions de génération des filtres (inchangées)
+    function generateAlphaFilters() {
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        alphaFilterContainer.innerHTML = '';
+        const allBtn = document.createElement('button');
+        allBtn.className = 'alpha-filter-btn';
+        if (currentAlphaFilter === '') allBtn.classList.add('active');
+        allBtn.textContent = 'Tout';
+        allBtn.setAttribute('data-filter', '');
+        alphaFilterContainer.appendChild(allBtn);
+        alphabet.forEach(letter => {
+            const btn = document.createElement('button');
+            btn.className = 'alpha-filter-btn';
+            if (currentAlphaFilter === letter) btn.classList.add('active');
+            btn.textContent = letter;
+            btn.setAttribute('data-filter', letter);
+            alphaFilterContainer.appendChild(btn);
+        });
+        alphaFilterContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('alpha-filter-btn')) {
+                document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentAlphaFilter = e.target.getAttribute('data-filter');
+                inputRecherche.value = '';
+                currentPlayerFilter = 0;
+                document.querySelectorAll('.player-filter-btn').forEach(b => b.classList.remove('active'));
+                const allPlayersBtn = document.querySelector('.player-filter-btn[data-filter-players="0"]');
+                if (allPlayersBtn) allPlayersBtn.classList.add('active');
+                afficherListeJeux();
+            }
+        });
+    }
+
+    function generatePlayerFilters() {
+        playerFilterContainer.innerHTML = '';
+        const allPlayersBtn = document.createElement('button');
+        allPlayersBtn.className = 'player-filter-btn';
+        if (currentPlayerFilter === 0) allPlayersBtn.classList.add('active');
+        allPlayersBtn.innerHTML = 'Tout';
+        allPlayersBtn.setAttribute('data-filter-players', 0);
+        playerFilterContainer.appendChild(allPlayersBtn);
+        for (let i = 1; i <= 4; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'player-filter-btn';
+            if (currentPlayerFilter === i) btn.classList.add('active');
+            btn.innerHTML = `${'&#128100;'.repeat(i)}`;
+            btn.setAttribute('data-filter-players', i);
+            playerFilterContainer.appendChild(btn);
+        }
+        const plus4Btn = document.createElement('button');
+        plus4Btn.className = 'player-filter-btn';
+        if (currentPlayerFilter === 5) plus4Btn.classList.add('active');
+        plus4Btn.innerHTML = `${'&#128100;'.repeat(4)}+`;
+        plus4Btn.setAttribute('data-filter-players', 5);
+        playerFilterContainer.appendChild(plus4Btn);
+        playerFilterContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('player-filter-btn') || e.target.closest('.player-filter-btn')) {
+                const clickedBtn = e.target.closest('.player-filter-btn');
+                if (!clickedBtn) return;
+                document.querySelectorAll('.player-filter-btn').forEach(b => b.classList.remove('active'));
+                clickedBtn.classList.add('active');
+                currentPlayerFilter = Number(clickedBtn.getAttribute('data-filter-players'));
+                inputRecherche.value = '';
+                currentAlphaFilter = '';
+                document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
+                const allAlphaBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
+                if (allAlphaBtn) allAlphaBtn.classList.add('active');
+                afficherListeJeux();
+            }
+        });
+    }
+
+    // Fonction principale pour charger et afficher les jeux
+    async function chargerEtAfficherJeux() {
+        console.log("Chargement et affichage des jeux depuis Supabase...");
+        jeux = await chargerJeux();
+        parties = await chargerParties();
+        afficherListeJeux();
+    }
+
+    // Afficher la liste des jeux (fonction principale)
+    function afficherListeJeux() {
+        console.log("Affichage de la liste des jeux...");
+        listeJeux.innerHTML = '';
+        const filterText = inputRecherche.value.toLowerCase();
+        const jeuxTries = [...jeux].sort((a, b) => a.nom.localeCompare(b.nom));
+        if (jeuxTries.length === 0 && !filterText && !currentAlphaFilter && currentPlayerFilter === 0) {
+            listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu n\'est enregistré. Ajoutez-en un !</p>';
+            return;
+        }
+        let jeuxFiltres = jeuxTries.filter(jeu => {
+            if (filterText && !jeu.nom.toLowerCase().includes(filterText)) {
+                return false;
+            }
+            if (currentAlphaFilter && !jeu.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) {
+                return false;
+            }
+            if (currentPlayerFilter > 0) {
+                if (jeu.min_joueurs === undefined || jeu.max_joueurs === undefined ||
+                    isNaN(jeu.min_joueurs) || isNaN(jeu.max_joueurs)) {
+                    return false;
+                }
+                if (currentPlayerFilter <= 4) {
+                    if (currentPlayerFilter > jeu.max_joueurs) {
+                        return false;
+                    }
+                } else if (currentPlayerFilter === 5) {
+                    if (jeu.max_joueurs < 4) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
+        if (jeuxFiltres.length === 0) {
+            listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu ne correspond à vos critères de recherche.</p>';
+            return;
+        }
+        jeuxFiltres.forEach((jeu) => {
+            const card = document.createElement('div');
+            card.className = 'jeu-card';
+            const img = document.createElement('img');
+            img.src = (jeu.photos && jeu.photos.length > 0)
+                ? jeu.photos[0]
+                : 'https://via.placeholder.com/280x160?text=Pas+de+photo';
+            img.alt = `Image de ${jeu.nom}`;
+            card.appendChild(img);
+            if (jeu.emprunte) {
+                const tagEmprunte = document.createElement('span');
+                tagEmprunte.className = 'tag-emprunte';
+                tagEmprunte.textContent = `EMPRUNTÉ${jeu.emprunte_a ? ` À ${jeu.emprunte_a.toUpperCase()}` : ''}`;
+                card.appendChild(tagEmprunte);
+            }
+            if (jeu.prete) {
+                const overlayPrete = document.createElement('div');
+                overlayPrete.className = 'overlay-prete';
+                const overlayText = document.createElement('span');
+                overlayText.className = 'text';
+                overlayText.textContent = `PRÊTÉ${jeu.prete_a ? ` À ${jeu.prete_a.toUpperCase()}` : ''}`;
+                overlayPrete.appendChild(overlayText);
+                card.appendChild(overlayPrete);
+            }
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'jeu-content';
+            const titre = document.createElement('h3');
+            titre.textContent = jeu.nom;
+            contentDiv.appendChild(titre);
+            const infosComplementaires = document.createElement('div');
+            infosComplementaires.className = 'infos-complementaires';
+            if (jeu.min_joueurs && jeu.max_joueurs && !isNaN(jeu.min_joueurs) && !isNaN(jeu.max_joueurs)) {
+                const joueursIcons = document.createElement('p');
+                let joueursTexte = '';
+                const minEmojis = '&#128100;'.repeat(jeu.min_joueurs);
+                const maxEmojis = '&#128100;'.repeat(jeu.max_joueurs);
+                if (jeu.min_joueurs === jeu.max_joueurs) {
+                    joueursTexte = `${minEmojis}`;
+                } else {
+                    joueursTexte = `${minEmojis} - ${maxEmojis}`;
+                }
+                joueursIcons.innerHTML = `<span>${joueursTexte} (${jeu.min_joueurs}-${jeu.max_joueurs})</span> <span class="info-label">Joueurs</span>`;
+                infosComplementaires.appendChild(joueursIcons);
+            } else if (jeu.min_joueurs && !isNaN(jeu.min_joueurs)) {
+                 const joueursIcons = document.createElement('p');
+                 joueursIcons.innerHTML = `<span>${'&#128100;'.repeat(jeu.min_joueurs)}+</span> <span class="info-label">Joueurs</span>`;
+                 infosComplementaires.appendChild(joueursIcons);
+            } else if (jeu.max_joueurs && !isNaN(jeu.max_joueurs)) {
+                 const joueursIcons = document.createElement('p');
+                 joueursIcons.innerHTML = `<span>Jusqu'à ${'&#128100;'.repeat(jeu.max_joueurs)}</span> <span class="info-label">Joueurs</span>`;
+                 infosComplementaires.appendChild(joueursIcons);
+            }
+            contentDiv.appendChild(infosComplementaires);
+            const nbParties = parties.filter(p => p.nom_jeu === jeu.nom).length;
+            const scores = {};
+            const partiesDuJeu = parties.filter(p => p.nom_jeu === jeu.nom && p.gagnant);
+            partiesDuJeu.forEach(p => {
+                const g = p.gagnant;
+                scores[g] = (scores[g] || 0) + 1;
+            });
+            let meilleur = null;
+            let max = 0;
+            for (const [joueur, score] of Object.entries(scores)) {
+                if (score > max) {
+                    max = score;
+                    meilleur = joueur;
+                }
+            }
+            const stats = document.createElement('div');
+            stats.className = 'stats';
+            stats.innerHTML = `
+                Parties jouées : <strong>${nbParties}</strong><br>
+                Meilleur joueur : <strong>${meilleur ? `${meilleur} (${max} victoire${max > 1 ? 's' : ''})` : 'Aucun'}</strong>
+            `;
+            contentDiv.appendChild(stats);
+            const btns = document.createElement('div');
+            btns.className = 'btns-card';
+            const btnModifier = document.createElement('button');
+            btnModifier.className = 'btn-card btn-modifier';
+            btnModifier.textContent = '✏️ Modifier';
+            btnModifier.addEventListener('click', () => {
+                ouvrirModaleModifier(jeu.id);
+            });
+            btns.appendChild(btnModifier);
+            const btnSupprimer = document.createElement('button');
+            btnSupprimer.className = 'btn-card btn-supprimer';
+            btnSupprimer.textContent = '🗑️ Supprimer';
+            btnSupprimer.addEventListener('click', async () => {
+                if (confirm(`Supprimer le jeu "${jeu.nom}" ?`)) {
+                    const result = await supprimerJeu(jeu.id);
+                    if (result.success) {
+                        alert(`Jeu "${jeu.nom}" supprimé avec succès !`);
+                        await chargerEtAfficherJeux();
+                    } else {
+                        console.error("Erreur lors de la suppression:", result.error);
+                    }
+                }
+            });
+            btns.appendChild(btnSupprimer);
+            const btnParties = document.createElement('button');
+            btnParties.className = 'btn-card btn-parties';
+            btnParties.textContent = '▶️ Voir parties';
+            btnParties.addEventListener('click', () => {
+                window.location.href = `parties.html?jeu=${encodeURIComponent(jeu.nom)}`;
+            });
+            btns.appendChild(btnParties);
+            contentDiv.appendChild(btns);
+            card.appendChild(contentDiv);
+            listeJeux.appendChild(card);
+        });
+    }
+
+    // Pré-remplir la modale pour modification
+    function ouvrirModaleModifier(id) {
+        console.log("Ouverture modale pour modification, ID:", id);
+        const jeu = jeux.find(j => j.id === id);
+        if (!jeu) {
+            console.error("Jeu non trouvé avec l'ID:", id);
+            alert("Erreur: Impossible de charger les données du jeu.");
+            return;
+        }
+        jeuIdInput.value = jeu.id;
+        nomJeuInput.value = jeu.nom;
+        photosJeuInput.value = '';
+        minJoueursInput.value = jeu.min_joueurs !== undefined ? jeu.min_joueurs : '';
+        maxJoueursInput.value = jeu.max_joueurs !== undefined ? jeu.max_joueurs : '';
+        preteCheckbox.checked = jeu.prete === true;
+        preteAInput.value = jeu.prete_a || '';
+        preteAInput.style.display = preteCheckbox.checked ? 'block' : 'none';
+        emprunteCheckbox.checked = jeu.emprunte === true;
+        emprunteAInput.value = jeu.emprunte_a || '';
+        emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
+        formAjout.querySelector('button[type="submit"]').textContent = 'Modifier le jeu';
+        modal.style.display = 'flex';
+    }
+
+    // Recherche dynamique par texte (inchangée)
+    inputRecherche.addEventListener('input', () => {
+        currentAlphaFilter = '';
+        document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
+        const allBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
+        if (allBtn) allBtn.classList.add('active');
+        currentPlayerFilter = 0;
+        document.querySelectorAll('.player-filter-btn').forEach(b => b.classList.remove('active'));
+        const allPlayersBtn = document.querySelector('.player-filter-btn[data-filter-players="0"]');
+        if (allPlayersBtn) allPlayersBtn.classList.add('active');
+        afficherListeJeux();
+    });
+
+    // Initialisation de la page
+    document.addEventListener('DOMContentLoaded', async () => {
+        generateAlphaFilters();
+        generatePlayerFilters();
+        await chargerEtAfficherJeux();
+    });
+
+    // Re-rafraîchir les données si la page est de nouveau visible
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        await chargerEtAfficherJeux();
+      }
+    });
+
+  </script>
+
+  <script>
+    // Service Worker (inchangé)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
+    }
+  </script>
+</body>
+</html>

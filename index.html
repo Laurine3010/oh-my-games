@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <title>Oh My Games</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1>Oh My Games</h1>
+    <h2>Que la partie commence!</h2>
+    <img src="img_jeux.png" alt="Fond" class="background-image">
+
+    <div class="buttons-container">
+        <button class="btn-jeux" onclick="location.href='jeux.html'">&#127919; Jeux</button>
+        <button class="btn-joueurs" onclick="location.href='joueurs.html'">&#128100; Joueurs</button>
+        <button class="btn-parties" onclick="location.href='parties.html'">&#127942; Parties</button>
+    </div>
+
+    <div class="dashboard-section">
+        <div class="stats-overview">
+            <div class="stat-card">
+                <h3>Total Jeux</h3>
+                <p id="total-jeux">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Jeux Prêtés</h3>
+                <p id="jeux-pretes">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Parties</h3>
+                <p id="total-parties">0</p>
+            </div>
+        </div>
+
+        <div class="recent-games-section">
+            <h3>Dernières Parties Jouées</h3>
+            <div id="recent-games-list">
+                <p class="no-recent-games">Aucune partie récente enregistrée.</p>
+            </div>
+            <button class="btn-goto-parties" onclick="location.href='parties.html'">Voir toutes les parties</button>
+        </div>
+    </div>
+
+    <script type="module">
+        console.log("Script index.html chargé.");
+
+        // --- NOUVEAU : Importation du client Supabase ---
+        import { supabase } from './supabase-config.js';
+
+        // --- NOUVEAU : Fonctions de communication avec Supabase ---
+
+        async function chargerJeux() {
+            try {
+                // Requête pour tous les jeux
+                const { data, error } = await supabase.from('jeux').select('*');
+                if (error) throw error;
+                return data;
+            } catch (error) {
+                console.error("Erreur lors du chargement des jeux:", error);
+                return [];
+            }
+        }
+
+        async function chargerParties() {
+            try {
+                // Requête pour toutes les parties
+                const { data, error } = await supabase.from('parties').select('*');
+                if (error) throw error;
+                return data;
+            } catch (error) {
+                console.error("Erreur lors du chargement des parties:", error);
+                return [];
+            }
+        }
+
+        // --- Fonction pour afficher les statistiques et les dernières parties ---
+
+        async function loadDashboardData() {
+            console.log("Chargement des données du tableau de bord depuis Supabase...");
+
+            // Récupérer les données depuis Supabase
+            const jeux = await chargerJeux();
+            const parties = await chargerParties();
+
+            // 1. Nombre total de jeux
+            const totalJeuxElement = document.getElementById('total-jeux');
+            if (totalJeuxElement) {
+                totalJeuxElement.textContent = jeux.length;
+                console.log("Total Jeux:", jeux.length);
+            }
+
+            // 2. Nombre de jeux prêtés
+            const jeuxPretes = jeux.filter(jeu => jeu.prete === true).length;
+            const jeuxPretesElement = document.getElementById('jeux-pretes');
+            if (jeuxPretesElement) {
+                jeuxPretesElement.textContent = jeuxPretes;
+                console.log("Jeux Prêtés:", jeuxPretes);
+            }
+
+            // 3. Nombre total de parties
+            const totalPartiesElement = document.getElementById('total-parties');
+            if (totalPartiesElement) {
+                totalPartiesElement.textContent = parties.length;
+                console.log("Total Parties:", parties.length);
+            }
+
+            // 4. Dernières Parties Jouées
+            const recentGamesList = document.getElementById('recent-games-list');
+            if (recentGamesList) {
+                recentGamesList.innerHTML = '';
+
+                const partiesTriees = [...parties].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                const maxRecentGames = 5;
+                if (partiesTriees.length > 0) {
+                    for (let i = 0; i < Math.min(partiesTriees.length, maxRecentGames); i++) {
+                        const partie = partiesTriees[i];
+                        const gameItem = document.createElement('div');
+                        gameItem.className = 'recent-game-item';
+
+                        const dateObj = new Date(partie.date);
+                        const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+
+                        let gagnantInfo = '';
+                        if (partie.gagnant && String(partie.gagnant).trim() !== '') {
+                            gagnantInfo = ` (Gagnant : <strong>${partie.gagnant}</strong>)`;
+                        }
+
+                        gameItem.innerHTML = `
+                            <div>
+                                <strong>${partie.nom_jeu}</strong>${gagnantInfo}
+                            </div>
+                            <span class="date">${formattedDate}</span>
+                        `;
+                        recentGamesList.appendChild(gameItem);
+                    }
+                } else {
+                    recentGamesList.innerHTML = '<p class="no-recent-games">Aucune partie récente enregistrée.</p>';
+                }
+                console.log("Parties récentes affichées.");
+            }
+        }
+
+        // Appel de la fonction de chargement au chargement de la page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardData();
+        });
+
+        // Recharger les données quand la page redevient visible
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                loadDashboardData();
+            }
+        });
+    </script>
+
+</body>
+</html>
