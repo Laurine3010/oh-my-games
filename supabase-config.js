@@ -1,7 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// Remplacez ces valeurs par les vôtres, trouvées dans les paramètres de votre projet Supabase.
+// Remplacez les valeurs ci-dessous par les clés de votre propre projet Supabase.
 const supabaseUrl = 'https://zisovayuryzrkpmzqu1.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWYtYmxvY2siOiJ6aXNvdmF5dXJ5enJrcG16cXVsaCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzE2NDk2MzY1LCJleHAiOjE3NDgwMzIzNjV9.yJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWYtYmxvY2siOiJ6aXNvdmF5dXJ5enJrcG16cXVsaCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzE2NDk2MzY1LCJleHAiOjE3NDgwMzIzNjV9';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inppc292YXl1cnp5cmtwbXpxY3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4MzExNTUsImV4cCI6MjA3MDQwNzE1NX0.IS40LYSsLzaL-It1ypRZsvgrifb5vhxMsin5y5nnstk'; 
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
