@@ -70,7 +70,7 @@
 
     let jeux = [];
     let parties = [];
-    const photosBucket = 'jeu-photos'; // Nom du bucket dans Supabase Storage
+    const photosBucket = 'jeu-photos';
 
     const modal = document.getElementById('modal-ajout');
     const btnAdd = document.querySelector('.btn-add');
@@ -96,7 +96,7 @@
     let currentAlphaFilter = '';
     let currentPlayerFilter = 0;
 
-    // --- NOUVELLES FONCTIONS DE GESTION DES PHOTOS AVEC SUPABASE STORAGE ---
+    // --- Fonctions de gestion des photos avec Supabase Storage ---
     async function uploaderPhotos(photosFiles) {
         const photosUrls = [];
         for (const file of photosFiles) {
@@ -121,20 +121,28 @@
         }
         return photosUrls;
     }
+
     async function supprimerPhotos(photosUrls) {
-    // Vérification de sécurité supplémentaire
-    if (!photosUrls || !Array.isArray(photosUrls) || photosUrls.length === 0) return;
-    const filePaths = photosUrls.map(url => {
-        const pathSegments = url.split('/');
-        const publicIndex = pathSegments.indexOf('public');
-        return pathSegments.slice(publicIndex).join('/');
-    });
-    
-    const { data, error } = await supabase.storage.from(photosBucket).remove(filePaths);
-    if (error) {
-        console.error("Erreur lors de la suppression des images du storage:", error);
+        if (!photosUrls || !Array.isArray(photosUrls) || photosUrls.length === 0) return;
+        
+        const filePaths = photosUrls.map(url => {
+            const pathSegments = url.split('/');
+            const publicIndex = pathSegments.indexOf('public');
+            if (publicIndex !== -1) {
+                return pathSegments.slice(publicIndex).join('/');
+            }
+            return null;
+        }).filter(path => path !== null);
+
+        if (filePaths.length === 0) return;
+
+        const { data, error } = await supabase.storage.from(photosBucket).remove(filePaths);
+        if (error) {
+            console.error("Erreur lors de la suppression des images du storage:", error);
+        }
     }
-}
+
+    // --- Fonctions de gestion des jeux ---
     async function chargerJeux() {
         try {
             const { data, error } = await supabase.from('jeux').select('*');
@@ -181,10 +189,10 @@
             return { success: false, error };
         }
     }
+
     async function supprimerJeu(id) {
         try {
             const jeuASupprimer = jeux.find(j => j.id === id);
-            // Vérification de sécurité : s'assurer que jeuASupprimer.photos est un tableau avant de l'utiliser
             if (jeuASupprimer && Array.isArray(jeuASupprimer.photos) && jeuASupprimer.photos.length > 0) {
                 await supprimerPhotos(jeuASupprimer.photos);
             }
@@ -198,6 +206,7 @@
         }
     }
 
+    // --- Listeners et fonctions d'affichage ---
     preteCheckbox.addEventListener('change', () => {
         preteAInput.style.display = preteCheckbox.checked ? 'block' : 'none';
         if (!preteCheckbox.checked) {
@@ -260,7 +269,7 @@
             photosUrls = await uploaderPhotos(photosFiles);
         } else if (id) {
             const jeuExistant = jeux.find(j => j.id === id);
-            photosUrls = jeuExistant.photos || [];
+            photosUrls = (jeuExistant && jeuExistant.photos) || [];
         }
 
         const jeuData = {
