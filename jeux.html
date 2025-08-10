@@ -496,6 +496,7 @@
             const btnModifier = document.createElement('button');
             btnModifier.className = 'btn-card btn-modifier';
             btnModifier.textContent = '✏️ Modifier';
+            // CORRECTION: Ajout de l'événement click
             btnModifier.addEventListener('click', () => {
                 ouvrirModaleModifier(jeu.id);
             });
