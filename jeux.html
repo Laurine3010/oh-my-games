@@ -121,20 +121,20 @@
         }
         return photosUrls;
     }
-    
     async function supprimerPhotos(photosUrls) {
-        if (!photosUrls || photosUrls.length === 0) return;
-        const fileNames = photosUrls.map(url => {
-            const parts = url.split('/');
-            return parts[parts.length - 1];
-        });
-        const { data, error } = await supabase.storage.from(photosBucket).remove(fileNames);
-        if (error) {
-            console.error("Erreur lors de la suppression des images du storage:", error);
-        }
+    // Vérification de sécurité supplémentaire
+    if (!photosUrls || !Array.isArray(photosUrls) || photosUrls.length === 0) return;
+    const filePaths = photosUrls.map(url => {
+        const pathSegments = url.split('/');
+        const publicIndex = pathSegments.indexOf('public');
+        return pathSegments.slice(publicIndex).join('/');
+    });
+    
+    const { data, error } = await supabase.storage.from(photosBucket).remove(filePaths);
+    if (error) {
+        console.error("Erreur lors de la suppression des images du storage:", error);
     }
-    // --- FIN NOUVELLES FONCTIONS DE GESTION DES PHOTOS ---
-
+}
     async function chargerJeux() {
         try {
             const { data, error } = await supabase.from('jeux').select('*');
@@ -181,11 +181,11 @@
             return { success: false, error };
         }
     }
-
     async function supprimerJeu(id) {
         try {
             const jeuASupprimer = jeux.find(j => j.id === id);
-            if (jeuASupprimer && jeuASupprimer.photos && jeuASupprimer.photos.length > 0) {
+            // Vérification de sécurité : s'assurer que jeuASupprimer.photos est un tableau avant de l'utiliser
+            if (jeuASupprimer && Array.isArray(jeuASupprimer.photos) && jeuASupprimer.photos.length > 0) {
                 await supprimerPhotos(jeuASupprimer.photos);
             }
             const { error } = await supabase.from('jeux').delete().eq('id', id);
