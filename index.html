@@ -36,7 +36,7 @@
         <div class="recent-games-section">
             <h3>Dernières Parties Jouées</h3>
             <div id="recent-games-list">
-                <p class="no-recent-games">Aucune partie récente enregistrée.</p>
+                <p class="no-recent-games">Chargement en cours...</p>
             </div>
             <button class="btn-goto-parties" onclick="location.href='parties.html'">Voir toutes les parties</button>
         </div>
@@ -45,33 +45,26 @@
     <script type="module">
         console.log("Script index.html chargé.");
 
-        // --- NOUVEAU : Importation du client Supabase ---
         import { supabase } from './supabase-config.js';
 
-        // --- NOUVEAU : Fonctions de communication avec Supabase ---
+        // --- Fonctions de communication avec Supabase (légèrement modifiées pour la robustesse) ---
 
         async function chargerJeux() {
-            try {
-                // Requête pour tous les jeux
-                const { data, error } = await supabase.from('jeux').select('*');
-                if (error) throw error;
-                return data;
-            } catch (error) {
+            const { data, error } = await supabase.from('jeux').select('*');
+            if (error) {
                 console.error("Erreur lors du chargement des jeux:", error);
-                return [];
+                return null;
             }
+            return data;
         }
 
         async function chargerParties() {
-            try {
-                // Requête pour toutes les parties
-                const { data, error } = await supabase.from('parties').select('*');
-                if (error) throw error;
-                return data;
-            } catch (error) {
+            const { data, error } = await supabase.from('parties').select('*');
+            if (error) {
                 console.error("Erreur lors du chargement des parties:", error);
-                return [];
+                return null;
             }
+            return data;
         }
 
         // --- Fonction pour afficher les statistiques et les dernières parties ---
@@ -79,40 +72,39 @@
         async function loadDashboardData() {
             console.log("Chargement des données du tableau de bord depuis Supabase...");
 
-            // Récupérer les données depuis Supabase
-            const jeux = await chargerJeux();
-            const parties = await chargerParties();
-
-            // 1. Nombre total de jeux
             const totalJeuxElement = document.getElementById('total-jeux');
-            if (totalJeuxElement) {
-                totalJeuxElement.textContent = jeux.length;
-                console.log("Total Jeux:", jeux.length);
-            }
-
-            // 2. Nombre de jeux prêtés
-            const jeuxPretes = jeux.filter(jeu => jeu.prete === true).length;
             const jeuxPretesElement = document.getElementById('jeux-pretes');
-            if (jeuxPretesElement) {
-                jeuxPretesElement.textContent = jeuxPretes;
-                console.log("Jeux Prêtés:", jeuxPretes);
-            }
-
-            // 3. Nombre total de parties
             const totalPartiesElement = document.getElementById('total-parties');
-            if (totalPartiesElement) {
-                totalPartiesElement.textContent = parties.length;
-                console.log("Total Parties:", parties.length);
+            const recentGamesList = document.getElementById('recent-games-list');
+
+            // Afficher un état de chargement initial
+            if (recentGamesList) {
+                recentGamesList.innerHTML = '<p class="no-recent-games">Chargement en cours...</p>';
             }
 
-            // 4. Dernières Parties Jouées
-            const recentGamesList = document.getElementById('recent-games-list');
-            if (recentGamesList) {
+            const [jeux, parties] = await Promise.all([chargerJeux(), chargerParties()]);
+
+            // Gérer les cas où les requêtes échouent
+            if (!jeux) {
+                totalJeuxElement.textContent = "Erreur";
+                jeuxPretesElement.textContent = "Erreur";
+            } else {
+                totalJeuxElement.textContent = jeux.length;
+                const jeuxPretes = jeux.filter(jeu => jeu.prete === true).length;
+                jeuxPretesElement.textContent = jeuxPretes;
+            }
+
+            if (!parties) {
+                totalPartiesElement.textContent = "Erreur";
+                recentGamesList.innerHTML = '<p class="no-recent-games">Impossible de charger les parties.</p>';
+            } else {
+                totalPartiesElement.textContent = parties.length;
+
+                // Affichage des dernières parties
                 recentGamesList.innerHTML = '';
-
                 const partiesTriees = [...parties].sort((a, b) => new Date(b.date) - new Date(a.date));
-
                 const maxRecentGames = 5;
+
                 if (partiesTriees.length > 0) {
                     for (let i = 0; i < Math.min(partiesTriees.length, maxRecentGames); i++) {
                         const partie = partiesTriees[i];
@@ -126,10 +118,9 @@
                             day: 'numeric'
                         });
 
-                        let gagnantInfo = '';
-                        if (partie.gagnant && String(partie.gagnant).trim() !== '') {
-                            gagnantInfo = ` (Gagnant : <strong>${partie.gagnant}</strong>)`;
-                        }
+                        const gagnantInfo = (partie.gagnant && String(partie.gagnant).trim() !== '') ?
+                            ` (Gagnant : <strong>${partie.gagnant}</strong>)` :
+                            '';
 
                         gameItem.innerHTML = `
                             <div>
@@ -142,14 +133,12 @@
                 } else {
                     recentGamesList.innerHTML = '<p class="no-recent-games">Aucune partie récente enregistrée.</p>';
                 }
-                console.log("Parties récentes affichées.");
             }
+            console.log("Données du tableau de bord mises à jour.");
         }
 
         // Appel de la fonction de chargement au chargement de la page
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDashboardData();
-        });
+        document.addEventListener('DOMContentLoaded', loadDashboardData);
 
         // Recharger les données quand la page redevient visible
         document.addEventListener('visibilitychange', () => {
@@ -158,6 +147,5 @@
             }
         });
     </script>
-
 </body>
 </html>

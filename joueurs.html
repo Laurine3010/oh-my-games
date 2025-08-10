@@ -36,13 +36,11 @@
   <script type="module">
     console.log("Script joueurs.html chargé.");
 
-    // --- NOUVEAU : Importation du client Supabase ---
     import { supabase } from './supabase-config.js';
 
     let joueurs = [];
     let parties = [];
 
-    // Références DOM (inchangées)
     const modal = document.getElementById('modal-ajout');
     const btnAdd = document.querySelector('.btn-add');
     const btnFermer = document.getElementById('btn-fermer');
@@ -51,7 +49,8 @@
     const nomJoueurInput = document.getElementById('nom-joueur');
     const listeJoueursConteneur = document.getElementById('liste-joueurs');
 
-    // --- NOUVEAU : Fonctions de communication avec Supabase ---
+    // --- Fonctions de communication avec Supabase ---
+
     async function chargerJoueurs() {
         try {
             const { data, error } = await supabase.from('joueurs').select('*');
@@ -101,6 +100,16 @@
 
     async function supprimerJoueur(id) {
         try {
+            // Vérifier si le joueur existe dans des parties
+            const joueurASupprimer = joueurs.find(j => j.id === id);
+            if (joueurASupprimer) {
+                const partiesAssociees = parties.filter(p => p.joueurs.includes(joueurASupprimer.nom) || p.gagnant === joueurASupprimer.nom);
+                if (partiesAssociees.length > 0) {
+                    alert('Ce joueur ne peut pas être supprimé car il a participé à des parties. Veuillez d\'abord modifier ou supprimer ces parties.');
+                    return { success: false, error: new Error('Joueur associé à des parties.') };
+                }
+            }
+
             const { error } = await supabase.from('joueurs').delete().eq('id', id);
             if (error) throw error;
             return { success: true };
@@ -111,7 +120,7 @@
         }
     }
 
-    // --- Gestion de la modale et du formulaire (inchangée) ---
+    // --- Gestion de la modale et du formulaire ---
 
     btnAdd.addEventListener('click', () => {
         formAjout.reset();
@@ -165,7 +174,23 @@
       }
     });
 
-    // --- Fonction d'affichage des joueurs (optimisée) ---
+    // --- Fonction d'affichage des joueurs (corrigée et optimisée) ---
+
+    function calculerStatsJoueur(nomJoueur, parties) {
+        let partiesJouees = 0;
+        let partiesGagnees = 0;
+
+        parties.forEach(partie => {
+            if (partie.joueurs.includes(nomJoueur)) {
+                partiesJouees++;
+            }
+            if (partie.gagnant === nomJoueur) {
+                partiesGagnees++;
+            }
+        });
+
+        return { partiesJouees, partiesGagnees };
+    }
 
     async function chargerEtAfficherJoueurs() {
         console.log("Chargement et affichage des joueurs depuis Supabase...");
@@ -197,11 +222,8 @@
             nomSpan.style.cursor = 'pointer';
             nomSpan.style.flexGrow = '1';
 
-            // Utilisation des propriétés 'parties_jouees' et 'parties_gagnees' du joueur
-            // Si la logique de mise à jour des stats est déjà dans parties.html, on peut les réutiliser ici
-            const partiesJouees = joueur.parties_jouees || 0;
-            const partiesGagnees = joueur.parties_gagnees || 0;
-
+            const stats = calculerStatsJoueur(joueur.nom, parties);
+            
             nomSpan.addEventListener('click', () => {
                 document.querySelectorAll('.joueur-details').forEach(fiche => {
                     if (fiche.previousSibling !== divJoueur) {
@@ -223,11 +245,11 @@
                 details.style.backgroundColor = 'rgba(0, 122, 204, 0.1)';
 
                 const pPartiesJouees = document.createElement('p');
-                pPartiesJouees.textContent = `Parties jouées : ${partiesJouees}`;
+                pPartiesJouees.textContent = `Parties jouées : ${stats.partiesJouees}`;
                 details.appendChild(pPartiesJouees);
 
-                const ratio = partiesJouees > 0
-                    ? `${((partiesGagnees / partiesJouees) * 100).toFixed(1)} %`
+                const ratio = stats.partiesJouees > 0
+                    ? `${((stats.partiesGagnees / stats.partiesJouees) * 100).toFixed(1)} %`
                     : 'Aucune partie jouée';
 
                 const pRatio = document.createElement('p');
@@ -277,7 +299,6 @@
         });
     }
 
-    // Pré-remplir la modale pour modification (inchangée)
     function ouvrirModaleModifier(id) {
         const joueur = joueurs.find(j => j.id === id);
         if (!joueur) {
@@ -290,12 +311,10 @@
         modal.style.display = 'flex';
     }
 
-    // Chargement initial au chargement de la page
     document.addEventListener('DOMContentLoaded', async () => {
         await chargerEtAfficherJoueurs();
     });
 
-    // Re-charger les données si la page est de nouveau visible
     document.addEventListener('visibilitychange', async () => {
       if (document.visibilityState === 'visible') {
         await chargerEtAfficherJoueurs();

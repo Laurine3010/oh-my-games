@@ -112,7 +112,6 @@
   <script type="module">
     console.log("Script parties.html chargé.");
 
-    // --- NOUVEAU : Importation du client Supabase ---
     import { supabase } from './supabase-config.js';
 
     let joueurs = [];
@@ -123,6 +122,7 @@
     const jeuSelect = document.getElementById('jeu-select');
     const joueursParticipationDiv = document.getElementById('liste-joueurs-participation');
     const vainqueursDiv = document.getElementById('liste-vainqueurs');
+    const formPartie = document.getElementById('form-partie');
 
     // DOM References - Filters & Table
     const filtreJeu = document.getElementById('filtre-jeu');
@@ -138,7 +138,7 @@
     const editListeVainqueurs = document.getElementById('edit-liste-vainqueurs');
     const btnAnnulerEdition = document.getElementById('btn-annuler-edition');
 
-    // --- NOUVEAU : Fonctions de communication avec Supabase ---
+    // --- Fonctions de communication avec Supabase ---
 
     async function chargerJeux() {
         try {
@@ -209,31 +209,28 @@
       }
     }
     
-    // --- Helper Functions to Populate Forms/Filters (inchangées) ---
+    // --- Helper Functions to Populate Forms/Filters (corrigé) ---
 
     function remplirSelect(selectElem, optionsArray, valeurVide = true, allText = 'Tous') {
       selectElem.innerHTML = '';
       if (valeurVide) {
         const option = document.createElement('option');
         option.value = '';
-        option.textContent = `${allText} ${selectElem === filtreJeu || selectElem === editJeuSelect ? 'les jeux' : 'les joueurs'}`;
+        option.textContent = `${allText} ${selectElem === filtreJeu ? 'les jeux' : 'les joueurs'}`;
         selectElem.appendChild(option);
       }
       optionsArray.forEach(opt => {
-        const option = document.createElement('option');
         const value = opt.nom || opt;
         const textContent = opt.nom || opt;
-        const existingOption = Array.from(selectElem.options).find(o => o.value === value);
-        if (!existingOption) {
-          const newOption = document.createElement('option');
-          newOption.value = value;
-          newOption.textContent = textContent;
-          selectElem.appendChild(newOption);
-        }
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = textContent;
+        selectElem.appendChild(option);
       });
     }
 
-    function afficherJoueursCheckboxesAndRadios(targetDivCheckboxes, targetDivRadios, currentPlayers = [], currentWinner = '') {
+    // Fonction corrigée avec des noms de radio et de checkbox uniques pour chaque formulaire
+    function afficherJoueursCheckboxesAndRadios(targetDivCheckboxes, targetDivRadios, namePrefix, currentPlayers = [], currentWinner = '') {
       targetDivCheckboxes.innerHTML = '';
       targetDivRadios.innerHTML = '';
       if (joueurs.length === 0) {
@@ -241,26 +238,35 @@
         return;
       }
       joueurs.forEach(joueur => {
+        // Checkbox
+        const checkboxId = `${namePrefix}-part-joueur-${joueur.id}`;
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.name = `${targetDivCheckboxes.id}-joueurs-participation`;
+        checkbox.name = `${namePrefix}-joueurs-participation`;
         checkbox.value = joueur.nom;
-        checkbox.id = `${targetDivCheckboxes.id}-part-joueur-${joueur.id}`;
+        checkbox.id = checkboxId;
         if (Array.isArray(currentPlayers) && currentPlayers.includes(joueur.nom)) checkbox.checked = true;
         const label = document.createElement('label');
-        label.htmlFor = checkbox.id;
+        label.htmlFor = checkboxId;
         label.textContent = joueur.nom;
         targetDivCheckboxes.appendChild(checkbox);
         targetDivCheckboxes.appendChild(label);
         targetDivCheckboxes.appendChild(document.createElement('br'));
+
+        // Radio button
+        const radioId = `${namePrefix}-vainqueur-${joueur.id}`;
         const radio = document.createElement('input');
         radio.type = 'radio';
-        radio.name = `${targetDivRadios.id}-vainqueur-radio`;
+        radio.name = `${namePrefix}-vainqueur-radio`;
         radio.value = joueur.nom;
-        radio.id = `${targetDivRadios.id}-vainqueur-${joueur.id}`;
-        if (joueur.nom === currentWinner) radio.checked = true;
+        radio.id = radioId;
+        // On ne coche le radio que si le joueur fait partie de la partie et est le vainqueur
+        if (Array.isArray(currentPlayers) && currentPlayers.includes(joueur.nom) && joueur.nom === currentWinner) {
+            radio.checked = true;
+        }
+        
         const labelRadio = document.createElement('label');
-        labelRadio.htmlFor = radio.id;
+        labelRadio.htmlFor = radioId;
         labelRadio.textContent = joueur.nom;
         targetDivRadios.appendChild(radio);
         targetDivRadios.appendChild(labelRadio);
@@ -279,13 +285,14 @@
         remplirSelect(jeuSelect, jeux, false);
         remplirSelect(filtreJeu, jeux, true, 'Tous');
         remplirSelect(filtreJoueur, joueurs, true, 'Tous');
-        afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv);
+        // Utilisation d'un préfixe pour différencier les formulaires
+        afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv, 'new-partie');
         remplirSelect(editJeuSelect, jeux, false);
 
         afficherParties();
     }
 
-    // --- Display Parties History (inchangée dans sa logique de filtrage et d'affichage) ---
+    // --- Display Parties History ---
 
     function afficherParties() {
       tbodyParties.innerHTML = '';
@@ -308,8 +315,9 @@
         const date = new Date(p.date);
         tr.innerHTML = `
           <td>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</td>
-          <td>${p.nom_jeu}</td> <td>${Array.isArray(p.joueurs) ? p.joueurs.join(', ') : p.joueurs}</td>
-          <td>${p.gagnant}</td>
+          <td>${p.nom_jeu}</td> 
+          <td>${Array.isArray(p.joueurs) ? p.joueurs.join(', ') : ''}</td>
+          <td>${p.gagnant || 'N/A'}</td>
           <td>
             <button class="btn-modifier" data-partie-id="${p.id}">✏️</button>
             <button class="btn-supprimer" data-partie-id="${p.id}">🗑️</button>
@@ -319,16 +327,17 @@
       });
     }
 
-    // --- Event Listeners for Filters (inchangés) ---
+    // --- Event Listeners for Filters ---
     filtreJeu.addEventListener('change', afficherParties);
     filtreJoueur.addEventListener('change', afficherParties);
 
-    // --- New Party Submission ---
-    document.getElementById('form-partie').addEventListener('submit', async function (e) {
+    // --- New Party Submission (corrigé) ---
+    formPartie.addEventListener('submit', async function (e) {
       e.preventDefault();
       const nomJeu = jeuSelect.value;
-      const joueursPartie = [...document.querySelectorAll('#liste-joueurs-participation input[name="liste-joueurs-participation-joueurs-participation"]:checked')].map(j => j.value);
-      const vainqueur = document.querySelector('#liste-vainqueurs input[name="liste-vainqueurs-vainqueur-radio"]:checked')?.value;
+      const joueursPartie = [...document.querySelectorAll('#liste-joueurs-participation input[name="new-partie-joueurs-participation"]:checked')].map(j => j.value);
+      const vainqueur = document.querySelector('#liste-vainqueurs input[name="new-partie-vainqueur-radio"]:checked')?.value;
+      
       if (!nomJeu) {
           alert("Veuillez sélectionner un jeu.");
           return;
@@ -341,17 +350,19 @@
         alert("Le vainqueur doit faire partie des joueurs sélectionnés.");
         return;
       }
+      
       const nouvellePartie = {
         date: new Date().toISOString(),
         nom_jeu: nomJeu,
         joueurs: joueursPartie,
         gagnant: vainqueur,
       };
+      
       const result = await ajouterPartie(nouvellePartie);
       if (result.success) {
           alert("Partie enregistrée !");
           this.reset();
-          afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv);
+          afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv, 'new-partie');
           await chargerEtAfficherToutesLesDonnees();
       } else {
           console.error('Erreur lors de l\'enregistrement de la partie:', result.error);
@@ -378,7 +389,7 @@
       }
     });
 
-    // --- Edit Form Logic ---
+    // --- Edit Form Logic (corrigé) ---
     function ouvrirEdition(partieId) {
       const partie = parties.find(p => p.id === partieId);
       if (!partie) {
@@ -388,7 +399,8 @@
       }
       partieIdEditionInput.value = partie.id;
       editJeuSelect.value = partie.nom_jeu;
-      afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, partie.joueurs, partie.gagnant);
+      // Utilisation d'un préfixe pour différencier les formulaires
+      afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, 'edit-partie', partie.joueurs, partie.gagnant);
       editionSection.style.display = 'block';
       editionSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -401,8 +413,10 @@
           return;
       }
       const nomJeu = editJeuSelect.value;
-      const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-liste-joueurs-participation-joueurs-participation"]:checked')].map(j => j.value);
-      const vainqueur = document.querySelector('#edit-liste-vainqueurs input[name="edit-liste-vainqueurs-vainqueur-radio"]:checked')?.value;
+      // Utilisation du bon nom d'attribut pour la sélection
+      const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-partie-joueurs-participation"]:checked')].map(j => j.value);
+      const vainqueur = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
+      
       if (!nomJeu) {
           alert("Veuillez sélectionner un jeu.");
           return;
@@ -415,11 +429,13 @@
         alert("Le vainqueur doit faire partie des joueurs sélectionnés.");
         return;
       }
+      
       const partieModifiee = {
           nom_jeu: nomJeu,
           joueurs: joueursSelectionnes,
           gagnant: vainqueur,
       };
+      
       const result = await modifierPartie(partieId, partieModifiee);
       if (result.success) {
           alert("Partie modifiée !");
