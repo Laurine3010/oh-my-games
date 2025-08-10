@@ -17,9 +17,6 @@
   <div id="alpha-filter-container">
   </div>
 
-  <div id="player-filter-container" style="margin-top: 15px; margin-bottom: 15px;">
-  </div>
-
   <input type="text" id="recherche-jeux" placeholder="🔍 Rechercher un jeu..." />
 
   <div id="liste-jeux">
@@ -79,7 +76,6 @@
     const listeJeux = document.getElementById('liste-jeux');
     const inputRecherche = document.getElementById('recherche-jeux');
     const alphaFilterContainer = document.getElementById('alpha-filter-container');
-    const playerFilterContainer = document.getElementById('player-filter-container');
 
     const jeuIdInput = document.getElementById('jeu-id');
     const nomJeuInput = document.getElementById('nom-jeu');
@@ -94,7 +90,6 @@
     const photosPreviewDiv = document.getElementById('photos-preview');
 
     let currentAlphaFilter = '';
-    let currentPlayerFilter = 0;
 
     // --- Fonctions de gestion des photos avec Supabase Storage ---
     async function uploaderPhotos(photosFiles) {
@@ -324,49 +319,6 @@
                 e.target.classList.add('active');
                 currentAlphaFilter = e.target.getAttribute('data-filter');
                 inputRecherche.value = '';
-                currentPlayerFilter = 0;
-                document.querySelectorAll('.player-filter-btn').forEach(b => b.classList.remove('active'));
-                const allPlayersBtn = document.querySelector('.player-filter-btn[data-filter-players="0"]');
-                if (allPlayersBtn) allPlayersBtn.classList.add('active');
-                afficherListeJeux();
-            }
-        });
-    }
-
-    function generatePlayerFilters() {
-        playerFilterContainer.innerHTML = '';
-        const allPlayersBtn = document.createElement('button');
-        allPlayersBtn.className = 'player-filter-btn';
-        if (currentPlayerFilter === 0) allPlayersBtn.classList.add('active');
-        allPlayersBtn.innerHTML = 'Tout';
-        allPlayersBtn.setAttribute('data-filter-players', 0);
-        playerFilterContainer.appendChild(allPlayersBtn);
-        for (let i = 1; i <= 4; i++) {
-            const btn = document.createElement('button');
-            btn.className = 'player-filter-btn';
-            if (currentPlayerFilter === i) btn.classList.add('active');
-            btn.innerHTML = `${'&#128100;'.repeat(i)}`;
-            btn.setAttribute('data-filter-players', i);
-            playerFilterContainer.appendChild(btn);
-        }
-        const plus4Btn = document.createElement('button');
-        plus4Btn.className = 'player-filter-btn';
-        if (currentPlayerFilter === 5) plus4Btn.classList.add('active');
-        plus4Btn.innerHTML = `${'&#128100;'.repeat(4)}+`;
-        plus4Btn.setAttribute('data-filter-players', 5);
-        playerFilterContainer.appendChild(plus4Btn);
-        playerFilterContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('player-filter-btn') || e.target.closest('.player-filter-btn')) {
-                const clickedBtn = e.target.closest('.player-filter-btn');
-                if (!clickedBtn) return;
-                document.querySelectorAll('.player-filter-btn').forEach(b => b.classList.remove('active'));
-                clickedBtn.classList.add('active');
-                currentPlayerFilter = Number(clickedBtn.getAttribute('data-filter-players'));
-                inputRecherche.value = '';
-                currentAlphaFilter = '';
-                document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
-                const allAlphaBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
-                if (allAlphaBtn) allAlphaBtn.classList.add('active');
                 afficherListeJeux();
             }
         });
@@ -384,7 +336,7 @@
         listeJeux.innerHTML = '';
         const filterText = inputRecherche.value.toLowerCase();
         const jeuxTries = [...jeux].sort((a, b) => a.nom.localeCompare(b.nom));
-        if (jeuxTries.length === 0 && !filterText && !currentAlphaFilter && currentPlayerFilter === 0) {
+        if (jeuxTries.length === 0 && !filterText && !currentAlphaFilter) {
             listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu n\'est enregistré. Ajoutez-en un !</p>';
             return;
         }
@@ -394,21 +346,6 @@
             }
             if (currentAlphaFilter && !jeu.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) {
                 return false;
-            }
-            if (currentPlayerFilter > 0) {
-                if (jeu.min_joueurs === undefined || jeu.max_joueurs === undefined ||
-                    isNaN(jeu.min_joueurs) || isNaN(jeu.max_joueurs)) {
-                    return false;
-                }
-                if (currentPlayerFilter <= 4) {
-                    if (currentPlayerFilter > jeu.max_joueurs) {
-                        return false;
-                    }
-                } else if (currentPlayerFilter === 5) {
-                    if (jeu.max_joueurs < 4) {
-                        return false;
-                    }
-                }
             }
             return true;
         });
@@ -496,7 +433,6 @@
             const btnModifier = document.createElement('button');
             btnModifier.className = 'btn-card btn-modifier';
             btnModifier.textContent = '✏️ Modifier';
-            // CORRECTION: Ajout de l'écouteur d'événement pour le clic
             btnModifier.addEventListener('click', () => {
                 ouvrirModaleModifier(jeu.id);
             });
@@ -573,16 +509,11 @@
         document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
         const allBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
         if (allBtn) allBtn.classList.add('active');
-        currentPlayerFilter = 0;
-        document.querySelectorAll('.player-filter-btn').forEach(b => b.classList.remove('active'));
-        const allPlayersBtn = document.querySelector('.player-filter-btn[data-filter-players="0"]');
-        if (allPlayersBtn) allPlayersBtn.classList.add('active');
         afficherListeJeux();
     });
 
     document.addEventListener('DOMContentLoaded', async () => {
         generateAlphaFilters();
-        generatePlayerFilters();
         await chargerEtAfficherJeux();
     });
 
