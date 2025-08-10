@@ -264,7 +264,7 @@
             photosUrls = await uploaderPhotos(photosFiles);
         } else if (id) {
             const jeuExistant = jeux.find(j => j.id === id);
-            photosUrls = (jeuExistant && jeuExistant.photos) || [];
+            photosUrls = (jeuExistant && Array.isArray(jeuExistant.photos)) ? jeuExistant.photos : [];
         }
 
         const jeuData = {
@@ -433,14 +433,16 @@
             const btnModifier = document.createElement('button');
             btnModifier.className = 'btn-card btn-modifier';
             btnModifier.textContent = '✏️ Modifier';
-            btnModifier.addEventListener('click', () => {
+            btnModifier.addEventListener('click', (event) => {
+                event.stopPropagation();
                 ouvrirModaleModifier(jeu.id);
             });
             btns.appendChild(btnModifier);
             const btnSupprimer = document.createElement('button');
             btnSupprimer.className = 'btn-card btn-supprimer';
             btnSupprimer.textContent = '🗑️ Supprimer';
-            btnSupprimer.addEventListener('click', async () => {
+            btnSupprimer.addEventListener('click', async (event) => {
+                event.stopPropagation();
                 if (confirm(`Supprimer le jeu "${jeu.nom}" ?`)) {
                     const result = await supprimerJeu(jeu.id);
                     if (result.success) {
@@ -455,7 +457,8 @@
             const btnParties = document.createElement('button');
             btnParties.className = 'btn-card btn-parties';
             btnParties.textContent = '▶️ Voir parties';
-            btnParties.addEventListener('click', () => {
+            btnParties.addEventListener('click', (event) => {
+                event.stopPropagation();
                 window.location.href = `parties.html?jeu=${encodeURIComponent(jeu.nom)}`;
             });
             btns.appendChild(btnParties);
@@ -485,9 +488,11 @@
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
 
         photosPreviewDiv.innerHTML = '';
-        if (jeu.photos && jeu.photos.length > 0) {
+        // Correction pour s'assurer que jeu.photos est bien un tableau
+        const photos = Array.isArray(jeu.photos) ? jeu.photos : [];
+        if (photos.length > 0) {
             photosPreviewContainer.style.display = 'block';
-            jeu.photos.forEach(url => {
+            photos.forEach(url => {
                 const img = document.createElement('img');
                 img.src = url;
                 img.style.width = '100px';
