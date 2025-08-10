@@ -5,171 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Oh My Games - Jeux</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    /* Styles pour le filtre alphabétique */
-    .alpha-filter-btn, .player-filter-btn {
-      margin: 2px;
-      padding: 5px 10px;
-      border: 1px solid #ddd;
-      background-color: #f0f0f0;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    .alpha-filter-btn.active, .player-filter-btn.active {
-      background-color: #2c3e50;
-      color: white;
-      border-color: #2c3e50;
-    }
-    #recherche-jeux {
-      width: 100%;
-      padding: 10px;
-      margin-top: 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    .jeu-card {
-      position: relative;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      margin: 15px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .jeu-card img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      border-radius: 8px 8px 0 0;
-    }
-    .jeu-content {
-      padding: 15px 0;
-      display: flex;
-      flex-direction: column;
-      flex-grow: 1;
-    }
-    .jeu-content h3 {
-      margin-top: 0;
-      font-size: 1.5em;
-      color: #333;
-    }
-    .infos-complementaires {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-    .infos-complementaires p {
-      margin: 0;
-      font-size: 0.9em;
-      color: #555;
-    }
-    .info-label {
-      font-size: 0.8em;
-      font-weight: bold;
-      color: #aaa;
-      display: block;
-      margin-top: 5px;
-    }
-    .stats {
-      font-size: 0.9em;
-      color: #666;
-      margin-top: auto;
-    }
-    .btns-card {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-    }
-    .btn-card {
-      flex-grow: 1;
-      margin: 0 5px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 0.9em;
-    }
-    .btn-modifier { background-color: #3498db; color: white; }
-    .btn-supprimer { background-color: #e74c3c; color: white; }
-    .btn-parties { background-color: #27ae60; color: white; }
-    .overlay-prete {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: opacity 0.3s ease;
-      z-index: 10;
-    }
-    .overlay-prete .text {
-      color: white;
-      font-size: 1.5em;
-      font-weight: bold;
-      text-align: center;
-      background: rgba(44, 62, 80, 0.8);
-      padding: 10px 20px;
-      border-radius: 5px;
-    }
-    .tag-emprunte {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background-color: #f39c12;
-      color: white;
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-size: 0.8em;
-      font-weight: bold;
-      z-index: 11;
-    }
-    /* Modal styles */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 100;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.4);
-        justify-content: center;
-        align-items: center;
-    }
-    .modal-content {
-        background-color: #fefefe;
-        margin: auto;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 80%;
-        max-width: 600px;
-        border-radius: 10px;
-        position: relative;
-    }
-    .close-button {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-        background: none;
-        border: none;
-        cursor: pointer;
-    }
-    .close-button:hover,
-    .close-button:focus {
-        color: black;
-        text-decoration: none;
-    }
-    </style>
 </head>
 
 <body>
@@ -261,18 +96,27 @@
     let currentAlphaFilter = '';
     let currentPlayerFilter = 0;
 
-    // --- CORRECTION : Gestion de l'upload et de la suppression de photos ---
+    // --- NOUVELLES FONCTIONS DE GESTION DES PHOTOS AVEC SUPABASE STORAGE ---
     async function uploaderPhotos(photosFiles) {
         const photosUrls = [];
         for (const file of photosFiles) {
-            const fileName = `public/${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`;
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const { data, error } = await supabase.storage.from(photosBucket).upload(fileName, file);
+
             if (error) {
                 console.error("Erreur lors de l'upload de l'image:", error);
                 alert(`Erreur lors de l'upload de l'image: ${error.message}`);
                 continue;
             }
-            const { publicUrl } = supabase.storage.from(photosBucket).getPublicUrl(data.path);
+
+            const { publicUrl, error: publicUrlError } = supabase.storage.from(photosBucket).getPublicUrl(data.path);
+            if (publicUrlError) {
+                console.error("Erreur lors de la récupération de l'URL publique:", publicUrlError);
+                alert(`Erreur lors de la récupération de l'URL publique: ${publicUrlError.message}`);
+                continue;
+            }
+
             photosUrls.push(publicUrl);
         }
         return photosUrls;
@@ -280,17 +124,16 @@
     
     async function supprimerPhotos(photosUrls) {
         if (!photosUrls || photosUrls.length === 0) return;
-        const filePaths = photosUrls.map(url => {
-            const pathSegments = url.split('/');
-            const publicIndex = pathSegments.indexOf('public');
-            return pathSegments.slice(publicIndex).join('/');
+        const fileNames = photosUrls.map(url => {
+            const parts = url.split('/');
+            return parts[parts.length - 1];
         });
-        const { error } = await supabase.storage.from(photosBucket).remove(filePaths);
+        const { data, error } = await supabase.storage.from(photosBucket).remove(fileNames);
         if (error) {
             console.error("Erreur lors de la suppression des images du storage:", error);
         }
     }
-    // --- FIN CORRECTION ---
+    // --- FIN NOUVELLES FONCTIONS DE GESTION DES PHOTOS ---
 
     async function chargerJeux() {
         try {
@@ -378,8 +221,6 @@
         emprunteAInput.style.display = 'none';
         photosPreviewContainer.style.display = 'none';
         photosPreviewDiv.innerHTML = '';
-        // CORRECTION : S'assurer que le champ de fichier est réinitialisé pour ne pas conserver les anciens fichiers
-        photosJeuInput.value = null; 
     });
 
     btnFermer.addEventListener('click', () => {
@@ -394,15 +235,16 @@
 
     formAjout.addEventListener('submit', async (e) => {
         e.preventDefault();
+
         const id = jeuIdInput.value;
         const nomJeu = nomJeuInput.value.trim();
         const photosFiles = photosJeuInput.files;
         const minJoueurs = Number(minJoueursInput.value);
         const maxJoueurs = Number(maxJoueursInput.value);
         const prete = preteCheckbox.checked;
-        const preteA = preteCheckbox.checked ? preteAInput.value.trim() : null;
+        const preteA = preteCheckbox.checked ? preteAInput.value.trim() : '';
         const emprunte = emprunteCheckbox.checked;
-        const emprunteA = emprunteCheckbox.checked ? emprunteAInput.value.trim() : null;
+        const emprunteA = emprunteCheckbox.checked ? emprunteAInput.value.trim() : '';
 
         if (!nomJeu) {
             alert('Le nom du jeu est obligatoire.');
@@ -414,20 +256,11 @@
         }
 
         let photosUrls = [];
-        let jeuExistantPhotos = [];
-        if (id) {
-            const jeuExistant = jeux.find(j => j.id === id);
-            jeuExistantPhotos = jeuExistant.photos || [];
-        }
-
         if (photosFiles.length > 0) {
-            // CORRECTION : Suppression des anciennes photos si de nouvelles sont uploadées
-            if (jeuExistantPhotos.length > 0) {
-                await supprimerPhotos(jeuExistantPhotos);
-            }
             photosUrls = await uploaderPhotos(photosFiles);
-        } else {
-            photosUrls = jeuExistantPhotos;
+        } else if (id) {
+            const jeuExistant = jeux.find(j => j.id === id);
+            photosUrls = jeuExistant.photos || [];
         }
 
         const jeuData = {
@@ -456,8 +289,6 @@
             photosJeuInput.value = '';
             preteAInput.style.display = 'none';
             emprunteAInput.style.display = 'none';
-            photosPreviewContainer.style.display = 'none';
-            photosPreviewDiv.innerHTML = '';
         }
     });
 
@@ -560,9 +391,14 @@
                     isNaN(jeu.min_joueurs) || isNaN(jeu.max_joueurs)) {
                     return false;
                 }
-                const numPlayers = currentPlayerFilter <= 4 ? currentPlayerFilter : 4;
-                if (numPlayers < jeu.min_joueurs || numPlayers > jeu.max_joueurs) {
-                    return false;
+                if (currentPlayerFilter <= 4) {
+                    if (currentPlayerFilter > jeu.max_joueurs) {
+                        return false;
+                    }
+                } else if (currentPlayerFilter === 5) {
+                    if (jeu.max_joueurs < 4) {
+                        return false;
+                    }
                 }
             }
             return true;
@@ -605,10 +441,12 @@
             if (jeu.min_joueurs && jeu.max_joueurs && !isNaN(jeu.min_joueurs) && !isNaN(jeu.max_joueurs)) {
                 const joueursIcons = document.createElement('p');
                 let joueursTexte = '';
+                const minEmojis = '&#128100;'.repeat(jeu.min_joueurs);
+                const maxEmojis = '&#128100;'.repeat(jeu.max_joueurs);
                 if (jeu.min_joueurs === jeu.max_joueurs) {
-                    joueursTexte = `${'&#128100;'.repeat(jeu.min_joueurs)}`;
+                    joueursTexte = `${minEmojis}`;
                 } else {
-                    joueursTexte = `${'&#128100;'.repeat(jeu.min_joueurs)} - ${'&#128100;'.repeat(jeu.max_joueurs)}`;
+                    joueursTexte = `${minEmojis} - ${maxEmojis}`;
                 }
                 joueursIcons.innerHTML = `<span>${joueursTexte} (${jeu.min_joueurs}-${jeu.max_joueurs})</span> <span class="info-label">Joueurs</span>`;
                 infosComplementaires.appendChild(joueursIcons);
@@ -700,7 +538,6 @@
         emprunteAInput.value = jeu.emprunte_a || '';
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
 
-        photosJeuInput.value = null; // Important pour ne pas soumettre les fichiers existants
         photosPreviewDiv.innerHTML = '';
         if (jeu.photos && jeu.photos.length > 0) {
             photosPreviewContainer.style.display = 'block';
