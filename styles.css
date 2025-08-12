@@ -852,35 +852,35 @@ tr:hover {
     margin-right: 0;
     display: block;
   }
-  #historique-parties,
-  #modal-content,
-  #fiche-ajout {
-      padding: 15px;
+  
+  thead {
+    display: none;
   }
-  table, thead, tbody, th, td, tr {
+  
+  table, tbody, tr {
     display: block;
+    width: 100%;
   }
-  thead tr {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-  }
+
   tr {
     border: 1px solid #ccc;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     border-radius: 8px;
     overflow: hidden;
   }
+
   td {
     border: none;
     border-bottom: 1px solid #eee;
     position: relative;
     padding-left: 50%;
     text-align: right;
+    display: block;
   }
+  
   td:before {
     position: absolute;
-    left: 6px;
+    left: 10px;
     width: 45%;
     padding-right: 10px;
     white-space: nowrap;
@@ -888,18 +888,21 @@ tr:hover {
     font-weight: bold;
     color: #005f99;
   }
+
   td:nth-of-type(1):before { content: "Date"; }
   td:nth-of-type(2):before { content: "Jeu"; }
   td:nth-of-type(3):before { content: "Joueurs"; }
   td:nth-of-type(4):before { content: "Vainqueur"; }
   td:nth-of-type(5):before { content: "Modifier"; }
   td:nth-of-type(6):before { content: "Supprimer"; }
+  
   td:nth-of-type(5), td:nth-of-type(6) {
     text-align: center;
     display: flex;
     justify-content: center;
-    padding-left: 6px;
+    padding-left: 10px;
   }
+  
   td:nth-of-type(5):before, td:nth-of-type(6):before {
     display: none;
   }
@@ -994,7 +997,6 @@ tr:hover {
     left: 0;
     transform-origin: 100% 100%;
     overflow: hidden;
-    /* Utilisation des variables CSS pour le positionnement */
     transform: rotate(var(--rotation)) skewY(var(--skew));
 }
 
@@ -1002,7 +1004,7 @@ tr:hover {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(calc(90deg + var(--skew)));
+    transform: translate(-50%, -50%) rotate(var(--rotation));
     width: 100%;
     height: 100%;
     font-size: 14px;
