@@ -47,27 +47,27 @@
         if (nombreJeux === 0) return;
         
         const angleParJeu = angleTotal / nombreJeux;
-        // Tableau de couleurs pastels pour la roue
         const couleurs = ['#BEE5E8', '#FFD1DC', '#F0E68C', '#E6E6FA', '#C1E1C1', '#FFC0CB', '#B5EAD7', '#A0CED9', '#F7D6E0', '#D8BFD8']; 
 
         jeux.forEach((jeu, index) => {
             const segment = document.createElement('div');
             const rotation = index * angleParJeu;
             const skew = 90 - angleParJeu;
-            const textRotation = rotation + angleParJeu / 2;
 
             segment.className = 'roue-segment';
             segment.style.backgroundColor = couleurs[index % couleurs.length];
+            // Définir les variables CSS pour la rotation et le skew
             segment.style.setProperty('--rotation', `${rotation}deg`);
             segment.style.setProperty('--skew', `${skew}deg`);
-            
+
             const texteDiv = document.createElement('div');
             texteDiv.className = 'roue-texte';
-            // Utilisation des variables CSS pour le positionnement du texte
-            texteDiv.style.setProperty('--text-rotation', `${textRotation}deg`);
             texteDiv.textContent = jeu;
+            
+            // Appliquer la rotation au texte pour qu'il soit lisible
+            texteDiv.style.transform = `rotate(${angleParJeu / 2}deg)`;
+            
             segment.appendChild(texteDiv);
-
             roue.appendChild(segment);
         });
     }
@@ -82,20 +82,18 @@
         resultatRoue.textContent = "La roue tourne...";
         roue.style.transition = "transform 5s cubic-bezier(0.2, 0.9, 0.4, 1)";
         
-        // Calcule un angle de rotation aléatoire entre 5 et 10 tours
         const deg = Math.floor(5 * 360 + Math.random() * 5 * 360);
         roue.style.transform = `rotate(${deg}deg)`;
 
         roue.addEventListener('transitionend', () => {
             roue.style.transition = 'none';
-            // Correction de la logique pour trouver le jeu gagnant
-            const finalRotation = deg % 360; 
+            const finalRotation = deg % 360;
             const angleParJeu = 360 / jeux.length;
             const indexChoisi = Math.floor((360 - finalRotation) / angleParJeu);
             
-            const jeuChoisi = jeux[indexChoisi];
+            const jeuChoisi = jeux[indexChoisi >= jeux.length ? jeux.length - 1 : indexChoisi];
 
-            resultatRoue.textContent = `Félicitations, vous jouez à "${jeuChoisi}" ! 🎉`;
+            resultatRoue.textContent = `Nous allons jouer à "${jeuChoisi}" ! Que le meilleur gagne !`;
             btnSpin.disabled = false;
         }, { once: true });
     });

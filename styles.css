@@ -662,7 +662,7 @@ form button[type="submit"]:hover {
     padding: 8px 12px;
     font-size: 0.9em;
     cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+    transition: all 0.2s ease-in-out;
     min-width: 40px;
     text-align: center;
     color: #555;
@@ -994,13 +994,15 @@ tr:hover {
     left: 0;
     transform-origin: 100% 100%;
     overflow: hidden;
+    /* Utilisation des variables CSS pour le positionnement */
+    transform: rotate(var(--rotation)) skewY(var(--skew));
 }
 
 .roue-texte {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(var(--text-rotation)); /* Centrage et rotation */
+    transform: translate(-50%, -50%) rotate(var(--rotation));
     width: 100%;
     height: 100%;
     font-size: 14px;
