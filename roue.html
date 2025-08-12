@@ -56,7 +56,6 @@
 
             segment.className = 'roue-segment';
             segment.style.backgroundColor = couleurs[index % couleurs.length];
-            // Définir les variables CSS pour la rotation et le skew
             segment.style.setProperty('--rotation', `${rotation}deg`);
             segment.style.setProperty('--skew', `${skew}deg`);
 
@@ -64,8 +63,7 @@
             texteDiv.className = 'roue-texte';
             texteDiv.textContent = jeu;
             
-            // Appliquer la rotation au texte pour qu'il soit lisible
-            texteDiv.style.transform = `rotate(${angleParJeu / 2}deg)`;
+            // La rotation est maintenant gérée par le CSS
             
             segment.appendChild(texteDiv);
             roue.appendChild(segment);
@@ -93,7 +91,7 @@
             
             const jeuChoisi = jeux[indexChoisi >= jeux.length ? jeux.length - 1 : indexChoisi];
 
-            resultatRoue.textContent = `Nous allons jouer à "${jeuChoisi}" ! Que le meilleur gagne !`;
+            resultatRoue.textContent = `Félicitations, vous jouez à "${jeuChoisi}" ! 🎉`;
             btnSpin.disabled = false;
         }, { once: true });
     });
