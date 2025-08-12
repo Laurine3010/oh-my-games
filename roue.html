@@ -5,96 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Oh My Games - Roue des jeux</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    /* Styles spécifiques pour la roue */
-    #roue-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin-top: 50px;
-    }
-
-    #roue {
-      width: 300px;
-      height: 300px;
-      border-radius: 50%;
-      border: 5px solid #000;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .segment {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      clip-path: polygon(50% 50%, 85% 0, 15% 0);
-      transform-origin: 50% 50%;
-      top: -50%;
-      left: -50%;
-      transform: rotate(var(--rotation)) skewY(calc(90deg - var(--angle)));
-      text-align: center;
-      line-height: 1.5;
-      font-size: 14px;
-      color: white;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    }
-    
-    .segment span {
-        display: block;
-        transform: skewY(calc(-90deg + var(--angle)));
-        text-align: center;
-        width: 100%;
-        position: absolute;
-        top: 20px;
-    }
-
-    #roue-pointeur {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(45deg);
-        width: 0;
-        height: 0;
-        border-left: 10px solid transparent;
-        border-right: 10px solid transparent;
-        border-top: 20px solid #e74c3c;
-        z-index: 10;
-        pointer-events: none;
-    }
-
-    #btn-spin {
-        margin-top: 30px;
-        padding: 15px 30px;
-        font-size: 20px;
-        font-weight: bold;
-        background-color: #007acc;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-    #btn-spin:hover {
-        background-color: #005fa3;
-    }
-  </style>
 </head>
 <body>
 
   <h1>Oh My Games</h1>
   <h2>Roue des jeux</h2>
   <img src="img_jeux.png" alt="Fond" class="background-image" />
-  <body>
-    <div id="roue-container">
-      <div id="roue">
-          <div id="roue-pionteur"></div>
-      </div>
-      <button id="btn-spin">Faire tourner la roue !</button>
+  
+  <main id="roue-container">
+    <div id="roue-wrapper">
+      <div id="roue"></div>
+      <div id="roue-pointeur"></div>
     </div>
-  </body>
+    <div id="resultat-roue"></div>
+    <button id="btn-spin">Faire tourner la roue !</button>
+  </main>
 
   <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
 
@@ -110,28 +35,80 @@
         return data.map(jeu => jeu.nom);
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        const jeux = await chargerJeux();
-        const roue = document.getElementById('roue');
-        const btnSpin = document.getElementById('btn-spin');
-        
-        if (jeux.length > 0) {
-            const angleTotal = 360;
-            const angleParJeu = angleTotal / jeux.length;
-            const couleurs = ['#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6', '#34495e'];
+    const roue = document.getElementById('roue');
+    const btnSpin = document.getElementById('btn-spin');
+    const resultatRoue = document.getElementById('resultat-roue');
+    let jeux = [];
+
+    function afficherRoulette(jeux) {
+        roue.innerHTML = '';
+        const angleTotal = 360;
+        const angleParJeu = angleTotal / jeux.length;
+        const couleurs = ['#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6', '#34495e'];
+
+        jeux.forEach((jeu, index) => {
+            const segment = document.createElement('div');
+            const rotation = index * angleParJeu;
+            const skew = 90 - angleParJeu;
+
+            segment.className = 'roue-segment';
+            segment.style.backgroundColor = couleurs[index % couleurs.length];
+            segment.style.transform = `rotate(${rotation}deg) skewY(${skew}deg)`;
             
-            jeux.forEach((jeu, index) => {
-                const segment = document.createElement('div');
-                segment.className = 'segment';
-                segment.style.backgroundColor = couleurs[index % couleurs.length];
-                segment.style.setProperty('--rotation', `${angleParJeu * index}deg`);
-                segment.style.setProperty('--angle', `${angleParJeu}deg`);
-                segment.textContent = jeu;
-                roue.appendChild(segment);
-            });
+            const texteDiv = document.createElement('div');
+            texteDiv.className = 'roue-texte';
+            texteDiv.style.transform = `skewY(-${skew}deg) rotate(${angleParJeu / 2}deg)`;
+            texteDiv.textContent = jeu;
+            segment.appendChild(texteDiv);
+
+            roue.appendChild(segment);
+        });
+    }
+
+    btnSpin.addEventListener('click', () => {
+        if (jeux.length === 0) {
+            resultatRoue.textContent = "Aucun jeu disponible !";
+            return;
+        }
+
+        btnSpin.disabled = true;
+        resultatRoue.textContent = "La roue tourne...";
+        roue.style.transition = "transform 5s cubic-bezier(0.2, 0.9, 0.4, 1)";
+        
+        const deg = Math.floor(5000 + Math.random() * 5000);
+        roue.style.transform = `rotate(${deg}deg)`;
+
+        roue.addEventListener('transitionend', () => {
+            roue.style.transition = 'none';
+            const actualDeg = deg % 360;
+            const angleParJeu = 360 / jeux.length;
+            const indexChoisi = Math.floor(actualDeg / angleParJeu);
+            const jeuChoisi = jeux[jeux.length - 1 - indexChoisi];
+
+            resultatRoue.textContent = `Félicitations, vous jouez à "${jeuChoisi}" ! 🎉`;
+            btnSpin.disabled = false;
+        }, { once: true });
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        jeux = await chargerJeux();
+        if (jeux.length > 0) {
+            afficherRoulette(jeux);
+        } else {
+            resultatRoue.textContent = "Aucun jeu disponible pour la roue.";
         }
     });
 
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') {
+            jeux = await chargerJeux();
+            if (jeux.length > 0) {
+                afficherRoulette(jeux);
+            } else {
+                resultatRoue.textContent = "Aucun jeu disponible pour la roue.";
+            }
+        }
+    });
   </script>
 </body>
 </html>
