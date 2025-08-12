@@ -1044,3 +1044,14 @@ tr:hover {
 .player-filter-btn.active:hover {
     background-color: #45a049;
 }
+
+/* Styles pour le bouton de la roue */
+.btn-roue {
+  background-color: #8e44ad; /* Une couleur différente pour le distinguer */
+  box-shadow: 0 4px 6px rgba(142, 68, 173, 0.5);
+}
+
+.btn-roue:hover {
+  transform: scale(1.05);
+  background-color: #7d3c98;
+}
