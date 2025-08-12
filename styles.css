@@ -1,7 +1,7 @@
 /* Réinitialisation de base pour une meilleure compatibilité mobile et cohérence */
 html {
   box-sizing: border-box;
-  font-size: 16px; /* Taille de police de base pour la cohérence */
+  font-size: 16px;
 }
 
 *, *:before, *:after {
@@ -11,11 +11,11 @@ html {
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Police par défaut plus agréable */
-  line-height: 1.6; /* Améliore la lisibilité */
-  color: #333; /* Couleur de texte générale */
-  position: relative; /* Nécessaire pour le pseudo-élément body::before et z-index */
-  min-height: 100vh; /* S'assure que le body occupe au moins toute la hauteur de la vue */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  position: relative;
+  min-height: 100vh;
 }
 
 /* === Arrière-plan === */
@@ -25,7 +25,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  object-fit: contain; /* CHANGEMENT ICI : pour que l'image couvre toute la zone sans laisser de bandes */
+  object-fit: contain;
   z-index: -1;
   pointer-events: none;
 }
@@ -37,7 +37,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.6); /* Opacité légèrement augmentée pour meilleure lisibilité du texte */
+  background-color: rgba(255, 255, 255, 0.6);
   z-index: 0;
 }
 
@@ -68,12 +68,12 @@ h2 {
 /* === Pour une adaptation des textes selon l'écran === */
 @media (max-width: 768px) {
   h1 {
-    font-size: 36px; /* Plus petit sur mobile */
+    font-size: 36px;
     margin-top: 30px;
   }
 
   h2 {
-    font-size: 24px; /* Plus petit sur mobile */
+    font-size: 24px;
     margin-top: 15px;
   }
 }
@@ -84,7 +84,7 @@ h2 {
   display: flex;
   gap: 20px;
   justify-content: center;
-  flex-wrap: wrap; /* Permet aux boutons de passer à la ligne si pas assez de place */
+  flex-wrap: wrap;
 }
 
 .buttons-container button {
@@ -103,19 +103,19 @@ h2 {
   transition: transform 0.2s ease;
 }
 
-@media (max-width: 600px) { /* Une taille plus petite pour les boutons */
+@media (max-width: 600px) {
   .buttons-container {
-    flex-direction: column; /* Les boutons s'empilent verticalement */
-    align-items: center; /* Centrer les boutons empilés */
-    gap: 15px; /* Espacement réduit entre les boutons */
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
     margin-top: 20px;
   }
 
   .buttons-container button {
-    width: 80%; /* Occupe une bonne partie de la largeur */
-    max-width: 250px; /* Mais ne devient pas trop large sur des tablettes */
-    height: 50px; /* Légèrement moins hauts */
-    font-size: 18px; /* Police légèrement plus petite */
+    width: 80%;
+    max-width: 250px;
+    height: 50px;
+    font-size: 18px;
   }
 }
 
@@ -139,6 +139,16 @@ h2 {
   box-shadow: 0 4px 6px rgba(255, 193, 7, 0.5);
 }
 
+.btn-roue {
+  background-color: #8e44ad;
+  box-shadow: 0 4px 6px rgba(142, 68, 173, 0.5);
+}
+
+.btn-roue:hover {
+  transform: scale(1.05);
+  background-color: #7d3c98;
+}
+
 .btn-home {
   position: fixed;
   bottom: 20px;
@@ -155,10 +165,9 @@ h2 {
   transition: background-color 0.3s ease;
 }
 
-/* MEDIA QUERY pour les safe areas sur iPhone, etc. */
 @media (max-width: 600px) {
   .btn-home {
-    bottom: max(20px, env(safe-area-inset-bottom)); /* Ajuste en fonction de la safe area */
+    bottom: max(20px, env(safe-area-inset-bottom));
     left: max(20px, env(safe-area-inset-left));
   }
 }
@@ -179,15 +188,15 @@ h2 {
   transition: background-color 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 122, 204, 0.4);
   margin-top: 20px;
-  display: block; /* S'assure qu'il prend sa propre ligne si nécessaire */
-  margin-left: auto; /* Centrage */
-  margin-right: auto; /* Centrage */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .btn-add:hover {
   background-color: #005fa3;
 }
-/* Styles pour la nouvelle section du tableau de bord sur l'accueil */
+
 .dashboard-section {
     max-width: 900px;
     margin: 20px auto;
@@ -197,15 +206,14 @@ h2 {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    gap: 30px; /* Espace entre les sections de stats et parties récentes */
+    gap: 30px;
 }
 
-/* Styles pour l'aperçu des statistiques (Total Jeux, Prêtés, Empruntés) */
 .stats-overview {
     display: flex;
     justify-content: space-around;
-    flex-wrap: wrap; /* Permet aux cartes de passer à la ligne sur petits écrans */
-    gap: 15px; /* Espace entre les cartes de stats */
+    flex-wrap: wrap;
+    gap: 15px;
     text-align: center;
 }
 
@@ -214,8 +222,8 @@ h2 {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 15px 20px;
-    flex: 1; /* Permet aux cartes de prendre de la place équitablement */
-    min-width: 150px; /* Taille minimale pour éviter qu'elles ne soient trop petites */
+    flex: 1;
+    min-width: 150px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
@@ -233,7 +241,6 @@ h2 {
     margin: 5px 0 0;
 }
 
-/* Styles pour la section des dernières parties jouées */
 .recent-games-section {
     padding: 15px 0;
     border-top: 1px solid #eee;
@@ -249,7 +256,7 @@ h2 {
 #recent-games-list {
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Espace entre chaque partie récente */
+    gap: 10px;
 }
 
 .recent-game-item {
@@ -298,7 +305,6 @@ h2 {
     background-color: #0056b3;
 }
 
-/* Assurez-vous que l'image de fond est bien gérée pour l'index */
 .background-image-index {
   position: absolute;
   top: 0;
@@ -306,44 +312,43 @@ h2 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: -1; /* Place l'image derrière le contenu */
-  opacity: 0.1; /* Rend l'image très transparente */
+  z-index: -1;
+  opacity: 0.1;
 }
 
 body {
-    position: relative; /* Pour que l'image de fond se positionne par rapport au body */
-    min-height: 100vh; /* Assure que le body prend au moins toute la hauteur de la vue */
-    margin: 0; /* Réinitialise la marge par défaut du body */
-    padding: 20px; /* Ajoute un peu de padding général */
-    padding-bottom: 80px; /* Pour laisser de la place au bouton Accueil en bas */
-    box-sizing: border-box; /* Inclut padding et border dans la largeur/hauteur */
+    position: relative;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    padding-bottom: 80px;
+    box-sizing: border-box;
 }
 
 /* === Modale et Formulaires (Ajout/Modification) === */
-/* Style général des formulaires, à appliquer aux modales si elles ont une classe de conteneur commune */
 form {
-  margin: 0 auto; /* Pour centrer les formulaires */
-  max-width: 500px; /* Limite la largeur pour une meilleure lisibilité */
+  margin: 0 auto;
+  max-width: 500px;
   padding: 20px;
   background-color: rgba(255, 255, 255, 0.95);
   border-radius: 10px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  margin-top: 20px; /* Espacement avec le contenu précédent */
+  margin-top: 20px;
 }
 
 form label {
   font-weight: bold;
   margin-bottom: 5px;
-  display: block; /* Pour que le label prenne sa propre ligne */
+  display: block;
   color: #004a99;
 }
 
 form input[type="text"],
-form input[type="number"], /* Ajouté pour les champs min/max joueurs, temps de jeu */
+form input[type="number"],
 form textarea,
 form select,
 form input[type="file"] {
-  width: calc(100% - 20px); /* Ajuste la largeur pour le padding */
+  width: calc(100% - 20px);
   padding: 10px;
   margin-bottom: 15px;
   border-radius: 6px;
@@ -351,24 +356,21 @@ form input[type="file"] {
   font-size: 16px;
 }
 
-/* Styles pour les checkboxes et leurs labels */
 form input[type="checkbox"] {
-    width: auto; /* Les checkboxes ne prennent pas toute la largeur */
+    width: auto;
     margin-right: 8px;
-    vertical-align: middle; /* Aligner la checkbox avec le texte */
+    vertical-align: middle;
 }
 
-/* Ajustement pour que les champs de texte "Prêté à" / "Emprunté à" ne soient pas décalés */
 form label[for="prete-a"], form label[for="emprunte-a"] {
-    display: inline-block; /* Permet d'aligner le label avec l'input si besoin, mais ici le label n'est pas utilisé directement */
+    display: inline-block;
     margin-bottom: 0;
-    font-weight: normal; /* Pas de gras pour ces labels masqués */
-    color: #333; /* Couleur de texte normale */
+    font-weight: normal;
+    color: #333;
 }
-
 
 form button[type="submit"] {
-  background-color: #28a745; /* Couleur pour les actions primaires (ajouter/sauvegarder) */
+  background-color: #28a745;
   color: white;
   border: none;
   padding: 12px 20px;
@@ -383,28 +385,27 @@ form button[type="submit"]:hover {
   background-color: #218838;
 }
 
-/* Styles spécifiques pour la modale d'ajout/modification de jeu */
 #modal-ajout {
-  display: none; /* Caché par défaut */
-  position: fixed; /* Reste en place même en scrollant */
-  z-index: 1001; /* Au-dessus de tout le reste */
+  display: none;
+  position: fixed;
+  z-index: 1001;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  overflow: auto; /* Permet de scroller si le contenu est trop grand */
-  background-color: rgba(0, 0, 0, 0.6); /* Fond semi-transparent */
-  justify-content: center; /* Centrer horizontalement */
-  align-items: center; /* Centrer verticalement */
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
 }
 
 #modal-content {
   background-color: #fefefe;
-  margin: auto; /* Centrage */
+  margin: auto;
   padding: 25px;
   border: 1px solid #888;
-  width: 90%; /* Prend 90% de la largeur de l'écran */
-  max-width: 500px; /* Mais pas plus de 500px */
+  width: 90%;
+  max-width: 500px;
   border-radius: 15px;
   position: relative;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -431,11 +432,10 @@ form button[type="submit"]:hover {
   cursor: pointer;
 }
 
-/* Style de la fiche d'ajout de joueur (qui est affichée/masquée) */
 #fiche-ajout {
   background-color: rgba(255, 255, 255, 0.9);
   padding: 20px;
-  margin: 20px auto; /* Centrage */
+  margin: 20px auto;
   border-radius: 10px;
   max-width: 400px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -446,10 +446,10 @@ form button[type="submit"]:hover {
   max-width: 700px;
   margin: 30px auto;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  display: grid; /* Utilise Grid pour une meilleure organisation des cartes */
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* 280px min par carte, s'adapte */
-  gap: 25px; /* Espacement entre les cartes */
-  padding: 0 15px; /* Petit padding sur les côtés pour mobile */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  padding: 0 15px;
 }
 
 .jeu-card {
@@ -469,20 +469,20 @@ form button[type="submit"]:hover {
 .jeu-card img {
   width: 100%;
   height: 180px;
-  object-fit: contain; /* Garde les proportions de l'image, la solution originale */
-  border-bottom: 1px solid #eee; /* Petite séparation visuelle */
-  background-color: #f0f0f0; /* Couleur de fond pour les bandes si l'image ne remplit pas tout */
+  object-fit: contain;
+  border-bottom: 1px solid #eee;
+  background-color: #f0f0f0;
 }
 
 .jeu-content {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Permet au contenu de s'étirer */
+  flex-grow: 1;
 }
 
 .jeu-content h3 {
-  margin: 0 0 10px 0; /* Espacement sous le titre */
+  margin: 0 0 10px 0;
   color: #005fa3;
   font-size: 1.4em;
 }
@@ -490,12 +490,8 @@ form button[type="submit"]:hover {
 .jeu-content p {
   font-size: 0.95em;
   color: #555;
-  /* Supprimé: flex-grow: 1; car les nouvelles infos ont leurs propres conteneurs */
 }
 
-/* --- Nouveaux styles pour la page des jeux (infos supplémentaires) --- */
-
-/* Conteneur des informations complémentaires (joueurs, temps, difficulté) */
 .infos-complementaires {
     margin-top: 10px;
     margin-bottom: 10px;
@@ -509,11 +505,11 @@ form button[type="submit"]:hover {
     color: #444;
     display: flex;
     align-items: center;
-    gap: 5px; /* Espace entre l'icône/texte et le label */
+    gap: 5px;
 }
 
-.infos-complementaires p span:first-child { /* Le texte principal de l'info */
-    flex-grow: 1; /* Permet au texte de prendre l'espace disponible */
+.infos-complementaires p span:first-child {
+    flex-grow: 1;
 }
 
 .infos-complementaires .info-label {
@@ -525,7 +521,6 @@ form button[type="submit"]:hover {
     border-radius: 4px;
 }
 
-/* Styles pour les statuts "Prêté" et "Emprunté" */
 .statut-jeu {
     margin-top: 10px;
     font-size: 0.9em;
@@ -535,29 +530,29 @@ form button[type="submit"]:hover {
     margin: 3px 0;
     padding: 4px 8px;
     border-radius: 6px;
-    display: inline-block; /* Pour qu'ils soient côte à côte si l'espace le permet */
+    display: inline-block;
     font-weight: bold;
-    margin-right: 8px; /* Ajout d'une petite marge à droite pour séparer si deux statuts */
+    margin-right: 8px;
 }
 
 .statut-prete {
-    background-color: #ffeb3b; /* Jaune clair */
+    background-color: #ffeb3b;
     color: #8a6d3b;
 }
 
 .statut-emprunte {
-    background-color: #e0f2f7; /* Bleu très clair */
+    background-color: #e0f2f7;
     color: #31708f;
 }
 
-/* Style de la barre de filtre alphabétique */
 #alpha-filter-container {
     display: flex;
-    flex-wrap: wrap; /* Permet aux boutons de passer à la ligne */
+    flex-wrap: wrap;
     justify-content: center;
     margin: 20px auto;
     max-width: 700px;
-    gap: 5px; /* Espacement entre les boutons */
+    gap: 5px;
+    padding: 0 15px;
 }
 
 .alpha-filter-btn {
@@ -568,7 +563,7 @@ form button[type="submit"]:hover {
     font-size: 0.9em;
     cursor: pointer;
     transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
-    min-width: 40px; /* Taille minimale pour les petites lettres */
+    min-width: 40px;
     text-align: center;
 }
 
@@ -590,13 +585,9 @@ form button[type="submit"]:hover {
     border-color: #005fa3;
 }
 
-/* Ajustement du champ de recherche pour qu'il soit plus proche des filtres */
 #recherche-jeux {
-    margin-top: 10px; /* Réduire la marge du haut */
+    margin-top: 10px;
 }
-
-/* --- Fin des nouveaux styles pour la page des jeux --- */
-
 
 .stats {
   font-size: 0.9em;
@@ -612,22 +603,22 @@ form button[type="submit"]:hover {
 
 .btns-card {
   display: flex;
-  flex-wrap: wrap; /* Permet aux boutons de passer à la ligne */
-  gap: 8px; /* Espacement entre les boutons */
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 15px;
 }
 
 .btn-card {
-  flex: 1 1 auto; /* Permet aux boutons de s'adapter */
+  flex: 1 1 auto;
   padding: 10px 12px;
   font-size: 0.9em;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.2s ease;
-  color: white; /* Couleur de texte par défaut pour les boutons de carte */
+  color: white;
   text-align: center;
-  min-width: 100px; /* Largeur minimale pour les boutons */
+  min-width: 100px;
 }
 
 .btn-card:hover {
@@ -635,7 +626,7 @@ form button[type="submit"]:hover {
 }
 
 .btn-modifier {
-  background-color: #ffc107; /* Jaune */
+  background-color: #ffc107;
   color: #333;
 }
 .btn-modifier:hover {
@@ -643,27 +634,26 @@ form button[type="submit"]:hover {
 }
 
 .btn-supprimer {
-  background-color: #dc3545; /* Rouge */
+  background-color: #dc3545;
 }
 .btn-supprimer:hover {
   background-color: #c82333;
 }
 
 .btn-parties {
-  background-color: #17a2b8; /* Bleu-vert */
+  background-color: #17a2b8;
 }
 .btn-parties:hover {
   background-color: #138496;
 }
 
-/* Champ de recherche */
 #recherche-jeux {
-  display: block; /* Prend toute la largeur disponible */
-  width: calc(100% - 40px); /* Ajustement pour padding */
-  max-width: 660px; /* Correspond au max-width de #liste-jeux */
-  margin: 20px auto 20px auto; /* Centrer et espacement */
+  display: block;
+  width: calc(100% - 40px);
+  max-width: 660px;
+  margin: 20px auto 20px auto;
   padding: 12px 15px;
-  border-radius: 25px; /* Bordures arrondies */
+  border-radius: 25px;
   border: 1px solid #ddd;
   font-size: 1.1em;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
@@ -676,12 +666,11 @@ form button[type="submit"]:hover {
   outline: none;
 }
 
-
 /* === Styles spécifiques aux Joueurs (liste) === */
 #liste-joueurs {
-  max-width: 450px; /* Limite la largeur pour la lisibilité */
-  margin: 20px auto; /* Centrage */
-  padding: 0 15px; /* Padding latéral pour mobile */
+  max-width: 450px;
+  margin: 20px auto;
+  padding: 0 15px;
 }
 
 .joueur-item {
@@ -694,7 +683,7 @@ form button[type="submit"]:hover {
   background-color: #f9f9f9;
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.05);
   transition: background-color 0.3s ease;
-  margin-bottom: 10px; /* Espacement entre les joueurs */
+  margin-bottom: 10px;
 }
 
 .joueur-item:hover {
@@ -705,12 +694,12 @@ form button[type="submit"]:hover {
   font-weight: 600;
   font-size: 1.1em;
   color: #004a99;
-  flex-grow: 1; /* Permet au nom de prendre l'espace */
-  cursor: pointer; /* Indique que c'est cliquable */
+  flex-grow: 1;
+  cursor: pointer;
 }
 
 .joueur-item button {
-  background-color: #dc3545; /* Rouge pour supprimer */
+  background-color: #dc3545;
   color: white;
   font-size: 1em;
   padding: 6px 10px;
@@ -718,7 +707,7 @@ form button[type="submit"]:hover {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.2s ease;
-  margin-left: 10px; /* Espacement du nom */
+  margin-left: 10px;
 }
 
 .joueur-item button:hover {
@@ -727,13 +716,13 @@ form button[type="submit"]:hover {
 }
 
 .joueur-details {
-  max-width: 450px; /* Correspond à la liste des joueurs */
+  max-width: 450px;
   margin: 12px auto;
   padding: 15px;
   border: 1px solid #007acc;
   border-left: 5px solid #007acc;
   border-radius: 10px;
-  background-color: #e6f2ff; /* Fond bleu clair pour les détails */
+  background-color: #e6f2ff;
   font-size: 0.95em;
   color: #003366;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
@@ -769,22 +758,20 @@ form button[type="submit"]:hover {
 #historique-parties select {
   padding: 8px 12px;
   border-radius: 6px;
-  border: 1px solid #ccc; /* CHANGEMENT : bordure grise pour la visibilité */
+  border: 1px solid #ccc;
   font-size: 16px;
   margin-right: 20px;
   max-width: 220px;
 }
 
-/* Styles pour les filtres (sur mobile) */
 @media (max-width: 650px) {
   #historique-parties select {
     max-width: 100%;
     margin-bottom: 12px;
-    margin-right: 0; /* Supprime la marge à droite pour un meilleur espacement */
-    display: block; /* Chaque select sur sa propre ligne */
+    margin-right: 0;
+    display: block;
   }
 
-  /* Ajustement général du padding pour les sections sur petits écrans */
   #historique-parties,
   #modal-content,
   #fiche-ajout {
@@ -805,50 +792,49 @@ table {
 
 th, td {
   padding: 12px 15px;
-  border-bottom: 1px solid #ddd; /* CHANGEMENT : bordure grise pour la visibilité */
+  border-bottom: 1px solid #ddd;
   text-align: left;
   color: #003366;
 }
 
-th { /* === entetes de colonnes === */
+th {
   background-color: #007acc;
-  color: rgb(0, 0, 0); /* CHANGEMENT : texte blanc pour contraste sur fond bleu */
+  color: rgb(0, 0, 0);
   font-weight: 600;
   text-transform: uppercase;
 }
 
 tr:nth-child(even) {
-  background-color: #e6f2ff; /* CHANGEMENT : fond bleu clair pour les lignes paires */
+  background-color: #e6f2ff;
 }
 
 tr:hover {
-  background-color: #cce4ff; /* CHANGEMENT : fond bleu plus clair au survol */
+  background-color: #cce4ff;
 }
 
-/* Media query pour le tableau des parties sur très petits écrans */
 @media (max-width: 650px) {
   table, thead, tbody, th, td, tr {
-    display: block; /* Chaque élément prend sa propre ligne */
+    display: block;
   }
 
   thead tr {
-    position: absolute; /* Cache les en-têtes originaux */
+    position: absolute;
     top: -9999px;
     left: -9999px;
   }
 
   tr {
     border: 1px solid #ccc;
-    margin-bottom: 10px; /* Espacement entre les "cartes" de lignes */
+    margin-bottom: 10px;
     border-radius: 8px;
     overflow: hidden;
   }
 
   td {
     border: none;
-    border-bottom: 1px solid #eee; /* Bordure entre les données de chaque ligne */
+    border-bottom: 1px solid #eee;
     position: relative;
-    padding-left: 50%; /* Espace pour le label */
+    padding-left: 50%;
     text-align: right;
   }
 
@@ -863,7 +849,6 @@ tr:hover {
     color: #005f99;
   }
 
-  /* Labels pour les cellules du tableau */
   td:nth-of-type(1):before { content: "Date"; }
   td:nth-of-type(2):before { content: "Jeu"; }
   td:nth-of-type(3):before { content: "Joueurs"; }
@@ -871,29 +856,28 @@ tr:hover {
   td:nth-of-type(5):before { content: "Modifier"; }
   td:nth-of-type(6):before { content: "Supprimer"; }
 
-  /* Ajustements pour les boutons Modifier/Supprimer dans le tableau */
   td:nth-of-type(5), td:nth-of-type(6) {
-    text-align: center; /* Centrer les boutons */
-    display: flex; /* Utiliser flexbox pour les aligner */
+    text-align: center;
+    display: flex;
     justify-content: center;
-    padding-left: 6px; /* Réduire le padding de gauche */
+    padding-left: 6px;
   }
 
   td:nth-of-type(5):before, td:nth-of-type(6):before {
-    display: none; /* Masquer les labels pour les boutons */
+    display: none;
   }
 }
 
 /* === Formulaire d'édition de partie (caché) === */
 #edition-partie {
-  max-width: 900px; /* Largeur max comme l'historique */
+  max-width: 900px;
   margin: 20px auto;
   background: #f9f9f9;
   padding: 20px;
   border-radius: 10px;
-  display: none; /* Caché par défaut */
+  display: none;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  text-align: center; /* Centrer le titre et les boutons */
+  text-align: center;
 }
 #edition-partie h3 {
   margin-top: 0;
@@ -901,27 +885,26 @@ tr:hover {
 }
 #edition-partie button {
   cursor: pointer;
-  margin: 5px; /* Espacement entre les boutons */
+  margin: 5px;
 }
 
-/* Styles pour les sélecteurs de joueurs et vainqueurs dans les formulaires */
 #liste-joueurs, #liste-vainqueurs, #edit-liste-joueurs, #edit-liste-vainqueurs {
   background-color: #f0f8ff;
   border: 1px solid #b3d9ff;
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 15px;
-  max-height: 200px; /* Limite la hauteur et rend scrollable si beaucoup de joueurs */
+  max-height: 200px;
   overflow-y: auto;
-  text-align: left; /* Alignement du texte à gauche à l'intérieur de la boîte */
+  text-align: left;
 }
 
 #liste-joueurs label, #liste-vainqueurs label,
 #edit-liste-joueurs label, #edit-liste-vainqueurs label {
-  display: inline-block; /* Permet au label d'être sur la même ligne que l'input */
+  display: inline-block;
   margin-right: 15px;
-  margin-bottom: 5px; /* Espacement entre les options */
-  font-weight: normal; /* Pas besoin de gras ici */
+  margin-bottom: 5px;
+  font-weight: normal;
   color: #333;
 }
 
@@ -930,88 +913,81 @@ tr:hover {
 #edit-liste-joueurs input[type="checkbox"],
 #edit-liste-vainqueurs input[type="radio"] {
   margin-right: 5px;
-  transform: scale(1.2); /* Grossit légèrement les cases à cocher/radios */
-  vertical-align: middle; /* Aligne avec le texte */
+  transform: scale(1.2);
+  vertical-align: middle;
 }
 
-/* Styles pour l'étiquette "Prêté" */
 .jeu-card .tag-prete {
     position: absolute;
     top: 10px;
     left: 10px;
-    background-color: #e74c3c; /* Rouge vif */
+    background-color: #e74c3c;
     color: white;
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 0.8em;
     font-weight: bold;
-    z-index: 10; /* Assure que l'étiquette est au-dessus de l'image */
+    z-index: 10;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Styles pour l'étiquette "Emprunté" (maintenant en rouge) */
-.jeu-card .tag-emprunte { /* Changé de tag-prete à tag-emprunte */
+.jeu-card .tag-emprunte {
     position: absolute;
     top: 10px;
     left: 10px;
-    background-color: #e74c3c; /* Rouge vif pour "Emprunté" */
+    background-color: #e74c3c;
     color: white;
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 0.8em;
     font-weight: bold;
-    z-index: 10; /* Assure que l'étiquette est au-dessus de l'image */
+    z-index: 10;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Styles pour le calque "Prêté" (maintenant gris transparent) */
-.jeu-card .overlay-prete { /* Changé de overlay-emprunte à overlay-prete */
+.jeu-card .overlay-prete {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(128, 128, 128, 0.6); /* Gris transparent pour "Prêté" */
-    display: flex; /* Pour centrer le texte si besoin */
+    background-color: rgba(128, 128, 128, 0.6);
+    display: flex;
     justify-content: center;
     align-items: center;
     color: white;
     font-size: 1.2em;
     font-weight: bold;
-    z-index: 5; /* Moins élevé que l'étiquette 'emprunté' si les deux sont présents */
-    pointer-events: none; /* Permet de cliquer à travers l'overlay */
-    border-radius: 8px; /* Correspond au border-radius de la carte */
+    z-index: 5;
+    pointer-events: none;
+    border-radius: 8px;
 }
 
-/* Style si le jeu est prêté et le nom de la personne est affiché */
-.jeu-card .overlay-prete .text { /* Changé de overlay-emprunte.text à overlay-prete.text */
+.jeu-card .overlay-prete .text {
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.5); /* Fond pour le texte */
+    background-color: rgba(0, 0, 0, 0.5);
     border-radius: 5px;
 }
 
-/* Assurer que la carte de jeu a une position relative pour les enfants absolus */
 .jeu-card {
-    position: relative; /* Indispensable pour que position: absolute fonctionne */
-    overflow: hidden; /* Pour que les coins arrondis fonctionnent bien avec les overlays */
-    border-radius: 8px; /* Assurez-vous que votre .jeu-card a cette propriété */
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
 }
 
-/* Styles pour les conteneurs de filtres (alphabétiques et joueurs) */
 #alpha-filter-container,
 #player-filter-container {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-bottom: 15px; /* Espace sous les filtres */
-    justify-content: center; /* Centrer les boutons */
+    margin-bottom: 15px;
+    justify-content: center;
     padding: 10px 0;
-    background-color: #f9f9f9; /* Légère couleur de fond */
+    background-color: #f9f9f9;
     border-radius: 8px;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Styles pour les boutons de filtre par joueur */
 .player-filter-btn {
     background-color: #f0f0f0;
     border: 1px solid #ddd;
@@ -1020,7 +996,7 @@ tr:hover {
     font-size: 0.9em;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
-    min-width: 40px; /* Assure une taille minimale */
+    min-width: 40px;
     text-align: center;
     color: #555;
     display: flex;
@@ -1035,7 +1011,7 @@ tr:hover {
 }
 
 .player-filter-btn.active {
-    background-color: #4CAF50; /* Vert pour le bouton actif */
+    background-color: #4CAF50;
     color: white;
     border-color: #4CAF50;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -1045,16 +1021,6 @@ tr:hover {
     background-color: #45a049;
 }
 
-/* Styles pour le bouton de la roue */
-.btn-roue {
-  background-color: #8e44ad; /* Une couleur différente pour le distinguer */
-  box-shadow: 0 4px 6px rgba(142, 68, 173, 0.5);
-}
-
-.btn-roue:hover {
-  transform: scale(1.05);
-  background-color: #7d3c98;
-}
 /* === Styles pour la roue des jeux === */
 #roue-container {
     display: flex;
