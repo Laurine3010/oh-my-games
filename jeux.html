@@ -261,8 +261,10 @@
 
         let photosUrls = [];
         if (photosFiles.length > 0) {
+            // Upload des nouvelles photos
             photosUrls = await uploaderPhotos(photosFiles);
         } else if (id) {
+            // Si c'est une modification et qu'il n'y a pas de nouvelle photo, on garde les anciennes
             const jeuExistant = jeux.find(j => j.id === id);
             photosUrls = (jeuExistant && Array.isArray(jeuExistant.photos)) ? jeuExistant.photos : [];
         }
@@ -330,16 +332,13 @@
         parties = await chargerParties();
         afficherListeJeux();
     }
-
+    
     function afficherListeJeux() {
         console.log("Affichage de la liste des jeux...");
         listeJeux.innerHTML = '';
         const filterText = inputRecherche.value.toLowerCase();
         const jeuxTries = [...jeux].sort((a, b) => a.nom.localeCompare(b.nom));
-        if (jeuxTries.length === 0 && !filterText && !currentAlphaFilter) {
-            listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu n\'est enregistré. Ajoutez-en un !</p>';
-            return;
-        }
+        
         let jeuxFiltres = jeuxTries.filter(jeu => {
             if (filterText && !jeu.nom.toLowerCase().includes(filterText)) {
                 return false;
@@ -349,63 +348,74 @@
             }
             return true;
         });
+
         if (jeuxFiltres.length === 0) {
-            listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu ne correspond à vos critères de recherche.</p>';
+            listeJeux.innerHTML = `<p style="text-align: center; color: #666; margin-top: 20px;">
+                ${(filterText || currentAlphaFilter) ? 'Aucun jeu ne correspond à vos critères de recherche.' : 'Aucun jeu n\'est enregistré. Ajoutez-en un !'}
+            </p>`;
             return;
         }
+
         jeuxFiltres.forEach((jeu) => {
             const card = document.createElement('div');
             card.className = 'jeu-card';
+            
+            // GESTION DE L'IMAGE
             const img = document.createElement('img');
-            img.src = (jeu.photos && jeu.photos.length > 0)
+            const imageUrl = (jeu.photos && jeu.photos.length > 0) 
                 ? jeu.photos[0]
                 : 'https://via.placeholder.com/280x160?text=Pas+de+photo';
+            img.src = imageUrl;
             img.alt = `Image de ${jeu.nom}`;
             card.appendChild(img);
+            
+            // GESTION DES TAGS ET OVERLAYS
             if (jeu.emprunte) {
                 const tagEmprunte = document.createElement('span');
-                tagEmprunte.className = 'tag-emprunte';
+                tagEmprunte.className = 'tag-statut tag-emprunte';
                 tagEmprunte.textContent = `EMPRUNTÉ${jeu.emprunte_a ? ` À ${jeu.emprunte_a.toUpperCase()}` : ''}`;
                 card.appendChild(tagEmprunte);
             }
             if (jeu.prete) {
-                const overlayPrete = document.createElement('div');
-                overlayPrete.className = 'overlay-prete';
-                const overlayText = document.createElement('span');
-                overlayText.className = 'text';
-                overlayText.textContent = `PRÊTÉ${jeu.prete_a ? ` À ${jeu.prete_a.toUpperCase()}` : ''}`;
-                overlayPrete.appendChild(overlayText);
-                card.appendChild(overlayPrete);
+                const tagPrete = document.createElement('span');
+                tagPrete.className = 'tag-statut tag-prete';
+                tagPrete.textContent = `PRÊTÉ${jeu.prete_a ? ` À ${jeu.prete_a.toUpperCase()}` : ''}`;
+                card.appendChild(tagPrete);
             }
+
             const contentDiv = document.createElement('div');
             contentDiv.className = 'jeu-content';
+
             const titre = document.createElement('h3');
             titre.textContent = jeu.nom;
             contentDiv.appendChild(titre);
+
             const infosComplementaires = document.createElement('div');
             infosComplementaires.className = 'infos-complementaires';
             if (jeu.min_joueurs && jeu.max_joueurs && !isNaN(jeu.min_joueurs) && !isNaN(jeu.max_joueurs)) {
                 const joueursIcons = document.createElement('p');
                 let joueursTexte = '';
-                const minEmojis = '&#128100;'.repeat(jeu.min_joueurs);
-                const maxEmojis = '&#128100;'.repeat(jeu.max_joueurs);
                 if (jeu.min_joueurs === jeu.max_joueurs) {
-                    joueursTexte = `${minEmojis}`;
+                    joueursTexte = `${'&#128100;'.repeat(jeu.min_joueurs)}`;
                 } else {
-                    joueursTexte = `${minEmojis} - ${maxEmojis}`;
+                    joueursTexte = `${jeu.min_joueurs} - ${jeu.max_joueurs} joueurs`;
                 }
-                joueursIcons.innerHTML = `<span>${joueursTexte} (${jeu.min_joueurs}-${jeu.max_joueurs})</span> <span class="info-label">Joueurs</span>`;
+                joueursIcons.innerHTML = `<span>${joueursTexte}</span> <span class="info-label">Joueurs</span>`;
                 infosComplementaires.appendChild(joueursIcons);
-            } else if (jeu.min_joueurs && !isNaN(jeu.min_joueurs)) {
-                 const joueursIcons = document.createElement('p');
-                 joueursIcons.innerHTML = `<span>${'&#128100;'.repeat(jeu.min_joueurs)}+</span> <span class="info-label">Joueurs</span>`;
-                 infosComplementaires.appendChild(joueursIcons);
-            } else if (jeu.max_joueurs && !isNaN(jeu.max_joueurs)) {
-                 const joueursIcons = document.createElement('p');
-                 joueursIcons.innerHTML = `<span>Jusqu'à ${'&#128100;'.repeat(jeu.max_joueurs)}</span> <span class="info-label">Joueurs</span>`;
-                 infosComplementaires.appendChild(joueursIcons);
             }
+            
+            const dureeText = jeu.duree ? `${jeu.duree} min` : 'Non précisé';
+            const dureePara = document.createElement('p');
+            dureePara.innerHTML = `<span>${dureeText}</span> <span class="info-label">Durée</span>`;
+            infosComplementaires.appendChild(dureePara);
+
+            const complexiteText = jeu.complexite ? jeu.complexite : 'Non précisé';
+            const complexitePara = document.createElement('p');
+            complexitePara.innerHTML = `<span>${complexiteText}</span> <span class="info-label">Complexité</span>`;
+            infosComplementaires.appendChild(complexitePara);
+
             contentDiv.appendChild(infosComplementaires);
+
             const nbParties = parties.filter(p => p.nom_jeu === jeu.nom).length;
             const scores = {};
             const partiesDuJeu = parties.filter(p => p.nom_jeu === jeu.nom && p.gagnant);
@@ -428,8 +438,10 @@
                 Meilleur joueur : <strong>${meilleur ? `${meilleur} (${max} victoire${max > 1 ? 's' : ''})` : 'Aucun'}</strong>
             `;
             contentDiv.appendChild(stats);
+
             const btns = document.createElement('div');
             btns.className = 'btns-card';
+            
             const btnModifier = document.createElement('button');
             btnModifier.className = 'btn-card btn-modifier';
             btnModifier.textContent = '✏️ Modifier';
@@ -438,6 +450,7 @@
                 ouvrirModaleModifier(jeu.id);
             });
             btns.appendChild(btnModifier);
+
             const btnSupprimer = document.createElement('button');
             btnSupprimer.className = 'btn-card btn-supprimer';
             btnSupprimer.textContent = '🗑️ Supprimer';
@@ -454,6 +467,7 @@
                 }
             });
             btns.appendChild(btnSupprimer);
+
             const btnParties = document.createElement('button');
             btnParties.className = 'btn-card btn-parties';
             btnParties.textContent = '▶️ Voir parties';
@@ -462,6 +476,7 @@
                 window.location.href = `parties.html?jeu=${encodeURIComponent(jeu.nom)}`;
             });
             btns.appendChild(btnParties);
+
             contentDiv.appendChild(btns);
             card.appendChild(contentDiv);
             listeJeux.appendChild(card);
@@ -488,7 +503,6 @@
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
 
         photosPreviewDiv.innerHTML = '';
-        // Correction pour s'assurer que jeu.photos est bien un tableau
         const photos = Array.isArray(jeu.photos) ? jeu.photos : [];
         if (photos.length > 0) {
             photosPreviewContainer.style.display = 'block';
