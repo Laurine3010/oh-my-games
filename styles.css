@@ -1,4 +1,6 @@
-/* Réinitialisation de base pour une meilleure compatibilité mobile et cohérence */
+/* ========================================= */
+/* === Réinitialisation et styles de base === */
+/* ========================================= */
 html {
   box-sizing: border-box;
   font-size: 16px;
@@ -10,12 +12,14 @@ html {
 
 body {
   margin: 0;
-  padding: 0;
+  padding: 20px;
+  padding-bottom: 80px; /* Espace pour le bouton "Home" */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
   color: #333;
   position: relative;
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* === Arrière-plan === */
@@ -32,7 +36,7 @@ body {
 
 body::before {
   content: "";
-  position: absolute;
+  position: fixed; /* Utilisation de fixed pour l'overlay de fond */
   top: 0;
   left: 0;
   right: 0;
@@ -65,20 +69,21 @@ h2 {
   text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
 }
 
-/* === Pour une adaptation des textes selon l'écran === */
+/* === Media Queries pour les titres === */
 @media (max-width: 768px) {
   h1 {
     font-size: 36px;
     margin-top: 30px;
   }
-
   h2 {
     font-size: 24px;
     margin-top: 15px;
   }
 }
 
-/* === Boutons de navigation === */
+/* ========================================= */
+/* === Boutons et Conteneurs de navigation === */
+/* ========================================= */
 .buttons-container {
   margin-top: 30px;
   display: flex;
@@ -100,23 +105,7 @@ h2 {
   justify-content: center;
   gap: 10px;
   border: none;
-  transition: transform 0.2s ease;
-}
-
-@media (max-width: 600px) {
-  .buttons-container {
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    margin-top: 20px;
-  }
-
-  .buttons-container button {
-    width: 80%;
-    max-width: 250px;
-    height: 50px;
-    font-size: 18px;
-  }
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .buttons-container button:hover {
@@ -165,13 +154,6 @@ h2 {
   transition: background-color 0.3s ease;
 }
 
-@media (max-width: 600px) {
-  .btn-home {
-    bottom: max(20px, env(safe-area-inset-bottom));
-    left: max(20px, env(safe-area-inset-left));
-  }
-}
-
 .btn-home:hover {
   background-color: #555;
 }
@@ -197,6 +179,29 @@ h2 {
   background-color: #005fa3;
 }
 
+/* === Media Queries pour les boutons === */
+@media (max-width: 600px) {
+  .buttons-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .buttons-container button {
+    width: 80%;
+    max-width: 250px;
+    height: 50px;
+    font-size: 18px;
+  }
+  .btn-home {
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: max(20px, env(safe-area-inset-left));
+  }
+}
+
+/* ========================================= */
+/* === Styles du Tableau de bord (Dashboard) === */
+/* ========================================= */
 .dashboard-section {
     max-width: 900px;
     margin: 20px auto;
@@ -305,27 +310,9 @@ h2 {
     background-color: #0056b3;
 }
 
-.background-image-index {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: -1;
-  opacity: 0.1;
-}
-
-body {
-    position: relative;
-    min-height: 100vh;
-    margin: 0;
-    padding: 20px;
-    padding-bottom: 80px;
-    box-sizing: border-box;
-}
-
-/* === Modale et Formulaires (Ajout/Modification) === */
+/* ========================================= */
+/* === Modale et Formulaires === */
+/* ========================================= */
 form {
   margin: 0 auto;
   max-width: 500px;
@@ -395,6 +382,7 @@ form button[type="submit"]:hover {
   height: 100%;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
   justify-content: center;
   align-items: center;
 }
@@ -441,7 +429,9 @@ form button[type="submit"]:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
+/* ========================================= */
 /* === Page des jeux (mise à jour stylisée) === */
+/* ========================================= */
 #liste-jeux {
   max-width: 700px;
   margin: 30px auto;
@@ -460,6 +450,7 @@ form button[type="submit"]:hover {
   box-shadow: 0 6px 12px rgba(0,0,0,0.1);
   overflow: hidden;
   transition: transform 0.2s ease;
+  position: relative; /* Nécessaire pour positionner les tags et overlays */
 }
 
 .jeu-card:hover {
@@ -545,48 +536,50 @@ form button[type="submit"]:hover {
     color: #31708f;
 }
 
-#alpha-filter-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin: 20px auto;
-    max-width: 700px;
-    gap: 5px;
-    padding: 0 15px;
-}
-
-.alpha-filter-btn {
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
-    min-width: 40px;
-    text-align: center;
-}
-
-.alpha-filter-btn:hover {
-    background-color: #e0e0e0;
-    border-color: #bbb;
-}
-
-.alpha-filter-btn.active {
-    background-color: #007acc;
-    color: white;
-    border-color: #007acc;
+.jeu-card .tag-statut {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8em;
     font-weight: bold;
-    box-shadow: 0 2px 5px rgba(0, 122, 204, 0.3);
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.alpha-filter-btn.active:hover {
-    background-color: #005fa3;
-    border-color: #005fa3;
+.jeu-card .tag-prete {
+    background-color: #e74c3c;
+    color: white;
 }
 
-#recherche-jeux {
-    margin-top: 10px;
+.jeu-card .tag-emprunte {
+    background-color: #3498db;
+    color: white;
+}
+
+.jeu-card .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(128, 128, 128, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    z-index: 5;
+    pointer-events: none;
+    border-radius: 8px;
+}
+
+.jeu-card .overlay .text {
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
 }
 
 .stats {
@@ -647,6 +640,57 @@ form button[type="submit"]:hover {
   background-color: #138496;
 }
 
+/* === Filtres de recherche === */
+#alpha-filter-container,
+#player-filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 20px auto 20px auto;
+    max-width: 700px;
+    justify-content: center;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.alpha-filter-btn, .player-filter-btn {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+    min-width: 40px;
+    text-align: center;
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alpha-filter-btn:hover, .player-filter-btn:hover {
+    background-color: #e0e0e0;
+    border-color: #bbb;
+}
+
+.alpha-filter-btn.active {
+    background-color: #007acc;
+    color: white;
+    border-color: #007acc;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0, 122, 204, 0.3);
+}
+
+.player-filter-btn.active {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
 #recherche-jeux {
   display: block;
   width: calc(100% - 40px);
@@ -666,7 +710,9 @@ form button[type="submit"]:hover {
   outline: none;
 }
 
+/* ========================================= */
 /* === Styles spécifiques aux Joueurs (liste) === */
+/* ========================================= */
 #liste-joueurs {
   max-width: 450px;
   margin: 20px auto;
@@ -732,7 +778,9 @@ form button[type="submit"]:hover {
   margin: 5px 0;
 }
 
+/* ========================================= */
 /* === Historique des parties === */
+/* ========================================= */
 #historique-parties {
   max-width: 900px;
   margin: 40px auto;
@@ -764,21 +812,6 @@ form button[type="submit"]:hover {
   max-width: 220px;
 }
 
-@media (max-width: 650px) {
-  #historique-parties select {
-    max-width: 100%;
-    margin-bottom: 12px;
-    margin-right: 0;
-    display: block;
-  }
-
-  #historique-parties,
-  #modal-content,
-  #fiche-ajout {
-      padding: 15px;
-  }
-}
-
 /* === Table de parties === */
 table {
   width: 100%;
@@ -799,7 +832,7 @@ th, td {
 
 th {
   background-color: #007acc;
-  color: rgb(0, 0, 0);
+  color: white;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -813,23 +846,31 @@ tr:hover {
 }
 
 @media (max-width: 650px) {
+  #historique-parties select {
+    max-width: 100%;
+    margin-bottom: 12px;
+    margin-right: 0;
+    display: block;
+  }
+  #historique-parties,
+  #modal-content,
+  #fiche-ajout {
+      padding: 15px;
+  }
   table, thead, tbody, th, td, tr {
     display: block;
   }
-
   thead tr {
     position: absolute;
     top: -9999px;
     left: -9999px;
   }
-
   tr {
     border: 1px solid #ccc;
     margin-bottom: 10px;
     border-radius: 8px;
     overflow: hidden;
   }
-
   td {
     border: none;
     border-bottom: 1px solid #eee;
@@ -837,7 +878,6 @@ tr:hover {
     padding-left: 50%;
     text-align: right;
   }
-
   td:before {
     position: absolute;
     left: 6px;
@@ -848,21 +888,18 @@ tr:hover {
     font-weight: bold;
     color: #005f99;
   }
-
   td:nth-of-type(1):before { content: "Date"; }
   td:nth-of-type(2):before { content: "Jeu"; }
   td:nth-of-type(3):before { content: "Joueurs"; }
   td:nth-of-type(4):before { content: "Vainqueur"; }
   td:nth-of-type(5):before { content: "Modifier"; }
   td:nth-of-type(6):before { content: "Supprimer"; }
-
   td:nth-of-type(5), td:nth-of-type(6) {
     text-align: center;
     display: flex;
     justify-content: center;
     padding-left: 6px;
   }
-
   td:nth-of-type(5):before, td:nth-of-type(6):before {
     display: none;
   }
@@ -917,111 +954,9 @@ tr:hover {
   vertical-align: middle;
 }
 
-.jeu-card .tag-prete {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background-color: #e74c3c;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 0.8em;
-    font-weight: bold;
-    z-index: 10;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.jeu-card .tag-emprunte {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background-color: #e74c3c;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 0.8em;
-    font-weight: bold;
-    z-index: 10;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.jeu-card .overlay-prete {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(128, 128, 128, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-size: 1.2em;
-    font-weight: bold;
-    z-index: 5;
-    pointer-events: none;
-    border-radius: 8px;
-}
-
-.jeu-card .overlay-prete .text {
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 5px;
-}
-
-.jeu-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 8px;
-}
-
-#alpha-filter-container,
-#player-filter-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 15px;
-    justify-content: center;
-    padding: 10px 0;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.player-filter-btn {
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 8px 12px;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    min-width: 40px;
-    text-align: center;
-    color: #555;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.player-filter-btn:hover {
-    background-color: #e0e0e0;
-    border-color: #ccc;
-    transform: translateY(-1px);
-}
-
-.player-filter-btn.active {
-    background-color: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.player-filter-btn.active:hover {
-    background-color: #45a049;
-}
-
+/* ========================================= */
 /* === Styles pour la roue des jeux === */
+/* ========================================= */
 #roue-container {
     display: flex;
     flex-direction: column;
@@ -1063,8 +998,9 @@ tr:hover {
 
 .roue-texte {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(var(--text-rotation)); /* Centrage et rotation */
     width: 100%;
     height: 100%;
     font-size: 14px;
@@ -1072,8 +1008,9 @@ tr:hover {
     text-align: center;
     color: white;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    padding-top: 10px;
-    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #roue-pointeur {

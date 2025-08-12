@@ -53,18 +53,18 @@
         jeux.forEach((jeu, index) => {
             const segment = document.createElement('div');
             const rotation = index * angleParJeu;
-            
-            // Calcul de l'angle d'inclinaison pour les segments
             const skew = 90 - angleParJeu;
+            const textRotation = rotation + angleParJeu / 2;
 
             segment.className = 'roue-segment';
             segment.style.backgroundColor = couleurs[index % couleurs.length];
-            segment.style.transform = `rotate(${rotation}deg) skewY(${skew}deg)`;
+            segment.style.setProperty('--rotation', `${rotation}deg`);
+            segment.style.setProperty('--skew', `${skew}deg`);
             
             const texteDiv = document.createElement('div');
             texteDiv.className = 'roue-texte';
-            // Annule la déformation et la rotation pour que le texte soit lisible
-            texteDiv.style.transform = `skewY(-${skew}deg) rotate(${angleParJeu / 2}deg)`;
+            // Utilisation des variables CSS pour le positionnement du texte
+            texteDiv.style.setProperty('--text-rotation', `${textRotation}deg`);
             texteDiv.textContent = jeu;
             segment.appendChild(texteDiv);
 
@@ -82,21 +82,18 @@
         resultatRoue.textContent = "La roue tourne...";
         roue.style.transition = "transform 5s cubic-bezier(0.2, 0.9, 0.4, 1)";
         
-        // Calcule un angle de rotation aléatoire pour le spin
-        const deg = Math.floor(5000 + Math.random() * 5000);
+        // Calcule un angle de rotation aléatoire entre 5 et 10 tours
+        const deg = Math.floor(5 * 360 + Math.random() * 5 * 360);
         roue.style.transform = `rotate(${deg}deg)`;
 
         roue.addEventListener('transitionend', () => {
             roue.style.transition = 'none';
-            // Normalize the rotation to find the winning segment
+            // Correction de la logique pour trouver le jeu gagnant
             const finalRotation = deg % 360; 
             const angleParJeu = 360 / jeux.length;
-            
-            // Correction de la logique pour trouver l'index du jeu
             const indexChoisi = Math.floor((360 - finalRotation) / angleParJeu);
             
-            // Assurez-vous que l'index est valide
-            const jeuChoisi = jeux[indexChoisi >= jeux.length ? jeux.length - 1 : indexChoisi];
+            const jeuChoisi = jeux[indexChoisi];
 
             resultatRoue.textContent = `Félicitations, vous jouez à "${jeuChoisi}" ! 🎉`;
             btnSpin.disabled = false;
