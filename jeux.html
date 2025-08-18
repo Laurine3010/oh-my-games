@@ -31,6 +31,11 @@
         <label for="nom-jeu">Nom du jeu :</label>
         <input type="text" id="nom-jeu" name="nom-jeu" required><br><br>
 
+        <label for="proprietaire">Propriétaire :</label>
+        <select id="proprietaire" name="proprietaire" required>
+            <option value="">Sélectionner un propriétaire</option>
+        </select><br><br>
+
         <label for="photos-jeu">Photos du jeu (optionnel) :</label>
         <input type="file" id="photos-jeu" name="photos-jeu" accept="image/*" multiple><br><br>
 
@@ -67,6 +72,7 @@
 
     let jeux = [];
     let parties = [];
+    let joueurs = []; // Nouvelle variable pour stocker les joueurs
     const photosBucket = 'jeu-photos';
 
     const modal = document.getElementById('modal-ajout');
@@ -88,10 +94,11 @@
     const emprunteAInput = document.getElementById('emprunte-a');
     const photosPreviewContainer = document.getElementById('photos-preview-container');
     const photosPreviewDiv = document.getElementById('photos-preview');
+    const proprietaireSelect = document.getElementById('proprietaire'); // Nouvelle référence
 
     let currentAlphaFilter = '';
 
-    // --- Fonctions de gestion des photos avec Supabase Storage ---
+    // --- Fonctions de gestion des photos (inchangées) ---
     async function uploaderPhotos(photosFiles) {
         const photosUrls = [];
         for (const file of photosFiles) {
@@ -140,6 +147,18 @@
         } catch (error) {
             console.error("Erreur lors du chargement des jeux:", error);
             alert(`Une erreur est survenue lors du chargement des jeux: ${error.message}`);
+            return [];
+        }
+    }
+    
+    // Nouvelle fonction pour charger les joueurs
+    async function chargerJoueurs() {
+        try {
+            const { data, error } = await supabase.from('joueurs').select('nom');
+            if (error) throw error;
+            return data.map(joueur => joueur.nom);
+        } catch (error) {
+            console.error("Erreur lors du chargement des joueurs:", error);
             return [];
         }
     }
@@ -237,6 +256,7 @@
         const id = jeuIdInput.value;
         const nomJeu = nomJeuInput.value.trim();
         const photosFiles = photosJeuInput.files;
+        const proprietaire = proprietaireSelect.value; // On récupère la valeur du propriétaire
         const minJoueurs = Number(minJoueursInput.value);
         const maxJoueurs = Number(maxJoueursInput.value);
         const prete = preteCheckbox.checked;
@@ -248,13 +268,16 @@
             alert('Le nom du jeu est obligatoire.');
             return;
         }
+        if (!proprietaire) {
+            alert('Le propriétaire du jeu est obligatoire.');
+            return;
+        }
         if (minJoueurs > maxJoueurs) {
             alert('Le nombre de joueurs minimum ne peut pas être supérieur au nombre de joueurs maximum.');
             return;
         }
 
         let photosUrls = [];
-
         if (photosFiles.length > 0) {
             // En cas de modification, on supprime les anciennes photos avant d'uploader les nouvelles
             if (id) {
@@ -273,6 +296,7 @@
         const jeuData = {
             nom: nomJeu,
             photos: photosUrls,
+            proprietaire: proprietaire, // On ajoute le propriétaire ici
             min_joueurs: minJoueurs,
             max_joueurs: maxJoueurs,
             prete: prete,
@@ -331,7 +355,19 @@
         console.log("Chargement et affichage des jeux depuis Supabase...");
         jeux = await chargerJeux();
         parties = await chargerParties();
+        joueurs = await chargerJoueurs(); // On charge les joueurs ici
         afficherListeJeux();
+    }
+
+    // Fonction pour remplir le select des propriétaires
+    function remplirProprietaireSelect() {
+        proprietaireSelect.innerHTML = '<option value="">Sélectionner un propriétaire</option>';
+        joueurs.forEach(joueur => {
+            const option = document.createElement('option');
+            option.value = joueur;
+            option.textContent = joueur;
+            proprietaireSelect.appendChild(option);
+        });
     }
 
     function afficherListeJeux() {
@@ -385,6 +421,15 @@
             const titre = document.createElement('h3');
             titre.textContent = jeu.nom;
             contentDiv.appendChild(titre);
+            
+            // Affichage du propriétaire
+            if (jeu.proprietaire) {
+                const proprietaire = document.createElement('p');
+                proprietaire.className = 'proprietaire-info';
+                proprietaire.innerHTML = `<strong>Propriétaire :</strong> ${jeu.proprietaire}`;
+                contentDiv.appendChild(proprietaire);
+            }
+
             const infosComplementaires = document.createElement('div');
             infosComplementaires.className = 'infos-complementaires';
             if (jeu.min_joueurs && jeu.max_joueurs && !isNaN(jeu.min_joueurs) && !isNaN(jeu.max_joueurs)) {
@@ -489,6 +534,10 @@
         emprunteCheckbox.checked = jeu.emprunte === true;
         emprunteAInput.value = jeu.emprunte_a || '';
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
+        
+        // Remplissage du select du propriétaire
+        remplirProprietaireSelect();
+        proprietaireSelect.value = jeu.proprietaire || ''; // Sélectionne le propriétaire actuel
 
         photosPreviewDiv.innerHTML = '';
         const photos = Array.isArray(jeu.photos) ? jeu.photos : [];
@@ -522,11 +571,13 @@
     document.addEventListener('DOMContentLoaded', async () => {
         generateAlphaFilters();
         await chargerEtAfficherJeux();
+        remplirProprietaireSelect(); // Appel initial pour remplir la liste
     });
 
     document.addEventListener('visibilitychange', async () => {
       if (document.visibilityState === 'visible') {
         await chargerEtAfficherJeux();
+        remplirProprietaireSelect();
       }
     });
 
