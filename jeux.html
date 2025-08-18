@@ -105,31 +105,25 @@
                 continue;
             }
 
-            const { publicUrl, error: publicUrlError } = supabase.storage.from(photosBucket).getPublicUrl(data.path);
+            const { data: urlData, error: publicUrlError } = supabase.storage.from(photosBucket).getPublicUrl(data.path);
             if (publicUrlError) {
                 console.error("Erreur lors de la récupération de l'URL publique:", publicUrlError);
                 alert(`Erreur lors de la récupération de l'URL publique: ${publicUrlError.message}`);
                 continue;
             }
 
-            photosUrls.push(publicUrl);
+            photosUrls.push(urlData.publicUrl);
         }
         return photosUrls;
     }
 
     async function supprimerPhotos(photosUrls) {
-        if (!photosUrls || !Array.isArray(photosUrls) || photosUrls.length === 0) return;
+        if (!photosUrls || photosUrls.length === 0) return;
         
         const filePaths = photosUrls.map(url => {
             const pathSegments = url.split('/');
-            const publicIndex = pathSegments.indexOf('public');
-            if (publicIndex !== -1) {
-                return pathSegments.slice(publicIndex).join('/');
-            }
-            return null;
-        }).filter(path => path !== null);
-
-        if (filePaths.length === 0) return;
+            return pathSegments[pathSegments.length - 1];
+        });
 
         const { data, error } = await supabase.storage.from(photosBucket).remove(filePaths);
         if (error) {
@@ -188,7 +182,7 @@
     async function supprimerJeu(id) {
         try {
             const jeuASupprimer = jeux.find(j => j.id === id);
-            if (jeuASupprimer && Array.isArray(jeuASupprimer.photos) && jeuASupprimer.photos.length > 0) {
+            if (jeuASupprimer && jeuASupprimer.photos && jeuASupprimer.photos.length > 0) {
                 await supprimerPhotos(jeuASupprimer.photos);
             }
             const { error } = await supabase.from('jeux').delete().eq('id', id);
@@ -260,9 +254,18 @@
         }
 
         let photosUrls = [];
+
         if (photosFiles.length > 0) {
+            // En cas de modification, on supprime les anciennes photos avant d'uploader les nouvelles
+            if (id) {
+                const jeuExistant = jeux.find(j => j.id === id);
+                if (jeuExistant && jeuExistant.photos && jeuExistant.photos.length > 0) {
+                    await supprimerPhotos(jeuExistant.photos);
+                }
+            }
             photosUrls = await uploaderPhotos(photosFiles);
         } else if (id) {
+            // Si aucune nouvelle photo n'est sélectionnée, on garde les photos existantes
             const jeuExistant = jeux.find(j => j.id === id);
             photosUrls = (jeuExistant && Array.isArray(jeuExistant.photos)) ? jeuExistant.photos : [];
         }
@@ -488,7 +491,6 @@
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
 
         photosPreviewDiv.innerHTML = '';
-        // Correction pour s'assurer que jeu.photos est bien un tableau
         const photos = Array.isArray(jeu.photos) ? jeu.photos : [];
         if (photos.length > 0) {
             photosPreviewContainer.style.display = 'block';
