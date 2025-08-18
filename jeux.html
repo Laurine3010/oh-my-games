@@ -31,9 +31,10 @@
         <label for="nom-jeu">Nom du jeu :</label>
         <input type="text" id="nom-jeu" name="nom-jeu" required><br><br>
 
-        <label for="proprietaire">Propriétaire :</label>
-        <select id="proprietaire" name="proprietaire" required>
-            <option value="">Sélectionner un propriétaire</option>
+        <label for="proprietaire-jeu">Propriétaire :</label>
+        <select id="proprietaire-jeu" name="proprietaire-jeu">
+          <option value="">Sélectionner un propriétaire</option>
+          <option value="ajouter-proprietaire">➕ Ajouter un propriétaire</option>
         </select><br><br>
 
         <label for="photos-jeu">Photos du jeu (optionnel) :</label>
@@ -72,7 +73,7 @@
 
     let jeux = [];
     let parties = [];
-    let joueurs = []; // Nouvelle variable pour stocker les joueurs
+    let proprietaires = []; // NOUVEAU: pour stocker les propriétaires
     const photosBucket = 'jeu-photos';
 
     const modal = document.getElementById('modal-ajout');
@@ -85,6 +86,7 @@
 
     const jeuIdInput = document.getElementById('jeu-id');
     const nomJeuInput = document.getElementById('nom-jeu');
+    const proprietaireJeuSelect = document.getElementById('proprietaire-jeu'); // NOUVEAU: référence à la liste déroulante
     const photosJeuInput = document.getElementById('photos-jeu');
     const minJoueursInput = document.getElementById('min-joueurs');
     const maxJoueursInput = document.getElementById('max-joueurs');
@@ -94,11 +96,66 @@
     const emprunteAInput = document.getElementById('emprunte-a');
     const photosPreviewContainer = document.getElementById('photos-preview-container');
     const photosPreviewDiv = document.getElementById('photos-preview');
-    const proprietaireSelect = document.getElementById('proprietaire'); // Nouvelle référence
 
     let currentAlphaFilter = '';
 
-    // --- Fonctions de gestion des photos (inchangées) ---
+    // --- Fonctions de gestion des propriétaires ---
+    async function chargerProprietaires() {
+        try {
+            const { data, error } = await supabase.from('proprietaires').select('*').order('nom', { ascending: true });
+            if (error) throw error;
+            proprietaires = data;
+            mettreAJourSelectProprietaires();
+        } catch (error) {
+            console.error("Erreur lors du chargement des propriétaires:", error);
+        }
+    }
+
+    function mettreAJourSelectProprietaires() {
+        // On garde la première option qui est le placeholder
+        const options = Array.from(proprietaireJeuSelect.options).filter(opt => opt.value === "" || opt.value === "ajouter-proprietaire");
+        proprietaireJeuSelect.innerHTML = '';
+        options.forEach(opt => proprietaireJeuSelect.appendChild(opt));
+
+        proprietaires.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = p.nom;
+            proprietaireJeuSelect.insertBefore(option, proprietaireJeuSelect.options[proprietaireJeuSelect.options.length - 1]);
+        });
+    }
+
+    async function ajouterNouveauProprietaire() {
+        const nom = prompt("Entrez le nom du nouveau propriétaire :");
+        if (nom && nom.trim() !== '') {
+            try {
+                const { data, error } = await supabase.from('proprietaires').insert({ nom: nom.trim() }).select();
+                if (error) {
+                    if (error.code === '23505') { // Code d'erreur pour une contrainte unique violée
+                        alert("Ce propriétaire existe déjà.");
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    proprietaires.push(data[0]);
+                    proprietaires.sort((a, b) => a.nom.localeCompare(b.nom));
+                    mettreAJourSelectProprietaires();
+                    proprietaireJeuSelect.value = data[0].id; // Sélectionne le nouveau propriétaire
+                }
+            } catch (error) {
+                console.error("Erreur lors de l'ajout du propriétaire:", error);
+                alert("Erreur lors de l'ajout du propriétaire: " + error.message);
+            }
+        }
+    }
+
+    proprietaireJeuSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'ajouter-proprietaire') {
+            ajouterNouveauProprietaire();
+        }
+    });
+
+    // --- Fonctions de gestion des photos avec Supabase Storage ---
     async function uploaderPhotos(photosFiles) {
         const photosUrls = [];
         for (const file of photosFiles) {
@@ -141,24 +198,13 @@
     // --- Fonctions de gestion des jeux ---
     async function chargerJeux() {
         try {
-            const { data, error } = await supabase.from('jeux').select('*');
+            // On fait un JOIN avec la table proprietaires pour afficher le nom
+            const { data, error } = await supabase.from('jeux').select('*, proprietaires(nom)');
             if (error) throw error;
             return data;
         } catch (error) {
             console.error("Erreur lors du chargement des jeux:", error);
             alert(`Une erreur est survenue lors du chargement des jeux: ${error.message}`);
-            return [];
-        }
-    }
-    
-    // Nouvelle fonction pour charger les joueurs
-    async function chargerJoueurs() {
-        try {
-            const { data, error } = await supabase.from('joueurs').select('nom');
-            if (error) throw error;
-            return data.map(joueur => joueur.nom);
-        } catch (error) {
-            console.error("Erreur lors du chargement des joueurs:", error);
             return [];
         }
     }
@@ -255,8 +301,8 @@
 
         const id = jeuIdInput.value;
         const nomJeu = nomJeuInput.value.trim();
+        const proprietaireId = proprietaireJeuSelect.value || null; // NOUVEAU: récupération de l'ID du propriétaire
         const photosFiles = photosJeuInput.files;
-        const proprietaire = proprietaireSelect.value; // On récupère la valeur du propriétaire
         const minJoueurs = Number(minJoueursInput.value);
         const maxJoueurs = Number(maxJoueursInput.value);
         const prete = preteCheckbox.checked;
@@ -268,18 +314,14 @@
             alert('Le nom du jeu est obligatoire.');
             return;
         }
-        if (!proprietaire) {
-            alert('Le propriétaire du jeu est obligatoire.');
-            return;
-        }
         if (minJoueurs > maxJoueurs) {
             alert('Le nombre de joueurs minimum ne peut pas être supérieur au nombre de joueurs maximum.');
             return;
         }
 
         let photosUrls = [];
+
         if (photosFiles.length > 0) {
-            // En cas de modification, on supprime les anciennes photos avant d'uploader les nouvelles
             if (id) {
                 const jeuExistant = jeux.find(j => j.id === id);
                 if (jeuExistant && jeuExistant.photos && jeuExistant.photos.length > 0) {
@@ -288,15 +330,14 @@
             }
             photosUrls = await uploaderPhotos(photosFiles);
         } else if (id) {
-            // Si aucune nouvelle photo n'est sélectionnée, on garde les photos existantes
             const jeuExistant = jeux.find(j => j.id === id);
             photosUrls = (jeuExistant && Array.isArray(jeuExistant.photos)) ? jeuExistant.photos : [];
         }
 
         const jeuData = {
             nom: nomJeu,
+            proprietaire_id: proprietaireId, // NOUVEAU: on ajoute le proprietaire_id
             photos: photosUrls,
-            proprietaire: proprietaire, // On ajoute le propriétaire ici
             min_joueurs: minJoueurs,
             max_joueurs: maxJoueurs,
             prete: prete,
@@ -355,19 +396,7 @@
         console.log("Chargement et affichage des jeux depuis Supabase...");
         jeux = await chargerJeux();
         parties = await chargerParties();
-        joueurs = await chargerJoueurs(); // On charge les joueurs ici
         afficherListeJeux();
-    }
-
-    // Fonction pour remplir le select des propriétaires
-    function remplirProprietaireSelect() {
-        proprietaireSelect.innerHTML = '<option value="">Sélectionner un propriétaire</option>';
-        joueurs.forEach(joueur => {
-            const option = document.createElement('option');
-            option.value = joueur;
-            option.textContent = joueur;
-            proprietaireSelect.appendChild(option);
-        });
     }
 
     function afficherListeJeux() {
@@ -401,6 +430,13 @@
                 : 'https://via.placeholder.com/280x160?text=Pas+de+photo';
             img.alt = `Image de ${jeu.nom}`;
             card.appendChild(img);
+            // NOUVEAU: Affichage du propriétaire
+            if (jeu.proprietaires && jeu.proprietaires.nom) {
+                const tagProprietaire = document.createElement('span');
+                tagProprietaire.className = 'tag-proprietaire';
+                tagProprietaire.textContent = `Propriétaire : ${jeu.proprietaires.nom}`;
+                card.appendChild(tagProprietaire);
+            }
             if (jeu.emprunte) {
                 const tagEmprunte = document.createElement('span');
                 tagEmprunte.className = 'tag-emprunte';
@@ -421,15 +457,6 @@
             const titre = document.createElement('h3');
             titre.textContent = jeu.nom;
             contentDiv.appendChild(titre);
-            
-            // Affichage du propriétaire
-            if (jeu.proprietaire) {
-                const proprietaire = document.createElement('p');
-                proprietaire.className = 'proprietaire-info';
-                proprietaire.innerHTML = `<strong>Propriétaire :</strong> ${jeu.proprietaire}`;
-                contentDiv.appendChild(proprietaire);
-            }
-
             const infosComplementaires = document.createElement('div');
             infosComplementaires.className = 'infos-complementaires';
             if (jeu.min_joueurs && jeu.max_joueurs && !isNaN(jeu.min_joueurs) && !isNaN(jeu.max_joueurs)) {
@@ -526,6 +553,7 @@
         }
         jeuIdInput.value = jeu.id;
         nomJeuInput.value = jeu.nom;
+        proprietaireJeuSelect.value = jeu.proprietaire_id || ''; // NOUVEAU: on sélectionne le bon propriétaire
         minJoueursInput.value = jeu.min_joueurs !== undefined ? jeu.min_joueurs : '';
         maxJoueursInput.value = jeu.max_joueurs !== undefined ? jeu.max_joueurs : '';
         preteCheckbox.checked = jeu.prete === true;
@@ -534,10 +562,6 @@
         emprunteCheckbox.checked = jeu.emprunte === true;
         emprunteAInput.value = jeu.emprunte_a || '';
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
-        
-        // Remplissage du select du propriétaire
-        remplirProprietaireSelect();
-        proprietaireSelect.value = jeu.proprietaire || ''; // Sélectionne le propriétaire actuel
 
         photosPreviewDiv.innerHTML = '';
         const photos = Array.isArray(jeu.photos) ? jeu.photos : [];
@@ -570,14 +594,13 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         generateAlphaFilters();
+        await chargerProprietaires(); // NOUVEAU: on charge les propriétaires au démarrage
         await chargerEtAfficherJeux();
-        remplirProprietaireSelect(); // Appel initial pour remplir la liste
     });
 
     document.addEventListener('visibilitychange', async () => {
       if (document.visibilityState === 'visible') {
         await chargerEtAfficherJeux();
-        remplirProprietaireSelect();
       }
     });
 
