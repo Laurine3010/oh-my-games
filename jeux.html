@@ -73,7 +73,7 @@
 
     let jeux = [];
     let parties = [];
-    let proprietaires = []; // NOUVEAU: pour stocker les propriétaires
+    let proprietaires = [];
     const photosBucket = 'jeu-photos';
 
     const modal = document.getElementById('modal-ajout');
@@ -86,7 +86,7 @@
 
     const jeuIdInput = document.getElementById('jeu-id');
     const nomJeuInput = document.getElementById('nom-jeu');
-    const proprietaireJeuSelect = document.getElementById('proprietaire-jeu'); // NOUVEAU: référence à la liste déroulante
+    const proprietaireJeuSelect = document.getElementById('proprietaire-jeu');
     const photosJeuInput = document.getElementById('photos-jeu');
     const minJoueursInput = document.getElementById('min-joueurs');
     const maxJoueursInput = document.getElementById('max-joueurs');
@@ -112,7 +112,6 @@
     }
 
     function mettreAJourSelectProprietaires() {
-        // On garde la première option qui est le placeholder
         const options = Array.from(proprietaireJeuSelect.options).filter(opt => opt.value === "" || opt.value === "ajouter-proprietaire");
         proprietaireJeuSelect.innerHTML = '';
         options.forEach(opt => proprietaireJeuSelect.appendChild(opt));
@@ -131,7 +130,7 @@
             try {
                 const { data, error } = await supabase.from('proprietaires').insert({ nom: nom.trim() }).select();
                 if (error) {
-                    if (error.code === '23505') { // Code d'erreur pour une contrainte unique violée
+                    if (error.code === '23505') {
                         alert("Ce propriétaire existe déjà.");
                     } else {
                         throw error;
@@ -140,7 +139,7 @@
                     proprietaires.push(data[0]);
                     proprietaires.sort((a, b) => a.nom.localeCompare(b.nom));
                     mettreAJourSelectProprietaires();
-                    proprietaireJeuSelect.value = data[0].id; // Sélectionne le nouveau propriétaire
+                    proprietaireJeuSelect.value = data[0].id;
                 }
             } catch (error) {
                 console.error("Erreur lors de l'ajout du propriétaire:", error);
@@ -182,7 +181,10 @@
     }
 
     async function supprimerPhotos(photosUrls) {
-        if (!photosUrls || photosUrls.length === 0) return;
+        if (!photosUrls || !Array.isArray(photosUrls) || photosUrls.length === 0) {
+            console.log("Aucune photo à supprimer ou l'argument n'est pas un tableau.");
+            return;
+        }
         
         const filePaths = photosUrls.map(url => {
             const pathSegments = url.split('/');
@@ -198,7 +200,6 @@
     // --- Fonctions de gestion des jeux ---
     async function chargerJeux() {
         try {
-            // On fait un JOIN avec la table proprietaires pour afficher le nom
             const { data, error } = await supabase.from('jeux').select('*, proprietaires(nom)');
             if (error) throw error;
             return data;
@@ -247,7 +248,8 @@
     async function supprimerJeu(id) {
         try {
             const jeuASupprimer = jeux.find(j => j.id === id);
-            if (jeuASupprimer && jeuASupprimer.photos && jeuASupprimer.photos.length > 0) {
+            // CORRECTION: on vérifie que jeuASupprimer.photos est un tableau avant de l'envoyer
+            if (jeuASupprimer && Array.isArray(jeuASupprimer.photos) && jeuASupprimer.photos.length > 0) {
                 await supprimerPhotos(jeuASupprimer.photos);
             }
             const { error } = await supabase.from('jeux').delete().eq('id', id);
@@ -284,6 +286,7 @@
         emprunteAInput.style.display = 'none';
         photosPreviewContainer.style.display = 'none';
         photosPreviewDiv.innerHTML = '';
+        proprietaireJeuSelect.value = ''; // Réinitialisation de la liste déroulante
     });
 
     btnFermer.addEventListener('click', () => {
@@ -301,7 +304,7 @@
 
         const id = jeuIdInput.value;
         const nomJeu = nomJeuInput.value.trim();
-        const proprietaireId = proprietaireJeuSelect.value || null; // NOUVEAU: récupération de l'ID du propriétaire
+        const proprietaireId = proprietaireJeuSelect.value || null;
         const photosFiles = photosJeuInput.files;
         const minJoueurs = Number(minJoueursInput.value);
         const maxJoueurs = Number(maxJoueursInput.value);
@@ -324,7 +327,7 @@
         if (photosFiles.length > 0) {
             if (id) {
                 const jeuExistant = jeux.find(j => j.id === id);
-                if (jeuExistant && jeuExistant.photos && jeuExistant.photos.length > 0) {
+                if (jeuExistant && Array.isArray(jeuExistant.photos) && jeuExistant.photos.length > 0) {
                     await supprimerPhotos(jeuExistant.photos);
                 }
             }
@@ -336,7 +339,7 @@
 
         const jeuData = {
             nom: nomJeu,
-            proprietaire_id: proprietaireId, // NOUVEAU: on ajoute le proprietaire_id
+            proprietaire_id: proprietaireId,
             photos: photosUrls,
             min_joueurs: minJoueurs,
             max_joueurs: maxJoueurs,
@@ -430,7 +433,6 @@
                 : 'https://via.placeholder.com/280x160?text=Pas+de+photo';
             img.alt = `Image de ${jeu.nom}`;
             card.appendChild(img);
-            // NOUVEAU: Affichage du propriétaire
             if (jeu.proprietaires && jeu.proprietaires.nom) {
                 const tagProprietaire = document.createElement('span');
                 tagProprietaire.className = 'tag-proprietaire';
@@ -553,7 +555,7 @@
         }
         jeuIdInput.value = jeu.id;
         nomJeuInput.value = jeu.nom;
-        proprietaireJeuSelect.value = jeu.proprietaire_id || ''; // NOUVEAU: on sélectionne le bon propriétaire
+        proprietaireJeuSelect.value = jeu.proprietaire_id || '';
         minJoueursInput.value = jeu.min_joueurs !== undefined ? jeu.min_joueurs : '';
         maxJoueursInput.value = jeu.max_joueurs !== undefined ? jeu.max_joueurs : '';
         preteCheckbox.checked = jeu.prete === true;
@@ -594,7 +596,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         generateAlphaFilters();
-        await chargerProprietaires(); // NOUVEAU: on charge les propriétaires au démarrage
+        await chargerProprietaires();
         await chargerEtAfficherJeux();
     });
 
