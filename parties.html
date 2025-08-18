@@ -55,6 +55,9 @@
     <label for="jeu-select">Jeu :</label><br />
     <select id="jeu-select" required></select><br /><br />
 
+    <label for="date-partie">Date de la partie :</label><br />
+    <input type="datetime-local" id="date-partie" name="date-partie" required><br /><br />
+
     <label>Joueurs participants :</label><br />
     <div id="liste-joueurs-participation"></div><br />
 
@@ -97,6 +100,9 @@
       <input type="hidden" id="partie-id-edition">
       <label for="edit-jeu-select">Jeu :</label><br />
       <select id="edit-jeu-select" required></select><br /><br />
+      
+      <label for="edit-date-partie">Date de la partie :</label><br />
+      <input type="datetime-local" id="edit-date-partie" name="edit-date-partie" required><br /><br />
 
       <label>Joueurs participants :</label><br />
       <div id="edit-liste-joueurs-participation"></div><br />
@@ -120,6 +126,7 @@
 
     // DOM References - New Party Form
     const jeuSelect = document.getElementById('jeu-select');
+    const datePartieInput = document.getElementById('date-partie'); // NOUVEAU
     const joueursParticipationDiv = document.getElementById('liste-joueurs-participation');
     const vainqueursDiv = document.getElementById('liste-vainqueurs');
     const formPartie = document.getElementById('form-partie');
@@ -134,6 +141,7 @@
     const formEdition = document.getElementById('form-edition');
     const partieIdEditionInput = document.getElementById('partie-id-edition');
     const editJeuSelect = document.getElementById('edit-jeu-select');
+    const editDatePartieInput = document.getElementById('edit-date-partie'); // NOUVEAU
     const editJoueursParticipationDiv = document.getElementById('edit-liste-joueurs-participation');
     const editListeVainqueurs = document.getElementById('edit-liste-vainqueurs');
     const btnAnnulerEdition = document.getElementById('btn-annuler-edition');
@@ -209,7 +217,7 @@
       }
     }
     
-    // --- Helper Functions to Populate Forms/Filters (corrigé) ---
+    // --- Helper Functions to Populate Forms/Filters ---
 
     function remplirSelect(selectElem, optionsArray, valeurVide = true, allText = 'Tous') {
       selectElem.innerHTML = '';
@@ -229,7 +237,6 @@
       });
     }
 
-    // Fonction corrigée avec des noms de radio et de checkbox uniques pour chaque formulaire
     function afficherJoueursCheckboxesAndRadios(targetDivCheckboxes, targetDivRadios, namePrefix, currentPlayers = [], currentWinner = '') {
       targetDivCheckboxes.innerHTML = '';
       targetDivRadios.innerHTML = '';
@@ -260,7 +267,6 @@
         radio.name = `${namePrefix}-vainqueur-radio`;
         radio.value = joueur.nom;
         radio.id = radioId;
-        // On ne coche le radio que si le joueur fait partie de la partie et est le vainqueur
         if (Array.isArray(currentPlayers) && currentPlayers.includes(joueur.nom) && joueur.nom === currentWinner) {
             radio.checked = true;
         }
@@ -273,7 +279,14 @@
         targetDivRadios.appendChild(document.createElement('br'));
       });
     }
-
+    
+    // Fonction pour formater la date pour l'input datetime-local
+    function formatDateToInput(dateString) {
+        const date = new Date(dateString);
+        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+        return date.toISOString().slice(0, 16);
+    }
+    
     // --- Main Data Loading and Display Function ---
 
     async function chargerEtAfficherToutesLesDonnees() {
@@ -283,9 +296,11 @@
         parties = await chargerParties();
 
         remplirSelect(jeuSelect, jeux, false);
+        // On initialise le champ de date de la nouvelle partie à la date et heure actuelles
+        datePartieInput.value = formatDateToInput(new Date());
+
         remplirSelect(filtreJeu, jeux, true, 'Tous');
         remplirSelect(filtreJoueur, joueurs, true, 'Tous');
-        // Utilisation d'un préfixe pour différencier les formulaires
         afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv, 'new-partie');
         remplirSelect(editJeuSelect, jeux, false);
 
@@ -331,10 +346,11 @@
     filtreJeu.addEventListener('change', afficherParties);
     filtreJoueur.addEventListener('change', afficherParties);
 
-    // --- New Party Submission (corrigé) ---
+    // --- New Party Submission ---
     formPartie.addEventListener('submit', async function (e) {
       e.preventDefault();
       const nomJeu = jeuSelect.value;
+      const datePartie = datePartieInput.value; // NOUVEAU
       const joueursPartie = [...document.querySelectorAll('#liste-joueurs-participation input[name="new-partie-joueurs-participation"]:checked')].map(j => j.value);
       const vainqueur = document.querySelector('#liste-vainqueurs input[name="new-partie-vainqueur-radio"]:checked')?.value;
       
@@ -352,7 +368,7 @@
       }
       
       const nouvellePartie = {
-        date: new Date().toISOString(),
+        date: new Date(datePartie).toISOString(), // NOUVEAU
         nom_jeu: nomJeu,
         joueurs: joueursPartie,
         gagnant: vainqueur,
@@ -362,6 +378,7 @@
       if (result.success) {
           alert("Partie enregistrée !");
           this.reset();
+          datePartieInput.value = formatDateToInput(new Date()); // On remet la date du jour par défaut
           afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv, 'new-partie');
           await chargerEtAfficherToutesLesDonnees();
       } else {
@@ -389,7 +406,7 @@
       }
     });
 
-    // --- Edit Form Logic (corrigé) ---
+    // --- Edit Form Logic ---
     function ouvrirEdition(partieId) {
       const partie = parties.find(p => p.id === partieId);
       if (!partie) {
@@ -399,7 +416,7 @@
       }
       partieIdEditionInput.value = partie.id;
       editJeuSelect.value = partie.nom_jeu;
-      // Utilisation d'un préfixe pour différencier les formulaires
+      editDatePartieInput.value = formatDateToInput(partie.date); // NOUVEAU
       afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, 'edit-partie', partie.joueurs, partie.gagnant);
       editionSection.style.display = 'block';
       editionSection.scrollIntoView({ behavior: 'smooth' });
@@ -413,7 +430,7 @@
           return;
       }
       const nomJeu = editJeuSelect.value;
-      // Utilisation du bon nom d'attribut pour la sélection
+      const datePartie = editDatePartieInput.value; // NOUVEAU
       const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-partie-joueurs-participation"]:checked')].map(j => j.value);
       const vainqueur = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
       
@@ -431,6 +448,7 @@
       }
       
       const partieModifiee = {
+          date: new Date(datePartie).toISOString(), // NOUVEAU
           nom_jeu: nomJeu,
           joueurs: joueursSelectionnes,
           gagnant: vainqueur,
