@@ -217,7 +217,7 @@
       }
     }
     
-    // --- Helper Functions to Populate Forms/Filters ---
+    // --- Fonctions d'aide pour remplir les formulaires ---
 
     function remplirSelect(selectElem, optionsArray, valeurVide = true, allText = 'Tous') {
       selectElem.innerHTML = '';
@@ -237,15 +237,13 @@
       });
     }
 
-    function afficherJoueursCheckboxesAndRadios(targetDivCheckboxes, targetDivRadios, namePrefix, currentPlayers = [], currentWinner = '') {
-      targetDivCheckboxes.innerHTML = '';
-      targetDivRadios.innerHTML = '';
+    function afficherJoueursCheckboxes(targetDiv, namePrefix, currentPlayers = []) {
+      targetDiv.innerHTML = '';
       if (joueurs.length === 0) {
-        targetDivCheckboxes.innerHTML = '<p>Aucun joueur enregistré. Veuillez en ajouter sur la page "Joueurs".</p>';
+        targetDiv.innerHTML = '<p>Aucun joueur enregistré. Veuillez en ajouter sur la page "Joueurs".</p>';
         return;
       }
       joueurs.forEach(joueur => {
-        // Checkbox
         const checkboxId = `${namePrefix}-part-joueur-${joueur.id}`;
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -256,39 +254,46 @@
         const label = document.createElement('label');
         label.htmlFor = checkboxId;
         label.textContent = joueur.nom;
-        targetDivCheckboxes.appendChild(checkbox);
-        targetDivCheckboxes.appendChild(label);
-        targetDivCheckboxes.appendChild(document.createElement('br'));
-
-        // Radio button
-        const radioId = `${namePrefix}-vainqueur-${joueur.id}`;
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = `${namePrefix}-vainqueur-radio`;
-        radio.value = joueur.nom;
-        radio.id = radioId;
-        if (Array.isArray(currentPlayers) && currentPlayers.includes(joueur.nom) && joueur.nom === currentWinner) {
-            radio.checked = true;
-        }
-        
-        const labelRadio = document.createElement('label');
-        labelRadio.htmlFor = radioId;
-        labelRadio.textContent = joueur.nom;
-        targetDivRadios.appendChild(radio);
-        targetDivRadios.appendChild(labelRadio);
-        targetDivRadios.appendChild(document.createElement('br'));
+        targetDiv.appendChild(checkbox);
+        targetDiv.appendChild(label);
+        targetDiv.appendChild(document.createElement('br'));
       });
     }
+
+    function updateVainqueursList(joueursSelectionnes, targetDivRadios, namePrefix, currentWinner = '') {
+        targetDivRadios.innerHTML = '';
+        if (joueursSelectionnes.length === 0) {
+            targetDivRadios.innerHTML = '<p>Aucun vainqueur possible. Sélectionnez d\'abord des joueurs participants.</p>';
+            return;
+        }
+
+        joueursSelectionnes.forEach(joueurNom => {
+            const radioId = `${namePrefix}-vainqueur-${joueurNom.replace(/\s+/g, '-')}`;
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = `${namePrefix}-vainqueur-radio`;
+            radio.value = joueurNom;
+            radio.id = radioId;
+            if (joueurNom === currentWinner) {
+                radio.checked = true;
+            }
+            
+            const labelRadio = document.createElement('label');
+            labelRadio.htmlFor = radioId;
+            labelRadio.textContent = joueurNom;
+            targetDivRadios.appendChild(radio);
+            targetDivRadios.appendChild(labelRadio);
+            targetDivRadios.appendChild(document.createElement('br'));
+        });
+    }
     
-    // Fonction pour formater la date pour l'input datetime-local
     function formatDateToInput(dateString) {
         const date = new Date(dateString);
-        // Ajustement pour le fuseau horaire local
         date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
         return date.toISOString().slice(0, 16);
     }
     
-    // --- Main Data Loading and Display Function ---
+    // --- Fonction principale pour le chargement et l'affichage des données ---
 
     async function chargerEtAfficherToutesLesDonnees() {
         console.log("Chargement initial des données depuis Supabase...");
@@ -301,13 +306,18 @@
 
         remplirSelect(filtreJeu, jeux, true, 'Tous');
         remplirSelect(filtreJoueur, joueurs, true, 'Tous');
-        afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv, 'new-partie');
+        
+        // Initialisation des checkboxes des joueurs
+        afficherJoueursCheckboxes(joueursParticipationDiv, 'new-partie');
+        // Initialisation de la liste des vainqueurs avec les joueurs par défaut
+        updateVainqueursList([], vainqueursDiv, 'new-partie');
+
         remplirSelect(editJeuSelect, jeux, false);
 
         afficherParties();
     }
 
-    // --- Display Parties History ---
+    // --- Affichage de l'historique des parties ---
 
     function afficherParties() {
       tbodyParties.innerHTML = '';
@@ -342,11 +352,11 @@
       });
     }
 
-    // --- Event Listeners for Filters ---
+    // --- Listeners pour les filtres ---
     filtreJeu.addEventListener('change', afficherParties);
     filtreJoueur.addEventListener('change', afficherParties);
 
-    // --- New Party Submission ---
+    // --- Soumission du formulaire de nouvelle partie ---
     formPartie.addEventListener('submit', async function (e) {
       e.preventDefault();
       const nomJeu = jeuSelect.value;
@@ -379,27 +389,24 @@
           alert("Partie enregistrée !");
           this.reset();
           datePartieInput.value = formatDateToInput(new Date());
-          afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv, 'new-partie');
+          afficherJoueursCheckboxes(joueursParticipationDiv, 'new-partie');
+          updateVainqueursList([], vainqueursDiv, 'new-partie');
           await chargerEtAfficherToutesLesDonnees();
       } else {
           console.error('Erreur lors de l\'enregistrement de la partie:', result.error);
       }
     });
 
-    // --- Table Actions (Modify/Delete) ---
-    // CORRECTION : On attache l'écouteur d'événement au tbody au lieu des boutons
-    // individuels pour gérer les boutons ajoutés dynamiquement.
+    // --- Délégation d'événements pour le tableau ---
     tbodyParties.addEventListener('click', async (e) => {
       const target = e.target;
       
-      // On vérifie si la cible du clic est un bouton "Modifier"
       if (target.classList.contains('btn-modifier')) {
         const partieId = target.getAttribute('data-partie-id');
         if (partieId) {
           ouvrirEdition(partieId);
         }
       } 
-      // On vérifie si la cible du clic est un bouton "Supprimer"
       else if (target.classList.contains('btn-supprimer')) {
         const partieId = target.getAttribute('data-partie-id');
         if (partieId) {
@@ -416,7 +423,7 @@
       }
     });
 
-    // --- Edit Form Logic ---
+    // --- Logique du formulaire d'édition ---
     function ouvrirEdition(partieId) {
       const partie = parties.find(p => p.id === partieId);
       if (!partie) {
@@ -426,11 +433,12 @@
       }
       partieIdEditionInput.value = partie.id;
       editJeuSelect.value = partie.nom_jeu;
-      
-      // On utilise la fonction d'aide pour formater la date
       editDatePartieInput.value = formatDateToInput(partie.date); 
       
-      afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, 'edit-partie', partie.joueurs, partie.gagnant);
+      // On affiche les checkboxes des joueurs et on met à jour les vainqueurs
+      afficherJoueursCheckboxes(editJoueursParticipationDiv, 'edit-partie', partie.joueurs);
+      updateVainqueursList(partie.joueurs, editListeVainqueurs, 'edit-partie', partie.gagnant);
+
       editionSection.style.display = 'block';
       editionSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -482,7 +490,24 @@
       editionSection.style.display = 'none';
     });
 
-    // --- Initial Load & Visibility Changes ---
+    // --- Listeners pour les checkboxes des joueurs ---
+    joueursParticipationDiv.addEventListener('change', (e) => {
+      if (e.target.name === 'new-partie-joueurs-participation') {
+        const joueursSelectionnes = [...document.querySelectorAll('#liste-joueurs-participation input[name="new-partie-joueurs-participation"]:checked')].map(j => j.value);
+        updateVainqueursList(joueursSelectionnes, vainqueursDiv, 'new-partie');
+      }
+    });
+
+    editJoueursParticipationDiv.addEventListener('change', (e) => {
+      if (e.target.name === 'edit-partie-joueurs-participation') {
+        const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-partie-joueurs-participation"]:checked')].map(j => j.value);
+        const partie = parties.find(p => p.id === partieIdEditionInput.value);
+        const currentWinner = partie ? partie.gagnant : '';
+        updateVainqueursList(joueursSelectionnes, editListeVainqueurs, 'edit-partie', currentWinner);
+      }
+    });
+
+    // --- Chargement initial et changements de visibilité ---
     document.addEventListener('DOMContentLoaded', async () => {
       await chargerEtAfficherToutesLesDonnees();
       const urlParams = new URLSearchParams(window.location.search);
