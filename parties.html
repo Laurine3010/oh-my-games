@@ -303,7 +303,7 @@
         });
     }
 
-    function addJoueurToList(joueurNom, targetDiv) {
+    function addPlayerToDiv(joueurNom, targetDiv) {
         const existingPlayers = [...targetDiv.querySelectorAll('.selected-player')].map(el => el.textContent.trim().replace('✖', ''));
         if (existingPlayers.includes(joueurNom)) return;
 
@@ -311,26 +311,6 @@
         joueurDiv.classList.add('selected-player');
         joueurDiv.innerHTML = `${joueurNom} <span class="remove-player" data-player-name="${joueurNom}">✖</span>`;
         targetDiv.appendChild(joueurDiv);
-
-        joueurDiv.querySelector('.remove-player').addEventListener('click', () => {
-            joueurDiv.remove();
-            const joueursSelectionnes = getPlayersFromDiv(joueursParticipationDiv);
-            updateVainqueursLists(joueursSelectionnes);
-        });
-    }
-
-    function addVainqueurToList(joueurNom, targetDiv) {
-        const existingWinners = [...targetDiv.querySelectorAll('.selected-player')].map(el => el.textContent.trim().replace('✖', ''));
-        if (existingWinners.includes(joueurNom)) return;
-
-        const joueurDiv = document.createElement('div');
-        joueurDiv.classList.add('selected-player');
-        joueurDiv.innerHTML = `${joueurNom} <span class="remove-player" data-player-name="${joueurNom}">✖</span>`;
-        targetDiv.appendChild(joueurDiv);
-
-        joueurDiv.querySelector('.remove-player').addEventListener('click', () => {
-            joueurDiv.remove();
-        });
     }
 
     function updateSingleVainqueurList(joueursSelectionnes, targetDivRadios, namePrefix, currentWinner = '') {
@@ -364,13 +344,14 @@
         return [...div.querySelectorAll('.selected-player')].map(el => el.textContent.trim().replace('✖', ''));
     }
 
-    function updateVainqueursLists(joueursSelectionnes) {
-      const currentWinner = document.querySelector('#liste-vainqueurs input[name="new-partie-vainqueur-radio"]:checked')?.value;
-      updateSingleVainqueurList(joueursSelectionnes, vainqueursDiv, 'new-partie', currentWinner);
+    function updateAllLists() {
+      const joueursParticipation = getPlayersFromDiv(joueursParticipationDiv);
+      const joueursEdition = getPlayersFromDiv(editJoueursParticipationDiv);
+
+      updateSingleVainqueurList(joueursParticipation, vainqueursDiv, 'new-partie');
       
-      const editJoueursSelectionnes = getPlayersFromDiv(editJoueursParticipationDiv);
       const currentEditWinner = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
-      updateSingleVainqueurList(editJoueursSelectionnes, editListeVainqueurs, 'edit-partie', currentEditWinner);
+      updateSingleVainqueurList(joueursEdition, editListeVainqueurs, 'edit-partie', currentEditWinner);
     }
 
     function formatDateToInput(dateString) {
@@ -400,9 +381,8 @@
         remplirSelect(filtreJeu, jeux, true, 'Tous');
         remplirSelect(filtreJoueur, joueurs, true, 'Tous');
         
-        // Initialisation de la liste des vainqueurs
-        updateSingleVainqueurList([], vainqueursDiv, 'new-partie');
-        updateSingleVainqueurList([], editListeVainqueurs, 'edit-partie');
+        // Initialisation des listes de vainqueurs (au cas où il y aurait des joueurs pré-sélectionnés)
+        updateAllLists();
 
         afficherParties();
     }
@@ -543,7 +523,7 @@
           datePartieInput.value = formatDateToInput(new Date());
           joueursParticipationDiv.innerHTML = '';
           vainqueursMultipleDiv.innerHTML = '';
-          updateVainqueursLists([]);
+          updateAllLists();
           await chargerEtAfficherToutesLesDonnees();
       } else {
           console.error('Erreur lors de l\'enregistrement de la partie:', result.error);
@@ -555,9 +535,8 @@
         const joueurNom = joueurInput.value;
         const joueur = joueurs.find(j => j.nom === joueurNom);
         if (joueur) {
-            addJoueurToList(joueur.nom, joueursParticipationDiv);
-            const joueursSelectionnes = getPlayersFromDiv(joueursParticipationDiv);
-            updateVainqueursLists(joueursSelectionnes);
+            addPlayerToDiv(joueur.nom, joueursParticipationDiv);
+            updateAllLists();
             joueurInput.value = '';
         }
     });
@@ -566,10 +545,29 @@
         const joueurNom = vainqueurInput.value;
         const joueursParticipants = getPlayersFromDiv(joueursParticipationDiv);
         if (joueursParticipants.includes(joueurNom)) {
-            addVainqueurToList(joueurNom, vainqueursMultipleDiv);
+            addPlayerToDiv(joueurNom, vainqueursMultipleDiv);
             vainqueurInput.value = '';
         }
     });
+
+    // Écouteur de délégation pour les boutons de suppression de joueurs
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-player')) {
+        const parentDiv = e.target.closest('div');
+        if (parentDiv) {
+          const playerName = e.target.getAttribute('data-player-name');
+          const isParticipant = e.target.closest('#liste-joueurs-participation') || e.target.closest('#edit-liste-joueurs-participation');
+          const isWinnerMultiple = e.target.closest('#liste-vainqueurs-multiple') || e.target.closest('#edit-liste-vainqueurs-multiple');
+          
+          e.target.parentNode.remove();
+          
+          if (isParticipant) {
+            updateAllLists();
+          }
+        }
+      }
+    });
+
 
     // --- Délégation d'événements pour le tableau ---
     tbodyParties.addEventListener('click', async (e) => {
@@ -611,7 +609,7 @@
       
       editJoueursParticipationDiv.innerHTML = '';
       partie.joueurs.forEach(joueurNom => {
-          addJoueurToList(joueurNom, editJoueursParticipationDiv);
+          addPlayerToDiv(joueurNom, editJoueursParticipationDiv);
       });
       
       let gagnant;
@@ -627,7 +625,7 @@
         editMultipleWinnersSection.style.display = 'block';
         editVainqueursMultipleDiv.innerHTML = '';
         gagnant.forEach(vainqueurNom => {
-            addVainqueurToList(vainqueurNom, editVainqueursMultipleDiv);
+            addPlayerToDiv(vainqueurNom, editVainqueursMultipleDiv);
         });
         editListeVainqueurs.innerHTML = '';
       } else {
@@ -639,7 +637,7 @@
       }
 
       editionSection.style.display = 'block';
-      editionSection.scrollIntoView({ behavior: 'smooth' });
+      editionSection.scroll-into-view({ behavior: 'smooth' });
     }
     
     // Écouteur pour l'ajout de joueurs dans le formulaire de modification
@@ -647,9 +645,8 @@
         const joueurNom = editJoueurInput.value;
         const joueur = joueurs.find(j => j.nom === joueurNom);
         if (joueur) {
-            addJoueurToList(joueur.nom, editJoueursParticipationDiv);
-            const joueursSelectionnes = getPlayersFromDiv(editJoueursParticipationDiv);
-            updateVainqueursLists(joueursSelectionnes);
+            addPlayerToDiv(joueur.nom, editJoueursParticipationDiv);
+            updateAllLists();
             editJoueurInput.value = '';
         }
     });
@@ -658,7 +655,7 @@
       const joueurNom = editVainqueurInput.value;
       const joueursParticipants = getPlayersFromDiv(editJoueursParticipationDiv);
       if (joueursParticipants.includes(joueurNom)) {
-          addVainqueurToList(joueurNom, editVainqueursMultipleDiv);
+          addPlayerToDiv(joueurNom, editVainqueursMultipleDiv);
           editVainqueurInput.value = '';
       }
     });
