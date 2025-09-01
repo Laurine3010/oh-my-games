@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
 
   <style>
-    /* Style simple pour la liste des parties */
+    /* Styles pour la liste des parties */
     #historique-parties {
       margin-top: 30px;
       border-top: 1px solid #ccc;
@@ -26,7 +26,7 @@
       background-color: #f4f4f4;
     }
 
-    /* Styles du formulaire d'édition */
+    /* Styles pour le formulaire d'édition */
     #edition-partie {
       max-width: 900px;
       margin: 20px auto;
@@ -42,6 +42,62 @@
     #edition-partie button {
       cursor: pointer;
     }
+
+    /* Styles pour les champs de recherche avec suggestions */
+    .autocomplete-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .autocomplete-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .autocomplete-list {
+      position: absolute;
+      border: 1px solid #d4d4d4;
+      border-bottom: none;
+      border-top: none;
+      z-index: 99;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .autocomplete-list-item {
+      padding: 10px;
+      cursor: pointer;
+      background-color: #fff;
+      border-bottom: 1px solid #d4d4d4;
+    }
+    .autocomplete-list-item:hover {
+      background-color: #e9e9e9;
+    }
+    .selected-items {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #f4f4f4;
+    }
+    .selected-item {
+      display: inline-block;
+      margin: 5px;
+      padding: 5px 10px;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+    .selected-item .remove-btn {
+      margin-left: 5px;
+      color: #fff;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -52,17 +108,29 @@
   <button class="btn-home" onclick="location.href='index.html'">&#127968; Home</button>
 
   <form id="form-partie">
-    <label for="jeu-select">Jeu :</label><br />
-    <select id="jeu-select" required></select><br /><br />
+    <label for="jeu-input">Jeu :</label><br />
+    <div class="autocomplete-container">
+      <input type="text" id="jeu-input" class="autocomplete-input" placeholder="Rechercher un jeu..." required>
+      <div id="jeu-suggestions" class="autocomplete-list"></div>
+      <input type="hidden" id="jeu-id">
+    </div><br /><br />
 
     <label for="date-partie">Date de la partie :</label><br />
     <input type="datetime-local" id="date-partie" name="date-partie" required><br /><br />
 
-    <label>Joueurs participants :</label><br />
-    <div id="liste-joueurs-participation"></div><br />
+    <label for="joueurs-input">Joueurs participants :</label><br />
+    <div class="autocomplete-container">
+      <input type="text" id="joueurs-input" class="autocomplete-input" placeholder="Ajouter des joueurs...">
+      <div id="joueurs-suggestions" class="autocomplete-list"></div>
+    </div>
+    <div id="selected-joueurs" class="selected-items"></div><br />
 
-    <label>Vainqueur :</label><br />
-    <div id="liste-vainqueurs"></div><br />
+    <label for="vainqueur-input">Vainqueur :</label><br />
+    <div class="autocomplete-container">
+      <input type="text" id="vainqueur-input" class="autocomplete-input" placeholder="Rechercher le vainqueur...">
+      <div id="vainqueur-suggestions" class="autocomplete-list"></div>
+      <input type="hidden" id="vainqueur-nom">
+    </div><br />
 
     <button type="submit">Enregistrer la partie</button>
   </form>
@@ -98,17 +166,30 @@
     <h3>Modifier la partie</h3>
     <form id="form-edition">
       <input type="hidden" id="partie-id-edition">
-      <label for="edit-jeu-select">Jeu :</label><br />
-      <select id="edit-jeu-select" required></select><br /><br />
+
+      <label for="edit-jeu-input">Jeu :</label><br />
+      <div class="autocomplete-container">
+        <input type="text" id="edit-jeu-input" class="autocomplete-input" placeholder="Rechercher un jeu..." required>
+        <div id="edit-jeu-suggestions" class="autocomplete-list"></div>
+        <input type="hidden" id="edit-jeu-id">
+      </div><br /><br />
       
       <label for="edit-date-partie">Date de la partie :</label><br />
       <input type="datetime-local" id="edit-date-partie" name="edit-date-partie" required><br /><br />
 
-      <label>Joueurs participants :</label><br />
-      <div id="edit-liste-joueurs-participation"></div><br />
+      <label for="edit-joueurs-input">Joueurs participants :</label><br />
+      <div class="autocomplete-container">
+        <input type="text" id="edit-joueurs-input" class="autocomplete-input" placeholder="Ajouter des joueurs...">
+        <div id="edit-joueurs-suggestions" class="autocomplete-list"></div>
+      </div>
+      <div id="edit-selected-joueurs" class="selected-items"></div><br />
 
-      <label>Vainqueur :</label><br />
-      <div id="edit-liste-vainqueurs"></div><br />
+      <label for="edit-vainqueur-input">Vainqueur :</label><br />
+      <div class="autocomplete-container">
+        <input type="text" id="edit-vainqueur-input" class="autocomplete-input" placeholder="Rechercher le vainqueur...">
+        <div id="edit-vainqueur-suggestions" class="autocomplete-list"></div>
+        <input type="hidden" id="edit-vainqueur-nom">
+      </div><br />
 
       <button type="submit">Sauvegarder les modifications</button>
       <button type="button" id="btn-annuler-edition" style="margin-left:10px;">Annuler</button>
@@ -125,10 +206,14 @@
     let parties = [];
 
     // DOM References - New Party Form
-    const jeuSelect = document.getElementById('jeu-select');
+    const jeuInput = document.getElementById('jeu-input');
+    const jeuSuggestions = document.getElementById('jeu-suggestions');
     const datePartieInput = document.getElementById('date-partie');
-    const joueursParticipationDiv = document.getElementById('liste-joueurs-participation');
-    const vainqueursDiv = document.getElementById('liste-vainqueurs');
+    const joueursInput = document.getElementById('joueurs-input');
+    const joueursSuggestions = document.getElementById('joueurs-suggestions');
+    const selectedJoueursDiv = document.getElementById('selected-joueurs');
+    const vainqueurInput = document.getElementById('vainqueur-input');
+    const vainqueurSuggestions = document.getElementById('vainqueur-suggestions');
     const formPartie = document.getElementById('form-partie');
 
     // DOM References - Filters & Table
@@ -140,14 +225,17 @@
     const editionSection = document.getElementById('edition-partie');
     const formEdition = document.getElementById('form-edition');
     const partieIdEditionInput = document.getElementById('partie-id-edition');
-    const editJeuSelect = document.getElementById('edit-jeu-select');
+    const editJeuInput = document.getElementById('edit-jeu-input');
+    const editJeuSuggestions = document.getElementById('edit-jeu-suggestions');
     const editDatePartieInput = document.getElementById('edit-date-partie');
-    const editJoueursParticipationDiv = document.getElementById('edit-liste-joueurs-participation');
-    const editListeVainqueurs = document.getElementById('edit-liste-vainqueurs');
+    const editJoueursInput = document.getElementById('edit-joueurs-input');
+    const editJoueursSuggestions = document.getElementById('edit-joueurs-suggestions');
+    const editSelectedJoueursDiv = document.getElementById('edit-selected-joueurs');
+    const editVainqueurInput = document.getElementById('edit-vainqueur-input');
+    const editVainqueurSuggestions = document.getElementById('edit-vainqueur-suggestions');
     const btnAnnulerEdition = document.getElementById('btn-annuler-edition');
 
     // --- Fonctions de communication avec Supabase ---
-
     async function chargerJeux() {
         try {
             const { data, error } = await supabase.from('jeux').select('id, nom');
@@ -217,7 +305,87 @@
       }
     }
     
-    // --- Fonctions d'aide pour remplir les formulaires ---
+    // --- Fonctions d'aide pour les champs de recherche ---
+    function setupAutocomplete(inputElement, suggestionsElement, sourceArray, onSelect, selectedItemsContainer = null) {
+      inputElement.addEventListener('input', () => {
+        const value = inputElement.value.toLowerCase();
+        suggestionsElement.innerHTML = '';
+        if (value.length === 0) {
+          return;
+        }
+        
+        const filteredList = sourceArray.filter(item => {
+          const itemName = item.nom ? item.nom.toLowerCase() : item.toLowerCase();
+          return itemName.includes(value);
+        });
+
+        filteredList.forEach(item => {
+          const itemElement = document.createElement('div');
+          itemElement.classList.add('autocomplete-list-item');
+          itemElement.textContent = item.nom || item;
+          itemElement.dataset.id = item.id;
+          itemElement.addEventListener('click', () => {
+            onSelect(item);
+            inputElement.value = '';
+            suggestionsElement.innerHTML = '';
+          });
+          suggestionsElement.appendChild(itemElement);
+        });
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!inputElement.contains(e.target) && !suggestionsElement.contains(e.target)) {
+          suggestionsElement.innerHTML = '';
+        }
+      });
+    }
+
+    function addSelectedItem(item, container, inputElement) {
+      const selectedItem = document.createElement('span');
+      selectedItem.classList.add('selected-item');
+      selectedItem.textContent = item.nom;
+      selectedItem.dataset.id = item.id;
+      selectedItem.dataset.nom = item.nom;
+
+      const removeBtn = document.createElement('span');
+      removeBtn.classList.add('remove-btn');
+      removeBtn.innerHTML = '&times;';
+      removeBtn.addEventListener('click', () => {
+        selectedItem.remove();
+        updateVainqueursList(getParticipants(inputElement));
+      });
+      selectedItem.appendChild(removeBtn);
+      container.appendChild(selectedItem);
+      updateVainqueursList(getParticipants(inputElement));
+    }
+
+    function getParticipants(inputElement) {
+      const container = inputElement === joueursInput ? selectedJoueursDiv : editSelectedJoueursDiv;
+      const participants = [...container.querySelectorAll('.selected-item')].map(item => item.dataset.nom);
+      return participants;
+    }
+
+    function updateVainqueursList(joueursParticipants) {
+        // Sélectionne les champs de vainqueur appropriés
+        const currentVainqueurInput = formEdition.style.display === 'block' ? editVainqueurInput : vainqueurInput;
+        const currentVainqueurSuggestions = formEdition.style.display === 'block' ? editVainqueurSuggestions : vainqueurSuggestions;
+        const currentVainqueurNom = formEdition.style.display === 'block' ? document.getElementById('edit-vainqueur-nom') : document.getElementById('vainqueur-nom');
+
+        const currentVainqueur = currentVainqueurNom.value;
+
+        setupAutocomplete(currentVainqueurInput, currentVainqueurSuggestions, joueursParticipants, (vainqueurNom) => {
+            currentVainqueurInput.value = vainqueurNom;
+            currentVainqueurNom.value = vainqueurNom;
+        });
+
+        // Clear the input and suggestions if the current winner is no longer in the list
+        if (currentVainqueur && !joueursParticipants.includes(currentVainqueur)) {
+            currentVainqueurInput.value = '';
+            currentVainqueurNom.value = '';
+        } else if (currentVainqueur) {
+            currentVainqueurInput.value = currentVainqueur;
+        }
+    }
 
     function remplirSelect(selectElem, optionsArray, valeurVide = true, allText = 'Tous') {
       selectElem.innerHTML = '';
@@ -237,88 +405,36 @@
       });
     }
 
-    function afficherJoueursCheckboxes(targetDiv, namePrefix, currentPlayers = []) {
-      targetDiv.innerHTML = '';
-      if (joueurs.length === 0) {
-        targetDiv.innerHTML = '<p>Aucun joueur enregistré. Veuillez en ajouter sur la page "Joueurs".</p>';
-        return;
-      }
-      joueurs.forEach(joueur => {
-        const checkboxId = `${namePrefix}-part-joueur-${joueur.id}`;
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.name = `${namePrefix}-joueurs-participation`;
-        checkbox.value = joueur.nom;
-        checkbox.id = checkboxId;
-        if (Array.isArray(currentPlayers) && currentPlayers.includes(joueur.nom)) checkbox.checked = true;
-        const label = document.createElement('label');
-        label.htmlFor = checkboxId;
-        label.textContent = joueur.nom;
-        targetDiv.appendChild(checkbox);
-        targetDiv.appendChild(label);
-        targetDiv.appendChild(document.createElement('br'));
-      });
-    }
-
-    function updateVainqueursList(joueursSelectionnes, targetDivRadios, namePrefix, currentWinner = '') {
-        targetDivRadios.innerHTML = '';
-        if (joueursSelectionnes.length === 0) {
-            targetDivRadios.innerHTML = '<p>Aucun vainqueur possible. Sélectionnez d\'abord des joueurs participants.</p>';
-            return;
-        }
-
-        joueursSelectionnes.forEach(joueurNom => {
-            const radioId = `${namePrefix}-vainqueur-${joueurNom.replace(/\s+/g, '-')}`;
-            const radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.name = `${namePrefix}-vainqueur-radio`;
-            radio.value = joueurNom;
-            radio.id = radioId;
-            if (joueurNom === currentWinner) {
-                radio.checked = true;
-            }
-            
-            const labelRadio = document.createElement('label');
-            labelRadio.htmlFor = radioId;
-            labelRadio.textContent = joueurNom;
-            targetDivRadios.appendChild(radio);
-            targetDivRadios.appendChild(labelRadio);
-            targetDivRadios.appendChild(document.createElement('br'));
-        });
-    }
-    
     function formatDateToInput(dateString) {
-        const date = new Date(dateString);
-        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-        return date.toISOString().slice(0, 16);
+      const date = new Date(dateString);
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0, 16);
     }
     
     // --- Fonction principale pour le chargement et l'affichage des données ---
-
     async function chargerEtAfficherToutesLesDonnees() {
         console.log("Chargement initial des données depuis Supabase...");
         jeux = await chargerJeux();
         joueurs = await chargerJoueurs();
         parties = await chargerParties();
 
-        remplirSelect(jeuSelect, jeux, false);
-        datePartieInput.value = formatDateToInput(new Date());
-
         remplirSelect(filtreJeu, jeux, true, 'Tous');
         remplirSelect(filtreJoueur, joueurs, true, 'Tous');
         
-        // Initialisation des checkboxes des joueurs
-        afficherJoueursCheckboxes(joueursParticipationDiv, 'new-partie');
-        // Initialisation de la liste des vainqueurs avec les joueurs par défaut
-        updateVainqueursList([], vainqueursDiv, 'new-partie');
+        datePartieInput.value = formatDateToInput(new Date());
 
-        remplirSelect(editJeuSelect, jeux, false);
+        // Setup autocompletes
+        setupAutocomplete(jeuInput, jeuSuggestions, jeux, (jeu) => {
+          jeuInput.value = jeu.nom;
+        });
+        setupAutocomplete(joueursInput, joueursSuggestions, joueurs, (joueur) => {
+          addSelectedItem(joueur, selectedJoueursDiv, joueursInput);
+        });
 
         afficherParties();
     }
 
     // --- Affichage de l'historique des parties ---
-
     function afficherParties() {
       tbodyParties.innerHTML = '';
       const filtreNomJeu = filtreJeu.value;
@@ -359,10 +475,10 @@
     // --- Soumission du formulaire de nouvelle partie ---
     formPartie.addEventListener('submit', async function (e) {
       e.preventDefault();
-      const nomJeu = jeuSelect.value;
+      const nomJeu = jeuInput.value;
       const datePartie = datePartieInput.value;
-      const joueursPartie = [...document.querySelectorAll('#liste-joueurs-participation input[name="new-partie-joueurs-participation"]:checked')].map(j => j.value);
-      const vainqueur = document.querySelector('#liste-vainqueurs input[name="new-partie-vainqueur-radio"]:checked')?.value;
+      const joueursPartie = getParticipants(joueursInput);
+      const vainqueur = vainqueurInput.value;
       
       if (!nomJeu) {
           alert("Veuillez sélectionner un jeu.");
@@ -388,9 +504,9 @@
       if (result.success) {
           alert("Partie enregistrée !");
           this.reset();
+          selectedJoueursDiv.innerHTML = '';
+          updateVainqueursList([]);
           datePartieInput.value = formatDateToInput(new Date());
-          afficherJoueursCheckboxes(joueursParticipationDiv, 'new-partie');
-          updateVainqueursList([], vainqueursDiv, 'new-partie');
           await chargerEtAfficherToutesLesDonnees();
       } else {
           console.error('Erreur lors de l\'enregistrement de la partie:', result.error);
@@ -431,13 +547,33 @@
         console.error("Partie non trouvée avec l'ID:", partieId);
         return;
       }
+
       partieIdEditionInput.value = partie.id;
-      editJeuSelect.value = partie.nom_jeu;
+      editJeuInput.value = partie.nom_jeu;
       editDatePartieInput.value = formatDateToInput(partie.date); 
       
-      // On affiche les checkboxes des joueurs et on met à jour les vainqueurs
-      afficherJoueursCheckboxes(editJoueursParticipationDiv, 'edit-partie', partie.joueurs);
-      updateVainqueursList(partie.joueurs, editListeVainqueurs, 'edit-partie', partie.gagnant);
+      // Clear and populate players
+      editSelectedJoueursDiv.innerHTML = '';
+      partie.joueurs.forEach(joueurNom => {
+        const joueur = joueurs.find(j => j.nom === joueurNom);
+        if (joueur) {
+          addSelectedItem(joueur, editSelectedJoueursDiv, editJoueursInput);
+        }
+      });
+      
+      // Setup edit autocompletes
+      setupAutocomplete(editJeuInput, editJeuSuggestions, jeux, (jeu) => {
+        editJeuInput.value = jeu.nom;
+      });
+      setupAutocomplete(editJoueursInput, editJoueursSuggestions, joueurs, (joueur) => {
+        const existingPlayers = getParticipants(editJoueursInput);
+        if (!existingPlayers.includes(joueur.nom)) {
+          addSelectedItem(joueur, editSelectedJoueursDiv, editJoueursInput);
+        }
+      });
+
+      editVainqueurInput.value = partie.gagnant;
+      updateVainqueursList(partie.joueurs);
 
       editionSection.style.display = 'block';
       editionSection.scrollIntoView({ behavior: 'smooth' });
@@ -450,10 +586,10 @@
           alert("Erreur: ID de partie manquant pour la modification.");
           return;
       }
-      const nomJeu = editJeuSelect.value;
+      const nomJeu = editJeuInput.value;
       const datePartie = editDatePartieInput.value;
-      const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-partie-joueurs-participation"]:checked')].map(j => j.value);
-      const vainqueur = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
+      const joueursSelectionnes = getParticipants(editJoueursInput);
+      const vainqueur = editVainqueurInput.value;
       
       if (!nomJeu) {
           alert("Veuillez sélectionner un jeu.");
@@ -489,24 +625,7 @@
     btnAnnulerEdition.addEventListener('click', () => {
       editionSection.style.display = 'none';
     });
-
-    // --- Listeners pour les checkboxes des joueurs ---
-    joueursParticipationDiv.addEventListener('change', (e) => {
-      if (e.target.name === 'new-partie-joueurs-participation') {
-        const joueursSelectionnes = [...document.querySelectorAll('#liste-joueurs-participation input[name="new-partie-joueurs-participation"]:checked')].map(j => j.value);
-        updateVainqueursList(joueursSelectionnes, vainqueursDiv, 'new-partie');
-      }
-    });
-
-    editJoueursParticipationDiv.addEventListener('change', (e) => {
-      if (e.target.name === 'edit-partie-joueurs-participation') {
-        const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-partie-joueurs-participation"]:checked')].map(j => j.value);
-        const partie = parties.find(p => p.id === partieIdEditionInput.value);
-        const currentWinner = partie ? partie.gagnant : '';
-        updateVainqueursList(joueursSelectionnes, editListeVainqueurs, 'edit-partie', currentWinner);
-      }
-    });
-
+    
     // --- Chargement initial et changements de visibilité ---
     document.addEventListener('DOMContentLoaded', async () => {
       await chargerEtAfficherToutesLesDonnees();
