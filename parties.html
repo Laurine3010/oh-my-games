@@ -126,7 +126,7 @@
 
     // DOM References - New Party Form
     const jeuSelect = document.getElementById('jeu-select');
-    const datePartieInput = document.getElementById('date-partie'); // NOUVEAU
+    const datePartieInput = document.getElementById('date-partie');
     const joueursParticipationDiv = document.getElementById('liste-joueurs-participation');
     const vainqueursDiv = document.getElementById('liste-vainqueurs');
     const formPartie = document.getElementById('form-partie');
@@ -141,7 +141,7 @@
     const formEdition = document.getElementById('form-edition');
     const partieIdEditionInput = document.getElementById('partie-id-edition');
     const editJeuSelect = document.getElementById('edit-jeu-select');
-    const editDatePartieInput = document.getElementById('edit-date-partie'); // NOUVEAU
+    const editDatePartieInput = document.getElementById('edit-date-partie');
     const editJoueursParticipationDiv = document.getElementById('edit-liste-joueurs-participation');
     const editListeVainqueurs = document.getElementById('edit-liste-vainqueurs');
     const btnAnnulerEdition = document.getElementById('btn-annuler-edition');
@@ -351,7 +351,7 @@
     formPartie.addEventListener('submit', async function (e) {
       e.preventDefault();
       const nomJeu = jeuSelect.value;
-      const datePartie = datePartieInput.value; // NOUVEAU
+      const datePartie = datePartieInput.value;
       const joueursPartie = [...document.querySelectorAll('#liste-joueurs-participation input[name="new-partie-joueurs-participation"]:checked')].map(j => j.value);
       const vainqueur = document.querySelector('#liste-vainqueurs input[name="new-partie-vainqueur-radio"]:checked')?.value;
       
@@ -369,7 +369,7 @@
       }
       
       const nouvellePartie = {
-        date: new Date(datePartie).toISOString(), // NOUVEAU
+        date: new Date(datePartie).toISOString(),
         nom_jeu: nomJeu,
         joueurs: joueursPartie,
         gagnant: vainqueur,
@@ -379,7 +379,7 @@
       if (result.success) {
           alert("Partie enregistrée !");
           this.reset();
-          datePartieInput.value = formatDateToInput(new Date()); // On remet la date du jour par défaut
+          datePartieInput.value = formatDateToInput(new Date());
           afficherJoueursCheckboxesAndRadios(joueursParticipationDiv, vainqueursDiv, 'new-partie');
           await chargerEtAfficherToutesLesDonnees();
       } else {
@@ -418,7 +418,7 @@
       partieIdEditionInput.value = partie.id;
       editJeuSelect.value = partie.nom_jeu;
       
-      // CORRECTION ICI : On utilise la fonction d'aide pour formater la date
+      // CORRECTION : On utilise la fonction d'aide pour formater la date
       editDatePartieInput.value = formatDateToInput(partie.date); 
       
       afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, 'edit-partie', partie.joueurs, partie.gagnant);
@@ -434,7 +434,7 @@
           return;
       }
       const nomJeu = editJeuSelect.value;
-      const datePartie = editDatePartieInput.value; // NOUVEAU
+      const datePartie = editDatePartieInput.value;
       const joueursSelectionnes = [...document.querySelectorAll('#edit-liste-joueurs-participation input[name="edit-partie-joueurs-participation"]:checked')].map(j => j.value);
       const vainqueur = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
       
@@ -452,7 +452,7 @@
       }
       
       const partieModifiee = {
-          date: new Date(datePartie).toISOString(), // NOUVEAU
+          date: new Date(datePartie).toISOString(),
           nom_jeu: nomJeu,
           joueurs: joueursSelectionnes,
           gagnant: vainqueur,
