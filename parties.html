@@ -312,11 +312,15 @@
         joueurDiv.innerHTML = `${joueurNom} <span class="remove-player" data-player-name="${joueurNom}">✖</span>`;
         targetDiv.appendChild(joueurDiv);
 
-        updateVainqueursCallback();
+        if (updateVainqueursCallback) {
+          updateVainqueursCallback();
+        }
 
         joueurDiv.querySelector('.remove-player').addEventListener('click', (e) => {
             e.target.parentNode.remove();
-            updateVainqueursCallback();
+            if (updateVainqueursCallback) {
+              updateVainqueursCallback();
+            }
         });
     }
 
@@ -419,12 +423,23 @@
       partiesFiltrees.forEach((p) => {
         const tr = document.createElement('tr');
         const date = new Date(p.date);
-        const vainqueurs = Array.isArray(p.gagnant) ? p.gagnant.join(', ') : p.gagnant || 'N/A';
+        let vainqueurs = '';
+        try {
+          const gagnantData = JSON.parse(p.gagnant);
+          if (Array.isArray(gagnantData)) {
+            vainqueurs = gagnantData.join(', ');
+          } else {
+            vainqueurs = p.gagnant;
+          }
+        } catch (e) {
+          vainqueurs = p.gagnant;
+        }
+
         tr.innerHTML = `
           <td>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</td>
           <td>${p.nom_jeu}</td> 
           <td>${Array.isArray(p.joueurs) ? p.joueurs.join(', ') : ''}</td>
-          <td>${vainqueurs}</td>
+          <td>${vainqueurs || 'N/A'}</td>
           <td>
             <button class="btn-modifier" data-partie-id="${p.id}">✏️</button>
             <button class="btn-supprimer" data-partie-id="${p.id}">🗑️</button>
@@ -515,7 +530,7 @@
       }
     });
     
-    // --- Écouteur pour l'ajout de joueurs dans le formulaire principal ---
+    // --- Écouteurs pour l'ajout de joueurs et de vainqueurs ---
     joueurInput.addEventListener('input', () => {
         const joueurNom = joueurInput.value;
         const joueur = joueurs.find(j => j.nom === joueurNom);
@@ -530,10 +545,9 @@
 
     vainqueurInput.addEventListener('input', () => {
         const joueurNom = vainqueurInput.value;
-        const joueur = joueurs.find(j => j.nom === joueurNom);
         const joueursParticipants = [...joueursParticipationDiv.querySelectorAll('.selected-player')].map(el => el.textContent.trim().replace('✖', ''));
-        if (joueur && joueursParticipants.includes(joueur.nom)) {
-            addJoueurToList(joueur.nom, vainqueursMultipleDiv, () => {});
+        if (joueursParticipants.includes(joueurNom)) {
+            addJoueurToList(joueurNom, vainqueursMultipleDiv, null);
             vainqueurInput.value = '';
         }
     });
@@ -585,20 +599,26 @@
           });
       });
       
-      // Gérer l'affichage des vainqueurs (unique vs. ex aequo)
-      if (Array.isArray(partie.gagnant)) {
+      let gagnant;
+      try {
+        gagnant = JSON.parse(partie.gagnant);
+      } catch (e) {
+        gagnant = partie.gagnant;
+      }
+      
+      if (Array.isArray(gagnant)) {
         editMultipleWinnersRadio.checked = true;
         editSingleWinnerSection.style.display = 'none';
         editMultipleWinnersSection.style.display = 'block';
         editVainqueursMultipleDiv.innerHTML = '';
-        partie.gagnant.forEach(vainqueurNom => {
-            addJoueurToList(vainqueurNom, editVainqueursMultipleDiv, () => {});
+        gagnant.forEach(vainqueurNom => {
+            addJoueurToList(vainqueurNom, editVainqueursMultipleDiv, null);
         });
       } else {
         editSingleWinnerRadio.checked = true;
         editSingleWinnerSection.style.display = 'block';
         editMultipleWinnersSection.style.display = 'none';
-        updateSingleVainqueurList(partie.joueurs, editListeVainqueurs, 'edit-partie', partie.gagnant);
+        updateSingleVainqueurList(partie.joueurs, editListeVainqueurs, 'edit-partie', gagnant);
       }
 
       editionSection.style.display = 'block';
@@ -613,8 +633,10 @@
             addJoueurToList(joueur.nom, editJoueursParticipationDiv, () => {
                 const joueursSelectionnes = [...editJoueursParticipationDiv.querySelectorAll('.selected-player')].map(el => el.textContent.trim().replace('✖', ''));
                 const partie = parties.find(p => p.id === partieIdEditionInput.value);
-                const currentWinner = Array.isArray(partie.gagnant) ? partie.gagnant[0] : partie.gagnant;
-                updateSingleVainqueurList(joueursSelectionnes, editListeVainqueurs, 'edit-partie', currentWinner);
+                let currentWinner = partie.gagnant;
+                try { currentWinner = JSON.parse(partie.gagnant); } catch (e) {}
+                const currentSingleWinner = Array.isArray(currentWinner) ? currentWinner[0] : currentWinner;
+                updateSingleVainqueurList(joueursSelectionnes, editListeVainqueurs, 'edit-partie', currentSingleWinner);
             });
             editJoueurInput.value = '';
         }
@@ -622,10 +644,9 @@
 
     editVainqueurInput.addEventListener('input', () => {
       const joueurNom = editVainqueurInput.value;
-      const joueur = joueurs.find(j => j.nom === joueurNom);
       const joueursParticipants = [...editJoueursParticipationDiv.querySelectorAll('.selected-player')].map(el => el.textContent.trim().replace('✖', ''));
-      if (joueur && joueursParticipants.includes(joueur.nom)) {
-          addJoueurToList(joueur.nom, editVainqueursMultipleDiv, () => {});
+      if (joueursParticipants.includes(joueurNom)) {
+          addJoueurToList(joueurNom, editVainqueursMultipleDiv, null);
           editVainqueurInput.value = '';
       }
     });
