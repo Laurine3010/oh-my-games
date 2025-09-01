@@ -297,7 +297,6 @@
         parties = await chargerParties();
 
         remplirSelect(jeuSelect, jeux, false);
-        // On initialise le champ de date de la nouvelle partie à la date et heure actuelles
         datePartieInput.value = formatDateToInput(new Date());
 
         remplirSelect(filtreJeu, jeux, true, 'Tous');
@@ -388,22 +387,32 @@
     });
 
     // --- Table Actions (Modify/Delete) ---
+    // CORRECTION : On attache l'écouteur d'événement au tbody au lieu des boutons
+    // individuels pour gérer les boutons ajoutés dynamiquement.
     tbodyParties.addEventListener('click', async (e) => {
       const target = e.target;
-      const partieId = target.getAttribute('data-partie-id');
-      if (!partieId) return;
-      if (target.classList.contains('btn-supprimer')) {
-        if (confirm("Confirmer la suppression de cette partie ?")) {
-          const result = await supprimerPartie(partieId);
-          if (result.success) {
-            alert("Partie supprimée !");
-            await chargerEtAfficherToutesLesDonnees();
-          } else {
-            console.error("Erreur lors de la suppression de la partie:", result.error);
+      
+      // On vérifie si la cible du clic est un bouton "Modifier"
+      if (target.classList.contains('btn-modifier')) {
+        const partieId = target.getAttribute('data-partie-id');
+        if (partieId) {
+          ouvrirEdition(partieId);
+        }
+      } 
+      // On vérifie si la cible du clic est un bouton "Supprimer"
+      else if (target.classList.contains('btn-supprimer')) {
+        const partieId = target.getAttribute('data-partie-id');
+        if (partieId) {
+          if (confirm("Confirmer la suppression de cette partie ?")) {
+            const result = await supprimerPartie(partieId);
+            if (result.success) {
+              alert("Partie supprimée !");
+              await chargerEtAfficherToutesLesDonnees();
+            } else {
+              console.error("Erreur lors de la suppression de la partie:", result.error);
+            }
           }
         }
-      } else if (target.classList.contains('btn-modifier')) {
-        ouvrirEdition(partieId);
       }
     });
 
@@ -418,12 +427,12 @@
       partieIdEditionInput.value = partie.id;
       editJeuSelect.value = partie.nom_jeu;
       
-      // CORRECTION : On utilise la fonction d'aide pour formater la date
+      // On utilise la fonction d'aide pour formater la date
       editDatePartieInput.value = formatDateToInput(partie.date); 
       
       afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, 'edit-partie', partie.joueurs, partie.gagnant);
       editionSection.style.display = 'block';
-      editionSection.scroll-into-view({ behavior: 'smooth' });
+      editionSection.scrollIntoView({ behavior: 'smooth' });
     }
 
     formEdition.addEventListener('submit', async (e) => {
