@@ -283,6 +283,7 @@
     // Fonction pour formater la date pour l'input datetime-local
     function formatDateToInput(dateString) {
         const date = new Date(dateString);
+        // Ajustement pour le fuseau horaire local
         date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
         return date.toISOString().slice(0, 16);
     }
@@ -416,10 +417,13 @@
       }
       partieIdEditionInput.value = partie.id;
       editJeuSelect.value = partie.nom_jeu;
-      editDatePartieInput.value = formatDateToInput(partie.date); // NOUVEAU
+      
+      // CORRECTION ICI : On utilise la fonction d'aide pour formater la date
+      editDatePartieInput.value = formatDateToInput(partie.date); 
+      
       afficherJoueursCheckboxesAndRadios(editJoueursParticipationDiv, editListeVainqueurs, 'edit-partie', partie.joueurs, partie.gagnant);
       editionSection.style.display = 'block';
-      editionSection.scrollIntoView({ behavior: 'smooth' });
+      editionSection.scroll-into-view({ behavior: 'smooth' });
     }
 
     formEdition.addEventListener('submit', async (e) => {
