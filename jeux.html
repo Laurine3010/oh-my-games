@@ -8,9 +8,13 @@
 </head>
 
 <body>
+  <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
+    <span id="current-group-alias"></span>
+    <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+  </div>
   <h1>Oh My Games</h1>
   <h2>Liste des jeux</h2>
-  <img src="img_jeux.png" alt="Fond" class="background-image" />
+  <img src="omg_img.png" alt="Fond" class="background-image" />
 
   <button class="btn-add">➕ Ajouter un jeu</button>
 
@@ -98,11 +102,25 @@
     const photosPreviewDiv = document.getElementById('photos-preview');
 
     let currentAlphaFilter = '';
+    let selectedGroupId = null;
+
+    // Redirection si aucun groupe n'est sélectionné
+    selectedGroupId = localStorage.getItem('selected_group_id');
+    if (!selectedGroupId) {
+        location.href = 'login.html';
+    } else {
+        const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+        document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
+    }
 
     // --- Fonctions de gestion des propriétaires ---
     async function chargerProprietaires() {
         try {
-            const { data, error } = await supabase.from('proprietaires').select('*').order('nom', { ascending: true });
+            const { data, error } = await supabase
+                .from('proprietaires')
+                .select('*')
+                .eq('groupe_id', selectedGroupId)
+                .order('nom', { ascending: true });
             if (error) throw error;
             proprietaires = data;
             mettreAJourSelectProprietaires();
@@ -128,7 +146,9 @@
         const nom = prompt("Entrez le nom du nouveau propriétaire :");
         if (nom && nom.trim() !== '') {
             try {
-                const { data, error } = await supabase.from('proprietaires').insert({ nom: nom.trim() }).select();
+                const { data, error } = await supabase.from('proprietaires')
+                    .insert({ nom: nom.trim(), groupe_id: selectedGroupId })
+                    .select();
                 if (error) {
                     if (error.code === '23505') {
                         alert("Ce propriétaire existe déjà.");
@@ -159,7 +179,7 @@
         const photosUrls = [];
         for (const file of photosFiles) {
             const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const fileName = `${selectedGroupId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const { data, error } = await supabase.storage.from(photosBucket).upload(fileName, file);
 
             if (error) {
@@ -188,7 +208,7 @@
         
         const filePaths = photosUrls.map(url => {
             const pathSegments = url.split('/');
-            return pathSegments[pathSegments.length - 1];
+            return pathSegments[pathSegments.length - 2] + '/' + pathSegments[pathSegments.length - 1];
         });
 
         const { data, error } = await supabase.storage.from(photosBucket).remove(filePaths);
@@ -200,7 +220,10 @@
     // --- Fonctions de gestion des jeux ---
     async function chargerJeux() {
         try {
-            const { data, error } = await supabase.from('jeux').select('*, proprietaires(nom)');
+            const { data, error } = await supabase
+                .from('jeux')
+                .select('*, proprietaires(nom)')
+                .eq('groupe_id', selectedGroupId);
             if (error) throw error;
             return data;
         } catch (error) {
@@ -212,7 +235,10 @@
 
     async function chargerParties() {
         try {
-            const { data, error } = await supabase.from('parties').select('*');
+            const { data, error } = await supabase
+                .from('parties')
+                .select('*')
+                .eq('groupe_id', selectedGroupId);
             if (error) throw error;
             return data;
         } catch (error) {
@@ -223,7 +249,10 @@
 
     async function ajouterJeu(jeuData) {
         try {
-            const { data, error } = await supabase.from('jeux').insert(jeuData).select();
+            const { data, error } = await supabase
+                .from('jeux')
+                .insert({ ...jeuData, groupe_id: selectedGroupId })
+                .select();
             if (error) throw error;
             return { success: true, data: data[0] };
         } catch (error) {
@@ -235,7 +264,11 @@
 
     async function modifierJeu(id, jeuData) {
         try {
-            const { data, error } = await supabase.from('jeux').update(jeuData).eq('id', id).select();
+            const { data, error } = await supabase
+                .from('jeux')
+                .update(jeuData)
+                .eq('id', id)
+                .select();
             if (error) throw error;
             return { success: true, data: data[0] };
         } catch (error) {
@@ -248,11 +281,13 @@
     async function supprimerJeu(id) {
         try {
             const jeuASupprimer = jeux.find(j => j.id === id);
-            // CORRECTION: on vérifie que jeuASupprimer.photos est un tableau avant de l'envoyer
             if (jeuASupprimer && Array.isArray(jeuASupprimer.photos) && jeuASupprimer.photos.length > 0) {
                 await supprimerPhotos(jeuASupprimer.photos);
             }
-            const { error } = await supabase.from('jeux').delete().eq('id', id);
+            const { error } = await supabase
+                .from('jeux')
+                .delete()
+                .eq('id', id);
             if (error) throw error;
             return { success: true };
         } catch (error) {
@@ -286,7 +321,7 @@
         emprunteAInput.style.display = 'none';
         photosPreviewContainer.style.display = 'none';
         photosPreviewDiv.innerHTML = '';
-        proprietaireJeuSelect.value = ''; // Réinitialisation de la liste déroulante
+        proprietaireJeuSelect.value = '';
     });
 
     btnFermer.addEventListener('click', () => {
@@ -487,8 +522,18 @@
             const scores = {};
             const partiesDuJeu = parties.filter(p => p.nom_jeu === jeu.nom && p.gagnant);
             partiesDuJeu.forEach(p => {
-                const g = p.gagnant;
-                scores[g] = (scores[g] || 0) + 1;
+                try {
+                    const gagnantData = JSON.parse(p.gagnant);
+                    if (Array.isArray(gagnantData)) {
+                        gagnantData.forEach(g => {
+                           scores[g] = (scores[g] || 0) + 1;
+                        });
+                    } else if (typeof gagnantData === 'string') {
+                         scores[gagnantData] = (scores[gagnantData] || 0) + 1;
+                    }
+                } catch (e) {
+                    scores[p.gagnant] = (scores[p.gagnant] || 0) + 1;
+                }
             });
             let meilleur = null;
             let max = 0;

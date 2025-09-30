@@ -9,7 +9,11 @@
 <body>
     <h1>Oh My Games</h1>
     <h2>Que la partie commence!</h2>
-    <img src="img_jeux.png" alt="Fond" class="background-image">
+    <div id="group-info" style="text-align: right; margin-top: -30px;">
+        <span id="current-group-alias"></span>
+        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+    </div>
+    <img src="omg_img.png" alt="Fond" class="background-image">
 
     <div class="buttons-container">
         <button class="btn-jeux" onclick="location.href='jeux.html'">&#127919; Jeux</button>
@@ -25,8 +29,8 @@
                 <p id="total-jeux">0</p>
             </div>
             <div class="stat-card">
-                <h3>Jeux Prêtés</h3>
-                <p id="jeux-pretes">0</p>
+                <h3>Total Joueurs</h3>
+                <p id="total-joueurs">0</p>
             </div>
             <div class="stat-card">
                 <h3>Total Parties</h3>
@@ -48,10 +52,16 @@
 
         import { supabase } from './supabase-config.js';
 
-        // --- Fonctions de communication avec Supabase (légèrement modifiées pour la robustesse) ---
+        let selectedGroupId = null;
+
+        // --- Fonctions de communication avec Supabase (modifiées pour le filtrage) ---
 
         async function chargerJeux() {
-            const { data, error } = await supabase.from('jeux').select('*');
+            if (!selectedGroupId) return null;
+            const { data, error } = await supabase
+                .from('jeux')
+                .select('*')
+                .eq('groupe_id', selectedGroupId);
             if (error) {
                 console.error("Erreur lors du chargement des jeux:", error);
                 return null;
@@ -59,8 +69,25 @@
             return data;
         }
 
+        async function chargerJoueurs() {
+            if (!selectedGroupId) return null;
+            const { data, error } = await supabase
+                .from('joueurs')
+                .select('*')
+                .eq('groupe_id', selectedGroupId);
+            if (error) {
+                console.error("Erreur lors du chargement des joueurs:", error);
+                return null;
+            }
+            return data;
+        }
+
         async function chargerParties() {
-            const { data, error } = await supabase.from('parties').select('*');
+            if (!selectedGroupId) return null;
+            const { data, error } = await supabase
+                .from('parties')
+                .select('*')
+                .eq('groupe_id', selectedGroupId);
             if (error) {
                 console.error("Erreur lors du chargement des parties:", error);
                 return null;
@@ -71,32 +98,35 @@
         // --- Fonction pour afficher les statistiques et les dernières parties ---
 
         async function loadDashboardData() {
-            console.log("Chargement des données du tableau de bord depuis Supabase...");
+            console.log("Chargement des données du tableau de bord...");
 
             const totalJeuxElement = document.getElementById('total-jeux');
-            const jeuxPretesElement = document.getElementById('jeux-pretes');
+            const totalJoueursElement = document.getElementById('total-joueurs');
             const totalPartiesElement = document.getElementById('total-parties');
             const recentGamesList = document.getElementById('recent-games-list');
+
+            // Redirection si aucun groupe n'est sélectionné
+            selectedGroupId = localStorage.getItem('selected_group_id');
+            if (!selectedGroupId) {
+                location.href = 'login.html';
+                return;
+            }
+            
+            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
 
             // Afficher un état de chargement initial
             if (recentGamesList) {
                 recentGamesList.innerHTML = '<p class="no-recent-games">Chargement en cours...</p>';
             }
 
-            const [jeux, parties] = await Promise.all([chargerJeux(), chargerParties()]);
+            const [jeux, joueurs, parties] = await Promise.all([chargerJeux(), chargerJoueurs(), chargerParties()]);
 
             // Gérer les cas où les requêtes échouent
-            if (!jeux) {
-                totalJeuxElement.textContent = "Erreur";
-                jeuxPretesElement.textContent = "Erreur";
-            } else {
-                totalJeuxElement.textContent = jeux.length;
-                const jeuxPretes = jeux.filter(jeu => jeu.prete === true).length;
-                jeuxPretesElement.textContent = jeuxPretes;
-            }
-
-            if (!parties) {
-                totalPartiesElement.textContent = "Erreur";
+            if (!jeux) { totalJeuxElement.textContent = "Erreur"; } else { totalJeuxElement.textContent = jeux.length; }
+            if (!joueurs) { totalJoueursElement.textContent = "Erreur"; } else { totalJoueursElement.textContent = joueurs.length; }
+            if (!parties) { 
+                totalPartiesElement.textContent = "Erreur"; 
                 recentGamesList.innerHTML = '<p class="no-recent-games">Impossible de charger les parties.</p>';
             } else {
                 totalPartiesElement.textContent = parties.length;
@@ -118,9 +148,17 @@
                             month: 'long',
                             day: 'numeric'
                         });
+                        
+                        let vainqueur;
+                        try {
+                           const gagnantData = JSON.parse(partie.gagnant);
+                           vainqueur = Array.isArray(gagnantData) ? gagnantData.join(', ') : gagnantData;
+                        } catch (e) {
+                           vainqueur = partie.gagnant;
+                        }
 
-                        const gagnantInfo = (partie.gagnant && String(partie.gagnant).trim() !== '') ?
-                            ` (Gagnant : <strong>${partie.gagnant}</strong>)` :
+                        const gagnantInfo = (vainqueur && String(vainqueur).trim() !== '') ?
+                            ` (Gagnant : <strong>${vainqueur}</strong>)` :
                             '';
 
                         gameItem.innerHTML = `

@@ -71,10 +71,14 @@
   </style>
 </head>
 <body>
+    <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
+        <span id="current-group-alias"></span>
+        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+    </div>
   <h1>Oh My Games</h1>
   <h2>Nouvelle partie</h2>
 
-  <img src="img_jeux.png" alt="Fond" class="background-image" />
+  <img src="omg_img.png" alt="Fond" class="background-image" />
   <button class="btn-home" onclick="location.href='index.html'">&#127968; Home</button>
 
   <form id="form-partie">
@@ -177,6 +181,17 @@
     let joueurs = [];
     let jeux = [];
     let parties = [];
+    let selectedGroupId = null;
+
+    // --- Vérification et affichage du groupe ---
+    selectedGroupId = localStorage.getItem('selected_group_id');
+    if (!selectedGroupId) {
+        location.href = 'login.html';
+        throw new Error("Groupe non sélectionné."); // Stop execution
+    } else {
+        const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+        document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
+    }
 
     // DOM References - New Party Form
     const jeuInput = document.getElementById('jeu-input');
@@ -224,7 +239,10 @@
 
     async function chargerJeux() {
         try {
-            const { data, error } = await supabase.from('jeux').select('id, nom');
+            const { data, error } = await supabase
+                .from('jeux')
+                .select('id, nom')
+                .eq('groupe_id', selectedGroupId); // FILTRAGE PAR GROUPE
             if (error) throw error;
             return data;
         } catch (error) {
@@ -235,7 +253,10 @@
 
     async function chargerJoueurs() {
         try {
-            const { data, error } = await supabase.from('joueurs').select('id, nom');
+            const { data, error } = await supabase
+                .from('joueurs')
+                .select('id, nom')
+                .eq('groupe_id', selectedGroupId); // FILTRAGE PAR GROUPE
             if (error) throw error;
             return data;
         } catch (error) {
@@ -246,7 +267,10 @@
 
     async function chargerParties() {
         try {
-            const { data, error } = await supabase.from('parties').select('*');
+            const { data, error } = await supabase
+                .from('parties')
+                .select('*')
+                .eq('groupe_id', selectedGroupId); // FILTRAGE PAR GROUPE
             if (error) throw error;
             return data;
         } catch (error) {
@@ -257,7 +281,10 @@
 
     async function ajouterPartie(partieData) {
       try {
-          const { data, error } = await supabase.from('parties').insert(partieData).select();
+          const { data, error } = await supabase
+              .from('parties')
+              .insert({ ...partieData, groupe_id: selectedGroupId }) // AJOUT DE L'ID DU GROUPE
+              .select();
           if (error) throw error;
           return { success: true, data: data[0] };
       } catch (error) {
@@ -269,7 +296,13 @@
 
     async function modifierPartie(id, partieData) {
       try {
-          const { data, error } = await supabase.from('parties').update(partieData).eq('id', id).select();
+          // L'update n'a pas besoin du groupe_id dans le payload, mais l'égalité est implicite
+          // car l'enregistrement a déjà le bon ID de groupe et on le filtre pour la lecture.
+          const { data, error } = await supabase
+              .from('parties')
+              .update(partieData)
+              .eq('id', id)
+              .select();
           if (error) throw error;
           return { success: true, data: data[0] };
       } catch (error) {
@@ -637,7 +670,7 @@
       }
 
       editionSection.style.display = 'block';
-      editionSection.scroll-into-view({ behavior: 'smooth' });
+      editionSection.scrollIntoView({ behavior: 'smooth' });
     }
     
     // Écouteur pour l'ajout de joueurs dans le formulaire de modification
@@ -740,6 +773,19 @@
         await chargerEtAfficherToutesLesDonnees();
       }
     });
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
+    }
   </script>
 </body>
 </html>
