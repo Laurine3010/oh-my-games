@@ -29,7 +29,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  object-fit: cover; /* CHANGEMENT: 'cover' pour remplir l'écran */
+  object-fit: cover;
   z-index: -1;
   pointer-events: none;
   opacity: 0.2; /* Pour que le contenu reste lisible */
@@ -373,8 +373,9 @@ form button[type="submit"]:hover {
   background-color: #218838;
 }
 
+/* C'est la règle qui s'assure que la modale est CACHÉE par défaut */
 #modal-ajout {
-  display: none;
+  display: none; 
   position: fixed;
   z-index: 1001;
   left: 0;
@@ -387,6 +388,7 @@ form button[type="submit"]:hover {
   justify-content: center;
   align-items: center;
 }
+/* Fin de la règle critique */
 
 #modal-content {
   background-color: #fefefe;
@@ -713,9 +715,11 @@ form button[type="submit"]:hover {
     border-color: #007acc; 
 }
 
+/* Suppression des styles de photo */
+/* Le joueur-header est au sommet de la carte maintenant */
 
 .joueur-header h3 {
-    margin: 0 0 5px 0;
+    margin: 0 0 5px 0; 
     color: #333;
     font-size: 1.4em;
     word-break: break-word;
@@ -731,7 +735,6 @@ form button[type="submit"]:hover {
 
 .joueur-stats-apercu p {
     margin: 3px 0;
-    /* Cacher les stats détaillées par défaut */
     display: none; 
 }
 
@@ -771,7 +774,6 @@ form button[type="submit"]:hover {
     flex: 1 1 0; 
 }
 
-/* Réutilisation des classes d'autres pages (si possible) ou définition spécifique */
 .btn-card.btn-modifier {
     background-color: #ffc107;
     color: #333;
@@ -1026,8 +1028,8 @@ tr:hover {
     width: 50%;
     height: 50%;
     top: 0;
-    left: 0;
-    transform-origin: 100% 100%;
+    left: 50%;
+    transform-origin: 0% 100%;
     overflow: hidden;
     transform: rotate(var(--rotation)) skewY(var(--skew));
 }

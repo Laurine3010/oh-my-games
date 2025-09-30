@@ -128,8 +128,9 @@
             }
         }
 
-        // --- Listeners MODALE AJOUT/MODIF ---
+        // --- Listeners MODALE AJOUT/MODIF (POINT CLÉ) ---
 
+        // OUVERTURE PAR LE BOUTON AJOUTER
         btnAdd.addEventListener('click', () => {
             formAjout.reset();
             joueurIdInput.value = '';
@@ -137,10 +138,12 @@
             modalAjout.style.display = 'flex';
         });
 
+        // FERMETURE PAR LE BOUTON X
         btnFermerAjout.addEventListener('click', () => {
             modalAjout.style.display = 'none';
         });
 
+        // FERMETURE PAR LE CLIC A L'EXTÉRIEUR
         modalAjout.addEventListener('click', (e) => {
             if (e.target === modalAjout) {
                 modalAjout.style.display = 'none';
@@ -276,7 +279,7 @@
                             <p>Victoires : <strong>${stats.victoires}</strong></p>
                             <p>Ratio : <strong>${stats.ratioVictoires}</strong></p>
                             <p>Parties Jouées : <strong>${stats.partiesJouees}</strong></p>
-                            <p>Jeux Joués : <strong>${stats.jeuxJoues}</strong></p>
+                            <p>Jeux Joués : <strong>${stats.jeuxJoues.size}</strong></p>
                             <p>Jeu Favori : <strong>${stats.jeuFavori}${stats.maxVictoiresJeu > 0 ? ` (${stats.maxVictoiresJeu} victoires)` : ''}</strong></p>
                         </div>
                         <div class="btns-card">
@@ -306,6 +309,7 @@
             }
         };
 
+        // OUVERTURE PAR LE BOUTON MODIFIER
         function ouvrirModaleModifier(id) {
             const joueur = joueurs.find(j => j.id === id);
             if (!joueur) { alert("Erreur: Impossible de charger les données du joueur."); return; }
