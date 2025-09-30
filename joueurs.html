@@ -1,430 +1,324 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oh My Games - Joueurs</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oh My Games - Joueurs</title>
+    <link rel="stylesheet" href="styles.css"> 
 </head>
 
 <body>
-    <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
-        <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
-    </div>
-    <h1>Oh My Games</h1>
-    <h2>Liste des joueurs</h2>
-    <img src="omg_img.png" alt="Fond" class="background-image" />
+    <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
+        <span id="current-group-alias"></span>
+        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+    </div>
+    
+    <img src="omg_img.png" alt="Fond" class="background-image" />
+    
+    <h1>Oh My Games</h1>
+    <h2>Liste des joueurs</h2>
 
-    <button class="btn-add">➕ Ajouter un joueur</button>
+    <button class="btn-add">➕ Ajouter un joueur</button>
 
-    <div id="alpha-filter-container">
-    </div>
+    <div id="alpha-filter-container">
+    </div>
 
-    <input type="text" id="recherche-joueurs" placeholder="🔍 Rechercher un joueur..." />
+    <input type="text" id="recherche-joueurs" placeholder="🔍 Rechercher un joueur..." />
 
-    <div id="liste-joueurs">
-        </div>
+    <div id="liste-joueurs">
+    </div>
 
-    <div id="modal-ajout" class="modal">
-        <div id="modal-content" class="modal-content">
-            <button id="btn-fermer" class="close-button">&times;</button>
-            <h3>Ajouter/Modifier un joueur</h3>
-            <form id="form-ajout">
-                <input type="hidden" id="joueur-id">
-                <label for="nom-joueur">Nom du joueur :</label>
-                <input type="text" id="nom-joueur" name="nom-joueur" required><br><br>
+    <div id="modal-ajout" class="modal">
+        <div id="modal-content" class="modal-content">
+            <button id="btn-fermer" class="close-button">&times;</button>
+            <h3>Ajouter/Modifier un joueur</h3>
+            <form id="form-ajout">
+                <input type="hidden" id="joueur-id">
+                <label for="nom-joueur">Nom du joueur :</label>
+                <input type="text" id="nom-joueur" name="nom-joueur" required><br><br>
 
-                <button type="submit">Ajouter le joueur</button>
-            </form>
-        </div>
-    </div>
+                <button type="submit">Ajouter le joueur</button>
+            </form>
+        </div>
+    </div>
+    
+    <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
 
-    <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
+    <script type="module">
+        console.log("Script joueurs.html chargé.");
 
-    <script type="module">
-        console.log("Script joueurs.html chargé.");
+        import { supabase } from './supabase-config.js';
 
-        import { supabase } from './supabase-config.js';
+        let joueurs = [];
+        let partiesStats = []; 
+        let joueurIdToNom = new Map();
+        
+        const modalAjout = document.getElementById('modal-ajout');
+        const btnAdd = document.querySelector('.btn-add');
+        const btnFermerAjout = document.getElementById('btn-fermer');
+        const formAjout = document.getElementById('form-ajout');
+        const listeJoueurs = document.getElementById('liste-joueurs');
+        const inputRecherche = document.getElementById('recherche-joueurs');
 
-        let joueurs = [];
-        // partiesStats contiendra toutes les lignes de parties_joueurs
-        let partiesStats = []; 
-        
-        // Map pour la conversion rapide ID -> Nom, nécessaire pour l'affichage
-        let joueurIdToNom = new Map();
-        
-        const modal = document.getElementById('modal-ajout');
-        const btnAdd = document.querySelector('.btn-add');
-        const btnFermer = document.getElementById('btn-fermer');
-        const formAjout = document.getElementById('form-ajout');
-        const listeJoueurs = document.getElementById('liste-joueurs');
-        const inputRecherche = document.getElementById('recherche-joueurs');
+        const joueurIdInput = document.getElementById('joueur-id');
+        const nomJoueurInput = document.getElementById('nom-joueur');
 
-        const joueurIdInput = document.getElementById('joueur-id');
-        const nomJoueurInput = document.getElementById('nom-joueur');
+        let currentAlphaFilter = '';
+        let selectedGroupId = null;
 
-        let currentAlphaFilter = '';
-        let selectedGroupId = null;
+        // --- Vérification et affichage du groupe ---
+        selectedGroupId = localStorage.getItem('selected_group_id');
+        if (!selectedGroupId) {
+            location.href = 'login.html';
+        } else {
+            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
+        }
 
-        // --- Vérification et affichage du groupe ---
-        selectedGroupId = localStorage.getItem('selected_group_id');
-        if (!selectedGroupId) {
-            location.href = 'login.html';
-        } else {
-            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
-            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
-        }
+        // --- Fonctions Supabase ---
+        async function chargerJoueurs() { 
+             try {
+                const { data, error } = await supabase
+                    .from('joueurs')
+                    .select('id, nom') 
+                    .eq('groupe_id', selectedGroupId)
+                    .order('nom', { ascending: true });
+                if (error) throw error;
+                
+                joueurIdToNom.clear();
+                data.forEach(j => joueurIdToNom.set(j.id, j.nom));
 
-        // --- Fonctions de chargement des données (Filtrées par groupe_id) ---
-        async function chargerJoueurs() {
-            try {
-                const { data, error } = await supabase
-                    .from('joueurs')
-                    .select('id, nom') 
-                    .eq('groupe_id', selectedGroupId)
-                    .order('nom', { ascending: true });
-                if (error) throw error;
-                
-                // Mettre à jour la map de conversion pour les statistiques
-                joueurIdToNom.clear();
-                data.forEach(j => joueurIdToNom.set(j.id, j.nom));
+                return data;
+            } catch (error) {
+                console.error("Erreur lors du chargement des joueurs:", error);
+                alert(`Une erreur est survenue lors du chargement des joueurs: ${error.message}`);
+                return [];
+            }
+        }
 
-                return data;
-            } catch (error) {
-                console.error("Erreur lors du chargement des joueurs:", error);
-                alert(`Une erreur est survenue lors du chargement des joueurs: ${error.message}`);
-                return [];
-            }
-        }
+        async function chargerPartiesStats() { 
+             try {
+                const { data, error } = await supabase
+                    .from('parties_joueurs')
+                    .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)') 
+                    .eq('parties.groupe_id', selectedGroupId);
+                
+                if (error) throw error;
+                return data;
+            } catch (error) {
+                console.error("Erreur lors du chargement des statistiques de parties:", error);
+                return [];
+            }
+        }
 
-        async function chargerPartiesStats() {
-            try {
-                // Récupérer toutes les lignes de la jointure qui nous concernent
-                const { data, error } = await supabase
-                    .from('parties_joueurs')
-                    .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)') 
-                    .eq('parties.groupe_id', selectedGroupId); // Filtrage via la relation
-                
-                if (error) throw error;
-                return data;
-            } catch (error) {
-                console.error("Erreur lors du chargement des statistiques de parties:", error);
-                return [];
-            }
-        }
-        
-        // --- Fonctions d'ajout/modification/suppression (Aucun changement) ---
-        async function ajouterJoueur(joueurData) {
-            try {
-                // Utilisation du nom comme alias par défaut
-                const { data, error } = await supabase
-                    .from('joueurs')
-                    .insert({ 
-                        ...joueurData, 
-                        alias: joueurData.nom, 
-                        groupe_id: selectedGroupId 
-                    })
-                    .select();
-                if (error) throw error;
-                return { success: true, data: data[0] };
-            } catch (error) {
-                console.error("Erreur lors de l'ajout du joueur:", error);
-                alert(`Une erreur est survenue lors de l'ajout du joueur: ${error.message}`);
-                return { success: false, error };
-            }
-        }
+        async function ajouterOuModifierJoueur(id, nom) {
+            if (id) {
+                // Modification
+                const { error } = await supabase
+                    .from('joueurs')
+                    .update({ nom: nom })
+                    .eq('id', id);
+                if (error) throw error;
+            } else {
+                // Ajout
+                const { error } = await supabase
+                    .from('joueurs')
+                    .insert([{ nom: nom, groupe_id: selectedGroupId }]);
+                if (error) throw error;
+            }
+        }
 
-        async function modifierJoueur(id, joueurData) {
-            try {
-                // Mise à jour du nom et de l'alias (simplifié)
-                const { data, error } = await supabase
-                    .from('joueurs')
-                    .update({ nom: joueurData.nom, alias: joueurData.nom })
-                    .eq('id', id)
-                    .select();
-                if (error) throw error;
-                return { success: true, data: data[0] };
-            } catch (error) {
-                console.error("Erreur lors de la modification du joueur:", error);
-                alert(`Une erreur est survenue lors de la modification du joueur: ${error.message}`);
-                return { success: false, error };
-            }
-        }
+        // --- Listeners MODALE AJOUT/MODIF ---
 
-        async function supprimerJoueur(id) {
-            try {
-                // Suppression d'un joueur, Supabase doit gérer la suppression en cascade dans parties_joueurs
-                const { error } = await supabase
-                    .from('joueurs')
-                    .delete()
-                    .eq('id', id);
-                if (error) throw error;
-                return { success: true };
-            } catch (error) {
-                console.error("Erreur lors de la suppression du joueur:", error);
-                alert(`Une erreur est survenue lors de la suppression du joueur: ${error.message}`);
-                return { success: false, error };
-            }
-        }
+        btnAdd.addEventListener('click', () => {
+            formAjout.reset();
+            joueurIdInput.value = '';
+            formAjout.querySelector('button[type="submit"]').textContent = 'Ajouter le joueur';
+            modalAjout.style.display = 'flex';
+        });
 
-        // --- Listeners de la modale (Aucun changement) ---
+        btnFermerAjout.addEventListener('click', () => {
+            modalAjout.style.display = 'none';
+        });
 
-        btnAdd.addEventListener('click', () => {
-            formAjout.reset();
-            joueurIdInput.value = '';
-            formAjout.querySelector('button[type="submit"]').textContent = 'Ajouter le joueur';
-            modal.style.display = 'flex';
-        });
+        modalAjout.addEventListener('click', (e) => {
+            if (e.target === modalAjout) {
+                modalAjout.style.display = 'none';
+            }
+        });
 
-        btnFermer.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+        formAjout.addEventListener('submit', async (e) => { 
+            e.preventDefault();
+            const joueurId = joueurIdInput.value;
+            const nom = nomJoueurInput.value.trim();
 
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
+            if (!nom) {
+                alert("Le nom du joueur ne peut pas être vide.");
+                return;
+            }
 
-        formAjout.addEventListener('submit', async (e) => {
-            e.preventDefault();
+            try {
+                await ajouterOuModifierJoueur(joueurId, nom);
+                modalAjout.style.display = 'none';
+                await chargerEtAfficherJoueurs();
+                alert(`Joueur ${joueurId ? 'modifié' : 'ajouté'} avec succès!`);
+            } catch (error) {
+                console.error("Erreur lors de l'opération joueur:", error);
+                alert(`Erreur: ${error.message}`);
+            }
+        });
 
-            const id = joueurIdInput.value;
-            const nomJoueur = nomJoueurInput.value.trim();
+        // --- Fonctions d'affichage et de filtrage ---
+        function generateAlphaFilters() { 
+            const container = document.getElementById('alpha-filter-container');
+            container.innerHTML = '';
+            const letters = ['Tout', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode('A'.charCodeAt(0) + i))];
 
-            if (!nomJoueur) {
-                alert('Le nom du joueur est obligatoire.');
-                return;
-            }
+            letters.forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = `alpha-filter-btn ${currentAlphaFilter === letter ? 'active' : ''}`;
+                btn.textContent = letter;
+                btn.addEventListener('click', () => {
+                    currentAlphaFilter = letter === 'Tout' ? '' : letter;
+                    generateAlphaFilters();
+                    afficherListeJoueurs();
+                });
+                container.appendChild(btn);
+            });
+        }
 
-            const joueurData = { nom: nomJoueur }; 
+        async function chargerEtAfficherJoueurs() {
+            joueurs = await chargerJoueurs();
+            partiesStats = await chargerPartiesStats(); 
+            generateAlphaFilters();
+            afficherListeJoueurs();
+        }
 
-            let result;
-            if (id) {
-                result = await modifierJoueur(id, joueurData);
-            } else {
-                result = await ajouterJoueur(joueurData);
-            }
+        function calculerStats(joueurId) {
+            const stats = { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: new Map(), partiesJoueesSet: new Set() };
+            
+            partiesStats.forEach(line => {
+                const nomJeu = line.parties && line.parties.nom_jeu ? line.parties.nom_jeu : 'Jeu Inconnu';
+                
+                if (line.joueur_id === joueurId) {
+                    const partieId = line.partie_id;
+                    
+                    if (!stats.partiesJoueesSet.has(partieId)) {
+                        stats.partiesJouees++;
+                        stats.jeuxJoues.add(nomJeu);
+                        stats.partiesJoueesSet.add(partieId);
+                    }
+                    
+                    if (line.est_gagnant) {
+                        stats.victoires++;
+                        const currentCount = stats.partiesGagneesParJeu.get(nomJeu) || 0;
+                        stats.partiesGagneesParJeu.set(nomJeu, currentCount + 1);
+                    }
+                }
+            });
 
-            if (result.success) {
-                alert(`Joueur "${nomJoueur}" ${id ? 'modifié' : 'ajouté'} avec succès !`);
-                await chargerEtAfficherJoueurs();
-                modal.style.display = 'none';
-                formAjout.reset();
-            }
-        });
+            let jeuFavori = 'Aucun';
+            let maxVictoires = 0;
+            for (const [jeu, count] of stats.partiesGagneesParJeu.entries()) {
+                if (count > maxVictoires) {
+                    maxVictoires = count;
+                    jeuFavori = jeu;
+                }
+            }
 
-        // --- Fonctions d'affichage et de filtrage ---
-        function generateAlphaFilters() {
-            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-            const alphaFilterContainer = document.getElementById('alpha-filter-container');
-            alphaFilterContainer.innerHTML = '';
-            const allBtn = document.createElement('button');
-            allBtn.className = 'alpha-filter-btn';
-            if (currentAlphaFilter === '') allBtn.classList.add('active');
-            allBtn.textContent = 'Tout';
-            allBtn.setAttribute('data-filter', '');
-            alphaFilterContainer.appendChild(allBtn);
-            alphabet.forEach(letter => {
-                const btn = document.createElement('button');
-                btn.className = 'alpha-filter-btn';
-                if (currentAlphaFilter === letter) btn.classList.add('active');
-                btn.textContent = letter;
-                btn.setAttribute('data-filter', letter);
-                alphaFilterContainer.appendChild(btn);
-            });
-            alphaFilterContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('alpha-filter-btn')) {
-                    document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentAlphaFilter = e.target.getAttribute('data-filter');
-                    inputRecherche.value = '';
-                    afficherListeJoueurs();
-                }
-            });
-        }
+            return {
+                partiesJouees: stats.partiesJouees,
+                victoires: stats.victoires,
+                ratioVictoires: stats.partiesJouees > 0 ? ((stats.victoires / stats.partiesJouees) * 100).toFixed(1) + '%' : 'N/A',
+                jeuxJoues: stats.jeuxJoues.size,
+                jeuFavori: jeuFavori,
+                maxVictoiresJeu: maxVictoires
+            };
+        }
 
-        async function chargerEtAfficherJoueurs() {
-            // 1. Chargement des joueurs (pour la map ID -> Nom)
-            joueurs = await chargerJoueurs();
-            // 2. Chargement de toutes les stats de parties_joueurs
-            partiesStats = await chargerPartiesStats(); 
-            afficherListeJoueurs();
-        }
+        function afficherListeJoueurs() {
+            listeJoueurs.innerHTML = '';
+            const filterText = inputRecherche.value.toLowerCase();
+            const joueursTries = [...joueurs].sort((a, b) => a.nom.localeCompare(b.nom));
+            
+            if (joueursTries.length === 0 && !filterText && !currentAlphaFilter) {
+                listeJoueurs.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun joueur n\'est enregistré. Ajoutez-en un !</p>';
+                return;
+            }
 
-        function afficherListeJoueurs() {
-            listeJoueurs.innerHTML = '';
-            const filterText = inputRecherche.value.toLowerCase();
-            const joueursTries = [...joueurs].sort((a, b) => a.nom.localeCompare(b.nom));
-            
-            if (joueursTries.length === 0 && !filterText && !currentAlphaFilter) {
-                listeJoueurs.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun joueur n\'est enregistré. Ajoutez-en un !</p>';
-                return;
-            }
+            let joueursFiltres = joueursTries.filter(joueur => {
+                const nomComplet = joueur.nom.toLowerCase();
+                if (filterText && !nomComplet.includes(filterText)) { return false; }
+                if (currentAlphaFilter && !joueur.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) { return false; }
+                return true;
+            });
 
-            let joueursFiltres = joueursTries.filter(joueur => {
-                const nomComplet = joueur.nom.toLowerCase();
-                if (filterText && !nomComplet.includes(filterText)) {
-                    return false;
-                }
-                if (currentAlphaFilter && !joueur.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) {
-                    return false;
-                }
-                return true;
-            });
+            if (joueursFiltres.length === 0) {
+                listeJoueurs.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun joueur ne correspond à vos critères de recherche.</p>';
+                return;
+            }
 
-            if (joueursFiltres.length === 0) {
-                listeJoueurs.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun joueur ne correspond à vos critères de recherche.</p>';
-                return;
-            }
+            joueursFiltres.forEach((joueur) => {
+                const stats = calculerStats(joueur.id);
 
-            // --- Logique de comptage des victoires avec la table de jointure (CORRIGÉ) ---
-            const statsJoueurs = new Map(); // Key: joueur_id, Value: { partiesJouees: N, victoires: N, jeuxJoues: Set<string>, partiesGagneesParJeu: Map<string, N> }
-            joueurs.forEach(j => {
-                statsJoueurs.set(j.id, { 
-                    partiesJouees: 0, 
-                    victoires: 0, 
-                    jeuxJoues: new Set(), 
-                    partiesGagneesParJeu: new Map() 
-                });
-            });
+                const card = document.createElement('div');
+                card.className = 'joueur-card';
+                card.setAttribute('data-id', joueur.id);
+                card.setAttribute('tabindex', '0'); 
 
-            const partiesComptees = new Set(); // Pour compter les parties une seule fois par joueur (même s'il est co-gagnant)
+                // --- Contenu de la carte (SANS IMAGE) ---
+                card.innerHTML = `
+                    <div class="card-content">
+                        <div class="joueur-header">
+                            <h3>${joueur.nom}</h3>
+                        </div>
+                        <div class="joueur-stats-apercu">
+                            <p>Victoires : <strong>${stats.victoires}</strong></p>
+                            <p>Ratio : <strong>${stats.ratioVictoires}</strong></p>
+                            <p>Parties Jouées : <strong>${stats.partiesJouees}</strong></p>
+                            <p>Jeux Joués : <strong>${stats.jeuxJoues}</strong></p>
+                            <p>Jeu Favori : <strong>${stats.jeuFavori}${stats.maxVictoiresJeu > 0 ? ` (${stats.maxVictoiresJeu} victoires)` : ''}</strong></p>
+                        </div>
+                        <div class="btns-card">
+                            <button class="btn-card btn-modifier" data-id="${joueur.id}" onclick="event.stopPropagation(); ouvrirModaleModifier('${joueur.id}');">✏️ Modifier</button>
+                            <button class="btn-card btn-supprimer" data-id="${joueur.id}" onclick="event.stopPropagation(); supprimerJoueurEtRecharger('${joueur.id}', '${joueur.nom}');">🗑️ Supprimer</button>
+                        </div>
+                    </div>
+                `;
+                
+                listeJoueurs.appendChild(card);
+            });
+        }
 
-            partiesStats.forEach(line => {
-                const joueurId = line.joueur_id;
-                const partieId = line.partie_id;
-                const nomJeu = line.parties.nom_jeu;
-                
-                if (statsJoueurs.has(joueurId)) {
-                    const stats = statsJoueurs.get(joueurId);
+        // Globaliser pour le onclick dans le HTML généré
+        window.ouvrirModaleModifier = ouvrirModaleModifier; 
+        window.supprimerJoueurEtRecharger = async (id, nom) => {
+            if (confirm(`Supprimer le joueur "${nom}" ? ATTENTION: Cela supprime aussi ses participations aux parties enregistrées.`)) {
+                try {
+                    const { error } = await supabase.from('joueurs').delete().eq('id', id);
+                    if (error) throw error;
+                    await chargerEtAfficherJoueurs();
+                    alert(`Le joueur ${nom} a été supprimé.`);
+                } catch (error) {
+                    console.error("Erreur lors de la suppression:", error);
+                    alert(`Erreur lors de la suppression de ${nom}: ${error.message}`);
+                }
+            }
+        };
 
-                    // 1. Parties Jouées (compte une fois la partie pour le joueur)
-                    if (!partiesComptees.has(`${joueurId}-${partieId}`)) {
-                        stats.partiesJouees++;
-                        stats.jeuxJoues.add(nomJeu);
-                        partiesComptees.add(`${joueurId}-${partieId}`);
-                    }
-                    
-                    // 2. Victoires
-                    if (line.est_gagnant) {
-                        stats.victoires++;
-                        
-                        // 3. Jeu Favori
-                        const currentCount = stats.partiesGagneesParJeu.get(nomJeu) || 0;
-                        stats.partiesGagneesParJeu.set(nomJeu, currentCount + 1);
-                    }
-                }
-            });
+        function ouvrirModaleModifier(id) {
+            const joueur = joueurs.find(j => j.id === id);
+            if (!joueur) { alert("Erreur: Impossible de charger les données du joueur."); return; }
+            joueurIdInput.value = joueur.id;
+            nomJoueurInput.value = joueur.nom;
+            formAjout.querySelector('button[type="submit"]').textContent = 'Modifier le joueur';
+            modalAjout.style.display = 'flex';
+        }
 
-            // --- Affichage des cartes ---
-            joueursFiltres.forEach((joueur) => {
-                const card = document.createElement('div');
-                card.className = 'joueur-card';
-                const stats = statsJoueurs.get(joueur.id) || { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: new Map() };
+        inputRecherche.addEventListener('input', afficherListeJoueurs);
+        document.addEventListener('DOMContentLoaded', chargerEtAfficherJoueurs);
+        document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible') { await chargerEtAfficherJoueurs(); } });
 
-                // Calcul du jeu favori
-                let jeuFavori = 'Aucun';
-                let maxVictoires = 0;
-                
-                for (const [jeu, count] of stats.partiesGagneesParJeu.entries()) {
-                    if (count > maxVictoires) {
-                        maxVictoires = count;
-                        jeuFavori = jeu;
-                    }
-                }
-
-                // --- Photo et nom ---
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'joueur-header';
-                const img = document.createElement('img');
-                img.src = 'https://via.placeholder.com/100x100?text=👤'; 
-                img.alt = `Photo de ${joueur.nom}`;
-                img.className = 'joueur-photo';
-                headerDiv.appendChild(img);
-
-                const titre = document.createElement('h3');
-                titre.textContent = joueur.nom;
-                headerDiv.appendChild(titre);
-                card.appendChild(headerDiv);
-
-                // --- Affichage des Statistiques ---
-                const statsDiv = document.createElement('div');
-                statsDiv.className = 'joueur-stats';
-                statsDiv.innerHTML = `
-                    <p>Parties Jouées : <strong>${stats.partiesJouees}</strong></p>
-                    <p>Victoires : <strong>${stats.victoires}</strong></p>
-                    <p>Ratio Victoires : <strong>${stats.partiesJouees > 0 ? ((stats.victoires / stats.partiesJouees) * 100).toFixed(1) + '%' : 'N/A'}</strong></p>
-                    <p>Jeux Joués : <strong>${stats.jeuxJoues.size}</strong></p>
-                    <p>Jeu Favori : <strong>${jeuFavori}${maxVictoires > 0 ? ` (${maxVictoires} victoires)` : ''}</strong></p>
-                `;
-                card.appendChild(statsDiv);
-
-
-                // --- Boutons ---
-                const btns = document.createElement('div');
-                btns.className = 'btns-card';
-
-                const btnModifier = document.createElement('button');
-                btnModifier.className = 'btn-card btn-modifier';
-                btnModifier.textContent = '✏️ Modifier';
-                btnModifier.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    ouvrirModaleModifier(joueur.id);
-                });
-                btns.appendChild(btnModifier);
-
-                const btnSupprimer = document.createElement('button');
-                btnSupprimer.className = 'btn-card btn-supprimer';
-                btnSupprimer.textContent = '🗑️ Supprimer';
-                btnSupprimer.addEventListener('click', async (event) => {
-                    event.stopPropagation();
-                    if (confirm(`Supprimer le joueur "${joueur.nom}" ?`)) {
-                        await supprimerJoueur(joueur.id);
-                        await chargerEtAfficherJoueurs();
-                    }
-                });
-                btns.appendChild(btnSupprimer);
-
-                card.appendChild(btns);
-                listeJoueurs.appendChild(card);
-            });
-        }
-
-        function ouvrirModaleModifier(id) {
-            const joueur = joueurs.find(j => j.id === id);
-            if (!joueur) {
-                alert("Erreur: Impossible de charger les données du joueur.");
-                return;
-            }
-
-            joueurIdInput.value = joueur.id;
-            nomJoueurInput.value = joueur.nom;
-            
-            formAjout.querySelector('button[type="submit"]').textContent = 'Modifier le joueur';
-            modal.style.display = 'flex';
-        }
-
-        inputRecherche.addEventListener('input', () => {
-            currentAlphaFilter = '';
-            document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
-            const allBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
-            if (allBtn) allBtn.classList.add('active');
-            afficherListeJoueurs();
-        });
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            generateAlphaFilters();
-            await chargerEtAfficherJoueurs();
-        });
-
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible') {
-                await chargerEtAfficherJoueurs();
-            }
-        });
-
-    </script>
+    </script>
 </body>
 </html>

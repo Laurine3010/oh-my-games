@@ -713,15 +713,6 @@ form button[type="submit"]:hover {
     border-color: #007acc; 
 }
 
-.joueur-photo {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #4CAF50; 
-    margin-bottom: 10px;
-    background-color: #f0f8ff;
-}
 
 .joueur-header h3 {
     margin: 0 0 5px 0;
