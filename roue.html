@@ -5,6 +5,84 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Oh My Games - Roue des jeux</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Styles pour la roue (si non inclus dans styles.css) */
+    #roue-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 50px;
+    }
+    #roue-wrapper {
+      position: relative;
+      width: 350px; /* Taille de la roue */
+      height: 350px;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+    #roue {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      /* La transition sera ajoutée et retirée par JS */
+    }
+    .roue-segment {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 50%;
+      height: 50%;
+      transform-origin: 0% 100%; /* Pivot au centre de la roue */
+    }
+
+    /* Style pour transformer le segment en 'part de tarte' */
+    .roue-segment::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); /* Couvre le quadrant */
+        transform-origin: 0% 100%;
+        background-color: inherit;
+        /* Rotation et Skew pour former le segment, défini par JS */
+        transform: rotate(var(--rotation)) skewY(var(--skew)); 
+    }
+
+    /* Positionnement du texte */
+    .roue-texte {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: rotate(var(--text-rotation)) translate(-50%, 0) rotate(90deg); /* Déplacer et aligner le texte */
+        padding: 5px;
+        font-weight: bold;
+        color: #333; /* Couleur du texte */
+        white-space: nowrap;
+        text-align: center;
+        width: 80%;
+    }
+    
+    /* Le pointeur */
+    #roue-pointeur {
+      position: absolute;
+      top: -20px; 
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 20px solid black; /* Pointe vers le bas (ou le haut si on ajuste le conteneur) */
+      z-index: 10;
+    }
+    #resultat-roue {
+      margin-top: 30px;
+      font-size: 1.5em;
+      font-weight: bold;
+      min-height: 2em;
+    }
+  </style>
 </head>
 <body>
 
@@ -15,7 +93,7 @@
   <main id="roue-container">
     <div id="roue-wrapper">
       <div id="roue"></div>
-      <div id="roue-pointeur"></div>
+      <div id="roue-pointeur" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%);"></div>
     </div>
     <div id="resultat-roue"></div>
     <button id="btn-spin">Faire tourner la roue !</button>
@@ -26,8 +104,22 @@
   <script type="module">
     import { supabase } from './supabase-config.js';
 
+    // --- Vérification et récupération du Groupe ---
+    const selectedGroupId = localStorage.getItem('selected_group_id');
+    if (!selectedGroupId) {
+        // Redirection si aucun groupe sélectionné
+        location.href = 'login.html';
+        throw new Error("Groupe non sélectionné.");
+    }
+    // ---------------------------------------------
+
     async function chargerJeux() {
-        const { data, error } = await supabase.from('jeux').select('nom');
+        // AJOUT DU FILTRE PAR GROUPE
+        const { data, error } = await supabase
+            .from('jeux')
+            .select('nom')
+            .eq('groupe_id', selectedGroupId); 
+            
         if (error) {
             console.error("Erreur lors du chargement des jeux:", error);
             return [];
@@ -47,12 +139,16 @@
         if (nombreJeux === 0) return;
         
         const angleParJeu = angleTotal / nombreJeux;
-        const couleurs = ['#BEE5E8', '#FFD1DC', '#F0E68C', '#E6E6FA', '#C1E1C1', '#FFC0CB', '#B5EAD7', '#A0CED9', '#F7D6E0', '#D8BFD8']; 
+        // Couleurs plus vives pour le contraste
+        const couleurs = ['#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#5f27cd', '#ff9f43', '#ee5253', '#0abde3', '#10ac84', '#576574']; 
 
         jeux.forEach((jeu, index) => {
             const segment = document.createElement('div');
             const rotation = index * angleParJeu;
-            const skew = 90 - angleParJeu;
+            // Calcul du skew pour former un segment parfait
+            const skew = 90 - angleParJeu; 
+            // Rotation du texte pour qu'il soit centré sur le segment
+            const textRotation = rotation + (angleParJeu / 2);
 
             segment.className = 'roue-segment';
             segment.style.backgroundColor = couleurs[index % couleurs.length];
@@ -62,8 +158,13 @@
             const texteDiv = document.createElement('div');
             texteDiv.className = 'roue-texte';
             texteDiv.textContent = jeu;
+            texteDiv.style.setProperty('--text-rotation', `${textRotation}deg`);
             
-            // La rotation est maintenant gérée par le CSS
+            // Appliquer la rotation au segment pour positionner le texte
+            segment.style.transform = `rotate(${rotation}deg)`;
+            
+            // Pour que le texte soit horizontal au milieu du segment :
+            texteDiv.style.transform = `rotate(${-angleParJeu / 2}deg) translate(80px)`;
             
             segment.appendChild(texteDiv);
             roue.appendChild(segment);
@@ -80,17 +181,38 @@
         resultatRoue.textContent = "La roue tourne...";
         roue.style.transition = "transform 5s cubic-bezier(0.2, 0.9, 0.4, 1)";
         
-        const deg = Math.floor(5 * 360 + Math.random() * 5 * 360);
+        // La rotation doit être très grande pour l'effet (5 tours minimum)
+        const tours = 5;
+        // La plage de rotation finale est choisie aléatoirement
+        const rotationFinale = Math.floor(Math.random() * 360);
+        const deg = tours * 360 + rotationFinale;
+        
+        // La roue est initialement tournée pour que le premier segment (index 0) soit centré sur le pointeur
+        // Le pointeur est à 90 degrés, on décale l'ensemble.
+        // Si le pointeur est en haut (0 degrés), on n'a pas besoin de ce décalage initial.
+        // Assumons que le pointeur est à 0 degré (en haut) pour simplifier:
+        
         roue.style.transform = `rotate(${deg}deg)`;
 
         roue.addEventListener('transitionend', () => {
             roue.style.transition = 'none';
-            const finalRotation = deg % 360;
-            const angleParJeu = 360 / jeux.length;
-            const indexChoisi = Math.floor((360 - finalRotation) / angleParJeu);
             
-            const jeuChoisi = jeux[indexChoisi >= jeux.length ? jeux.length - 1 : indexChoisi];
-
+            // Calcul de la rotation restante modulo 360 pour déterminer le segment
+            const rotationRestante = deg % 360;
+            const angleParJeu = 360 / jeux.length;
+            
+            // L'index est calculé à partir de la rotation restante.
+            // Si le pointeur est à 0° (en haut) et la rotation va dans le sens horaire :
+            // Index 0 est entre 0° et angleParJeu, Index 1 entre angleParJeu et 2*angleParJeu, etc.
+            // On inverse la rotation car la roue tourne dans le sens horaire.
+            const indexChoisi = Math.floor((360 - rotationRestante) / angleParJeu);
+            
+            const jeuChoisi = jeux[indexChoisi % jeux.length]; // Utiliser modulo pour s'assurer qu'on reste dans le tableau
+            
+            // Réajuster la rotation pour centrer visuellement le segment choisi (facultatif mais plus propre)
+            const angleCorrection = 360 - (indexChoisi * angleParJeu);
+            roue.style.transform = `rotate(${angleCorrection}deg)`;
+            
             resultatRoue.textContent = `Félicitations, vous jouez à "${jeuChoisi}" ! 🎉`;
             btnSpin.disabled = false;
         }, { once: true });
@@ -101,7 +223,7 @@
         if (jeux.length > 0) {
             afficherRoulette(jeux);
         } else {
-            resultatRoue.textContent = "Aucun jeu disponible pour la roue.";
+            resultatRoue.textContent = "Aucun jeu disponible pour la roue (Veuillez ajouter des jeux à votre groupe).";
         }
     });
 
@@ -111,7 +233,7 @@
             if (jeux.length > 0) {
                 afficherRoulette(jeux);
             } else {
-                resultatRoue.textContent = "Aucun jeu disponible pour la roue.";
+                resultatRoue.textContent = "Aucun jeu disponible pour la roue (Veuillez ajouter des jeux à votre groupe).";
             }
         }
     });
