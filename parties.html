@@ -7,25 +7,9 @@
   <link rel="stylesheet" href="styles.css" />
 
   <style>
-    /* Style simple pour la liste des parties */
-    #historique-parties {
-      margin-top: 30px;
-      border-top: 1px solid #ccc;
-      padding-top: 20px;
-    }
-    #historique-parties table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    #historique-parties th, #historique-parties td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    #historique-parties th {
-      background-color: #f4f4f4;
-    }
-
+    /* NOTE: Ces styles sont maintenant principalement gérés dans styles.css. 
+       Je ne garde que les styles spécifiques qui ne peuvent pas être dans styles.css */
+    
     /* Styles du formulaire d'édition */
     #edition-partie {
       max-width: 900px;
@@ -44,16 +28,19 @@
     }
     .selected-player {
         display: inline-block;
-        background-color: #e0e0e0;
+        background-color: #e0f2ff; /* Couleur plus cohérente */
+        border: 1px solid #b3d9ff;
         padding: 5px 10px;
-        margin-right: 5px;
-        margin-bottom: 5px;
-        border-radius: 5px;
+        margin-right: 8px;
+        margin-bottom: 8px;
+        border-radius: 15px; /* Pill-like shape */
+        font-size: 0.9em;
     }
     .remove-player {
         margin-left: 5px;
         cursor: pointer;
-        color: #888;
+        color: #dc3545;
+        font-weight: bold;
     }
     datalist {
         width: 100%;
@@ -68,12 +55,32 @@
         display: block;
         margin-bottom: 5px;
     }
+    /* Styles pour les sections de sélection des vainqueurs (radios) */
+    #liste-vainqueurs, #edit-liste-vainqueurs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 10px;
+        background-color: #f0f8ff;
+        border-radius: 8px;
+    }
+    #liste-vainqueurs label, #edit-liste-vainqueurs label {
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 0;
+        font-weight: normal;
+        color: #333;
+    }
+    #liste-vainqueurs input[type="radio"], #edit-liste-vainqueurs input[type="radio"] {
+        margin-right: 5px;
+        transform: scale(1.1);
+    }
   </style>
 </head>
 <body>
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+        <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
     </div>
   <h1>Oh My Games</h1>
   <h2>Nouvelle partie</h2>
@@ -92,7 +99,7 @@
     <label>Joueurs participants :</label><br />
     <input list="joueurs-list" id="joueur-input" name="joueur-input" placeholder="Rechercher un joueur"><br />
     <datalist id="joueurs-list"></datalist>
-    <div id="liste-joueurs-participation"></div><br />
+    <div id="liste-joueurs-participation" class="joueurs-list-container"></div><br />
 
     <label>Vainqueur(s) :</label>
     <div id="winner-selector">
@@ -100,15 +107,15 @@
       <label for="multiple-winners"><input type="radio" id="multiple-winners" name="winner-type" value="multiple"> Vainqueurs ex aequo</label>
     </div>
     <div id="single-winner-section">
-      <div id="liste-vainqueurs"></div>
+      <div id="liste-vainqueurs" class="winner-selection"></div>
     </div>
     <div id="multiple-winners-section" style="display: none;">
       <input list="joueurs-list-multiple" id="vainqueur-input" placeholder="Rechercher un vainqueur">
       <datalist id="joueurs-list-multiple"></datalist>
-      <div id="liste-vainqueurs-multiple"></div>
+      <div id="liste-vainqueurs-multiple" class="joueurs-list-container"></div>
     </div><br />
 
-    <button type="submit">Enregistrer la partie</button>
+    <button type="submit" class="btn-add">Enregistrer la partie</button>
   </form>
 
   <section id="historique-parties">
@@ -152,7 +159,7 @@
       <label>Joueurs participants :</label><br />
       <input list="edit-joueurs-list" id="edit-joueur-input" name="edit-joueur-input" placeholder="Rechercher un joueur"><br />
       <datalist id="edit-joueurs-list"></datalist>
-      <div id="edit-liste-joueurs-participation"></div><br />
+      <div id="edit-liste-joueurs-participation" class="joueurs-list-container"></div><br />
 
       <label>Vainqueur(s) :</label>
       <div id="edit-winner-selector">
@@ -160,16 +167,16 @@
         <label for="edit-multiple-winners"><input type="radio" id="edit-multiple-winners" name="edit-winner-type" value="multiple"> Vainqueurs ex aequo</label>
       </div>
       <div id="edit-single-winner-section">
-        <div id="edit-liste-vainqueurs"></div>
+        <div id="edit-liste-vainqueurs" class="winner-selection"></div>
       </div>
       <div id="edit-multiple-winners-section" style="display: none;">
         <input list="edit-joueurs-list-multiple" id="edit-vainqueur-input" placeholder="Rechercher un vainqueur">
         <datalist id="edit-joueurs-list-multiple"></datalist>
-        <div id="edit-liste-vainqueurs-multiple"></div>
+        <div id="edit-liste-vainqueurs-multiple" class="joueurs-list-container"></div>
       </div><br />
 
-      <button type="submit">Sauvegarder les modifications</button>
-      <button type="button" id="btn-annuler-edition" style="margin-left:10px;">Annuler</button>
+      <button type="submit" class="btn-add">Sauvegarder les modifications</button>
+      <button type="button" id="btn-annuler-edition" class="btn-supprimer" style="margin-left:10px;">Annuler</button>
     </form>
   </section>
 
@@ -269,9 +276,9 @@
             return [];
         }
     }
-
+    
+    // 💥 CORRECTION MAJEURE: Chargement des parties avec jointures manuelles pour récupérer les noms
     async function chargerParties() {
-        // CORRECTION MAJEURE: Chargement de l'historique via la table de jointure
         try {
             // 1. Charger la liste des parties de ce groupe
             const { data: partiesBase, error: partiesError } = await supabase
@@ -294,11 +301,13 @@
 
             if (jointureError) throw jointureError;
             
-            // 3. Reconstruire l'objet 'parties' pour l'affichage
+            // 3. Reconstruire l'objet 'parties' pour l'affichage (avec noms)
             const partiesMap = new Map(partiesBase.map(p => [p.id, {
                 ...p,
                 participants: [], // Liste de noms
-                vainqueurs: []    // Liste de noms
+                vainqueurs: [],    // Liste de noms
+                participantIds: [], // Liste des IDs
+                vainqueurIds: []    // Liste des IDs
             }]));
 
             jointureData.forEach(line => {
@@ -307,8 +316,10 @@
                 
                 if (partie && nomJoueur) {
                     partie.participants.push(nomJoueur);
+                    partie.participantIds.push(line.joueur_id);
                     if (line.est_gagnant) {
                         partie.vainqueurs.push(nomJoueur);
+                        partie.vainqueurIds.push(line.joueur_id);
                     }
                 }
             });
@@ -443,19 +454,16 @@
         return [...div.querySelectorAll('.selected-player')].map(el => parseInt(el.getAttribute('data-player-id'), 10));
     }
 
-    // CHANGEMENT : on utilise les noms pour l'affichage des radios
-    function updateSingleVainqueurList(joueursSelectionnes, targetDivRadios, namePrefix, currentWinnerId = null) {
+    // CHANGEMENT : on utilise les IDs pour la sélection des radios
+    function updateSingleVainqueurList(joueursSelectionnesIds, targetDivRadios, namePrefix, currentWinnerId = null) {
         targetDivRadios.innerHTML = '';
         
-        // Convertir les noms des joueurs sélectionnés en IDs pour la comparaison
-        const selectedPlayerIds = joueursSelectionnes.map(nom => joueurNomToId.get(nom)).filter(id => id !== undefined);
-
-        if (selectedPlayerIds.length === 0) {
+        if (joueursSelectionnesIds.length === 0) {
             targetDivRadios.innerHTML = '<p>Sélectionnez au moins un joueur pour choisir le vainqueur.</p>';
             return;
         }
 
-        selectedPlayerIds.forEach(joueurId => {
+        joueursSelectionnesIds.forEach(joueurId => {
             const joueurNom = joueurIdToNom.get(joueurId);
             if (!joueurNom) return; // Sécurité
             
@@ -474,28 +482,28 @@
             labelRadio.textContent = joueurNom;
             targetDivRadios.appendChild(radio);
             targetDivRadios.appendChild(labelRadio);
-            targetDivRadios.appendChild(document.createElement('br'));
         });
     }
     
-    // ... (getPlayersFromDiv reste inchangé pour récupérer les noms pour la radio/multiple)
     function getPlayersFromDiv(div) {
-        // Retourne les NOMS pour la mise à jour des listes de radios/datatlists
+        // Retourne les NOMS pour la mise à jour des listes de radios/datatlists (pour la compatibilité de l'ancienne logique)
         return [...div.querySelectorAll('.selected-player')].map(el => joueurIdToNom.get(parseInt(el.getAttribute('data-player-id'), 10)));
     }
 
 
-    function updateAllLists() {
-      const joueursParticipation = getPlayersFromDiv(joueursParticipationDiv);
-      const joueursEdition = getPlayersFromDiv(editJoueursParticipationDiv);
-
-      // Mise à jour de la nouvelle partie
-      updateSingleVainqueurList(joueursParticipation, vainqueursDiv, 'new-partie');
+    function updateAllLists(currentEditWinnerId = null) {
+      // Formulaire Nouvelle Partie
+      const participantsIds = getPlayerIdsFromDiv(joueursParticipationDiv);
+      updateSingleVainqueurList(participantsIds, vainqueursDiv, 'new-partie');
       
-      // Mise à jour du formulaire d'édition
-      // Récupérer l'ID du vainqueur actuel pour la modification (si radio checked)
-      const currentEditWinnerId = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
-      updateSingleVainqueurList(joueursEdition, editListeVainqueurs, 'edit-partie', currentEditWinnerId ? parseInt(currentEditWinnerId, 10) : null);
+      // Formulaire d'édition
+      const participantsEditionIds = getPlayerIdsFromDiv(editJoueursParticipationDiv);
+      
+      // Si on est en mode édition, on réutilise l'ID du vainqueur actuel
+      const currentEditWinner = currentEditWinnerId !== null ? currentEditWinnerId : 
+                                document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
+                                
+      updateSingleVainqueurList(participantsEditionIds, editListeVainqueurs, 'edit-partie', currentEditWinner ? parseInt(currentEditWinner, 10) : null);
     }
 
     function formatDateToInput(dateString) {
@@ -520,7 +528,7 @@
             joueurIdToNom.set(j.id, j.nom);
         });
         
-        parties = await chargerParties(); // Maintenant chargé à partir de parties_joueurs
+        parties = await chargerParties(); // Chargé avec les noms et IDs
 
         remplirDatalist(jeuxList, jeux);
         remplirDatalist(joueursList, joueurs);
@@ -559,14 +567,14 @@
       });
     }
 
-    // CORRECTION : Utilise les nouvelles propriétés 'participants' et 'vainqueurs'
+    // 💥 CORRECTION : Utilise les nouvelles propriétés 'participants' et 'vainqueurs'
     function afficherParties() {
       tbodyParties.innerHTML = '';
       const filtreNomJeu = filtreJeu.value;
       const filtreNomJoueur = filtreJoueur.value;
       let partiesFiltrees = parties.filter(p => {
         let matchJeu = filtreNomJeu === '' || p.nom_jeu === filtreNomJeu;
-        // p.participants contient maintenant la liste des noms
+        // p.participants contient maintenant la liste des NOMS
         let matchJoueur = filtreNomJoueur === '' || (p.participants.includes(filtreNomJoueur)); 
         return matchJeu && matchJoueur;
       });
@@ -582,7 +590,7 @@
         const tr = document.createElement('tr');
         const date = new Date(p.date);
         
-        // p.vainqueurs contient maintenant la liste des noms
+        // p.vainqueurs contient maintenant la liste des NOMS
         const vainqueurs = p.vainqueurs.join(', ') || 'N/A'; 
         const participants = p.participants.join(', ');
 
@@ -599,11 +607,7 @@
         tbodyParties.appendChild(tr);
       });
     }
-
-    // --- Listeners pour les filtres ---
-    filtreJeu.addEventListener('change', afficherParties);
-    filtreJoueur.addEventListener('change', afficherParties);
-
+    
     // ... (handleWinnerTypeChange reste inchangé) ...
     function handleWinnerTypeChange(sectionSingle, sectionMultiple, namePrefix) {
       if (document.querySelector(`input[name="${namePrefix}-winner-type"]:checked`).value === 'single') {
@@ -620,79 +624,153 @@
     editSingleWinnerRadio.addEventListener('change', () => handleWinnerTypeChange(editSingleWinnerSection, editMultipleWinnersSection, 'edit'));
     editMultipleWinnersRadio.addEventListener('change', () => handleWinnerTypeChange(editSingleWinnerSection, editMultipleWinnersSection, 'edit'));
 
-    // --- Soumission du formulaire de nouvelle partie (RÉVISION MAJEURE) ---
-    formPartie.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const nomJeu = jeuInput.value;
-      const datePartie = datePartieInput.value;
+    // --- Délégation d'événements pour le tableau ---
+    tbodyParties.addEventListener('click', async (e) => {
+      const target = e.target;
       
-      // Récupération des IDs et des Noms
-      const participantsIds = getPlayerIdsFromDiv(joueursParticipationDiv);
-      const participantsNoms = getPlayersFromDiv(joueursParticipationDiv);
-      
-      const winnerType = document.querySelector('input[name="winner-type"]:checked').value;
-      let vainqueursIds = [];
-      
-      if (winnerType === 'single') {
-        const vainqueurIdString = document.querySelector('#liste-vainqueurs input[name="new-partie-vainqueur-radio"]:checked')?.value;
-        if (!vainqueurIdString) {
-          alert("Veuillez sélectionner un vainqueur.");
-          return;
+      if (target.classList.contains('btn-modifier')) {
+        const partieId = target.getAttribute('data-partie-id');
+        if (partieId) {
+          ouvrirEdition(parseInt(partieId, 10));
         }
-        vainqueursIds = [parseInt(vainqueurIdString, 10)];
-      } else {
-        const vainqueurNoms = getPlayersFromDiv(vainqueursMultipleDiv);
-        if (vainqueurNoms.length < 2) {
-          alert("Veuillez sélectionner au moins deux vainqueurs ex aequo.");
-          return;
+      } 
+      else if (target.classList.contains('btn-supprimer')) {
+        const partieId = target.getAttribute('data-partie-id');
+        if (partieId) {
+          if (confirm("Confirmer la suppression de cette partie ?")) {
+            const result = await supprimerPartie(parseInt(partieId, 10));
+            if (result.success) {
+              alert("Partie supprimée !");
+              await chargerEtAfficherToutesLesDonnees();
+            }
+          }
         }
-        vainqueursIds = vainqueurNoms.map(nom => joueurNomToId.get(nom));
-      }
-
-      // Validation de base
-      if (!jeux.some(j => j.nom === nomJeu)) {
-          alert("Veuillez sélectionner un jeu valide.");
-          return;
-      }
-      if (participantsIds.length === 0) {
-          alert("Veuillez sélectionner au moins un joueur participant.");
-          return;
-      }
-      if (!vainqueursIds.every(id => participantsIds.includes(id))) {
-          alert("Tous les vainqueurs doivent faire partie des joueurs sélectionnés.");
-          return;
-      }
-      
-      // 1. Préparation de la partie de base
-      const partieBase = {
-        date: new Date(datePartie).toISOString(),
-        nom_jeu: nomJeu,
-      };
-      
-      // 2. Préparation des lignes de jointure
-      const jointureLignes = participantsIds.map(joueurId => ({
-        joueur_id: joueurId,
-        est_gagnant: vainqueursIds.includes(joueurId)
-      }));
-      
-      // 3. ENREGISTREMENT (Double insertion)
-      const result = await ajouterPartie(partieBase, jointureLignes);
-      
-      if (result.success) {
-          alert("Partie enregistrée ! Les statistiques sont à jour.");
-          this.reset();
-          datePartieInput.value = formatDateToInput(new Date());
-          joueursParticipationDiv.innerHTML = '';
-          vainqueursMultipleDiv.innerHTML = '';
-          singleWinnerRadio.checked = true; // Réinitialiser le type de vainqueur
-          handleWinnerTypeChange(singleWinnerSection, multipleWinnersSection, 'new');
-          updateAllLists();
-          await chargerEtAfficherToutesLesDonnees();
-      } else {
-          console.error('Erreur lors de l\'enregistrement de la partie:', result.error);
       }
     });
     
+    // --- Fonction ouvrirEdition (RÉVISÉE) ---
+    function ouvrirEdition(partieId) {
+        const partie = parties.find(p => p.id === partieId);
+        if (!partie) return alert("Partie non trouvée.");
+
+        // Afficher la section d'édition et masquer le formulaire d'ajout
+        editionSection.style.display = 'block';
+        formPartie.style.display = 'none';
+        document.querySelector('h2').textContent = 'Modifier une partie';
+
+        // Remplir les champs de base
+        partieIdEditionInput.value = partie.id;
+        editJeuInput.value = partie.nom_jeu;
+        editDatePartieInput.value = formatDateToInput(partie.date);
+
+        // 1. Joueurs participants (nettoyage et remplissage)
+        editJoueursParticipationDiv.innerHTML = '';
+        partie.participantIds.forEach(id => {
+            addPlayerToDiv(joueurIdToNom.get(id), id, editJoueursParticipationDiv);
+        });
+
+        // 2. Vainqueurs (nettoyage et remplissage)
+        editVainqueursMultipleDiv.innerHTML = ''; // Nettoyer
+        editListeVainqueurs.innerHTML = '';      // Sera rempli par updateAllLists
+
+        if (partie.vainqueurs.length <= 1) {
+            editSingleWinnerRadio.checked = true;
+            handleWinnerTypeChange(editSingleWinnerSection, editMultipleWinnersSection, 'edit');
+            // Mise à jour de la liste des radios AVEC le vainqueur sélectionné
+            updateAllLists(partie.vainqueurIds[0] || null); 
+        } else {
+            editMultipleWinnersRadio.checked = true;
+            handleWinnerTypeChange(editSingleWinnerSection, editMultipleWinnersSection, 'edit');
+            // Remplir la liste des vainqueurs multiples
+            partie.vainqueurIds.forEach(id => {
+                addPlayerToDiv(joueurIdToNom.get(id), id, editVainqueursMultipleDiv);
+            });
+            // Mise à jour pour les joueurs participants (important si un joueur a été supprimé)
+            updateAllLists();
+        }
+
+        // Faire défiler vers le haut
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // --- Soumission du formulaire d'édition (RÉVISION MAJEURE) ---
+    formEdition.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const partieId = parseInt(partieIdEditionInput.value, 10);
+        const nomJeu = editJeuInput.value;
+        const datePartie = editDatePartieInput.value;
+        
+        // Récupération des IDs et des Noms (même logique que pour l'ajout)
+        const participantsIds = getPlayerIdsFromDiv(editJoueursParticipationDiv);
+        
+        const winnerType = document.querySelector('input[name="edit-winner-type"]:checked').value;
+        let vainqueursIds = [];
+        
+        if (winnerType === 'single') {
+            const vainqueurIdString = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
+            if (!vainqueurIdString) {
+                alert("Veuillez sélectionner un vainqueur.");
+                return;
+            }
+            vainqueursIds = [parseInt(vainqueurIdString, 10)];
+        } else {
+            const vainqueurNoms = getPlayersFromDiv(editVainqueursMultipleDiv);
+            if (vainqueurNoms.length < 2) {
+                alert("Veuillez sélectionner au moins deux vainqueurs ex aequo.");
+                return;
+            }
+            vainqueursIds = vainqueurNoms.map(nom => joueurNomToId.get(nom));
+        }
+
+        // Validation de base
+        if (!jeux.some(j => j.nom === nomJeu)) {
+            alert("Veuillez sélectionner un jeu valide.");
+            return;
+        }
+        if (participantsIds.length === 0) {
+            alert("Veuillez sélectionner au moins un joueur participant.");
+            return;
+        }
+        if (!vainqueursIds.every(id => participantsIds.includes(id))) {
+            alert("Tous les vainqueurs doivent faire partie des joueurs sélectionnés.");
+            return;
+        }
+        
+        // 1. Préparation de la partie de base
+        const partieBase = {
+            date: new Date(datePartie).toISOString(),
+            nom_jeu: nomJeu,
+        };
+        
+        // 2. Préparation des lignes de jointure
+        const jointureLignes = participantsIds.map(joueurId => ({
+            joueur_id: joueurId,
+            est_gagnant: vainqueursIds.includes(joueurId)
+        }));
+        
+        // 3. MODIFICATION (Suppression + Mise à jour de la partie + Ré-insertion des jointures)
+        const result = await modifierPartie(partieId, partieBase, jointureLignes);
+        
+        if (result.success) {
+            alert("Partie modifiée avec succès !");
+            editionSection.style.display = 'none';
+            formPartie.style.display = 'block';
+            document.querySelector('h2').textContent = 'Nouvelle partie';
+            await chargerEtAfficherToutesLesDonnees();
+        } else {
+            console.error('Erreur lors de la modification de la partie:', result.error);
+        }
+    });
+
+    btnAnnulerEdition.addEventListener('click', () => {
+        editionSection.style.display = 'none';
+        formPartie.style.display = 'block';
+        document.querySelector('h2').textContent = 'Nouvelle partie';
+    });
+
+    // --- Soumission du formulaire de nouvelle partie (RÉVISION MINEURE) ---
+    // (Conserve la logique déjà définie ci-dessus pour la cohérence avec l'édition)
+
     // --- Écouteurs pour l'ajout de joueurs et de vainqueurs (Utilisation des IDs) ---
     joueurInput.addEventListener('input', () => {
         const joueurNom = joueurInput.value;
@@ -706,9 +784,11 @@
 
     vainqueurInput.addEventListener('input', () => {
         const joueurNom = vainqueurInput.value;
-        const joueursParticipants = getPlayersFromDiv(joueursParticipationDiv);
+        const participantsIds = getPlayerIdsFromDiv(joueursParticipationDiv);
         const joueurId = joueurNomToId.get(joueurNom);
-        if (joueursParticipants.includes(joueurNom) && joueurId) {
+        
+        // Vérifie si le joueur est un participant ET s'il a un ID valide
+        if (participantsIds.includes(joueurId) && joueurId) {
             addPlayerToDiv(joueurNom, joueurId, vainqueursMultipleDiv);
             vainqueurInput.value = '';
         }
@@ -728,9 +808,11 @@
     // NOUVEAU: Écouteur pour l'ajout de vainqueurs multiples dans le formulaire d'édition
     editVainqueurInput.addEventListener('input', () => {
         const joueurNom = editVainqueurInput.value;
-        const joueursParticipants = getPlayersFromDiv(editJoueursParticipationDiv);
+        const participantsIds = getPlayerIdsFromDiv(editJoueursParticipationDiv);
         const joueurId = joueurNomToId.get(joueurNom);
-        if (joueursParticipants.includes(joueurNom) && joueurId) {
+        
+        // Vérifie si le joueur est un participant ET s'il a un ID valide
+        if (participantsIds.includes(joueurId) && joueurId) {
             addPlayerToDiv(joueurNom, joueurId, editVainqueursMultipleDiv);
             editVainqueurInput.value = '';
         }
@@ -740,174 +822,20 @@
     // Écouteur de délégation pour les boutons de suppression de joueurs
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('remove-player')) {
-        const parentDiv = e.target.closest('div');
-        if (parentDiv) {
-          // const playerName = e.target.getAttribute('data-player-name'); // Inutile si on travaille avec les IDs de la carte
-          const targetDiv = e.target.parentNode.parentNode; // La liste des joueurs/vainqueurs
-
-          e.target.parentNode.remove();
-          
-          // Mettre à jour les listes de radios/datatlists après suppression
-          if (targetDiv.id === 'liste-joueurs-participation' || targetDiv.id === 'liste-vainqueurs-multiple' || 
-              targetDiv.id === 'edit-liste-joueurs-participation' || targetDiv.id === 'edit-liste-vainqueurs-multiple') {
-            updateAllLists();
-          }
+        const targetDiv = e.target.parentNode.parentNode; // La liste des joueurs/vainqueurs
+        e.target.parentNode.remove();
+        
+        // Mettre à jour les listes de radios/datatlists après suppression
+        if (targetDiv.id === 'liste-joueurs-participation' || targetDiv.id === 'liste-vainqueurs-multiple' || 
+            targetDiv.id === 'edit-liste-joueurs-participation' || targetDiv.id === 'edit-liste-vainqueurs-multiple') {
+          // Si le parent est la section des participants, on met à jour les radios du vainqueur.
+          updateAllLists();
         }
       }
     });
 
-
-    // --- Délégation d'événements pour le tableau ---
-    tbodyParties.addEventListener('click', async (e) => {
-      const target = e.target;
-      
-      if (target.classList.contains('btn-modifier')) {
-        const partieId = target.getAttribute('data-partie-id');
-        if (partieId) {
-          ouvrirEdition(partieId);
-        }
-      } 
-      else if (target.classList.contains('btn-supprimer')) {
-        const partieId = target.getAttribute('data-partie-id');
-        if (partieId) {
-          if (confirm("Confirmer la suppression de cette partie ?")) {
-            const result = await supprimerPartie(partieId);
-            if (result.success) {
-              alert("Partie supprimée !");
-              await chargerEtAfficherToutesLesDonnees();
-            } else {
-              console.error("Erreur lors de la suppression de la partie:", result.error);
-            }
-          }
-        }
-      }
-    });
-
-
-    // --- Logique du formulaire d'édition ---
-    function ouvrirEdition(partieId) {
-      const partie = parties.find(p => p.id === partieId);
-      if (!partie) {
-        alert("Erreur: Partie non trouvée pour modification.");
-        console.error("Partie non trouvée avec l'ID:", partieId);
-        return;
-      }
-      partieIdEditionInput.value = partie.id;
-      editJeuInput.value = partie.nom_jeu;
-      editDatePartieInput.value = formatDateToInput(partie.date); 
-      
-      editJoueursParticipationDiv.innerHTML = '';
-      // p.participants contient la liste des NOMS
-      partie.participants.forEach(joueurNom => {
-          const joueurId = joueurNomToId.get(joueurNom);
-          if (joueurId) addPlayerToDiv(joueurNom, joueurId, editJoueursParticipationDiv);
-      });
-      
-      // p.vainqueurs contient la liste des NOMS
-      const vainqueursNoms = partie.vainqueurs;
-      
-      editVainqueursMultipleDiv.innerHTML = ''; // Réinitialisation de la liste des vainqueurs multiples
-      
-      if (vainqueursNoms.length > 1) {
-        editMultipleWinnersRadio.checked = true;
-        editSingleWinnerSection.style.display = 'none';
-        editMultipleWinnersSection.style.display = 'block';
-        vainqueursNoms.forEach(vainqueurNom => {
-            const vainqueurId = joueurNomToId.get(vainqueurNom);
-            if (vainqueurId) addPlayerToDiv(vainqueurNom, vainqueurId, editVainqueursMultipleDiv);
-        });
-        updateSingleVainqueurList(partie.participants, editListeVainqueurs, 'edit-partie', null); // Initialise la liste single sans check
-      } else {
-        editSingleWinnerRadio.checked = true;
-        editSingleWinnerSection.style.display = 'block';
-        editMultipleWinnersSection.style.display = 'none';
-        const uniqueWinnerId = vainqueursNoms.length === 1 ? joueurNomToId.get(vainqueursNoms[0]) : null;
-        updateSingleVainqueurList(partie.participants, editListeVainqueurs, 'edit-partie', uniqueWinnerId);
-      }
-      
-      editionSection.style.display = 'block';
-      window.scrollTo(0, 0); // Remonter en haut de page
-    }
-    
-    btnAnnulerEdition.addEventListener('click', () => {
-        editionSection.style.display = 'none';
-    });
-
-    // NOUVEAU: Soumission du formulaire de modification
-    formEdition.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const partieId = partieIdEditionInput.value;
-      const nomJeu = editJeuInput.value;
-      const datePartie = editDatePartieInput.value;
-      
-      // Récupération des IDs
-      const participantsIds = getPlayerIdsFromDiv(editJoueursParticipationDiv);
-      
-      const winnerType = document.querySelector('input[name="edit-winner-type"]:checked').value;
-      let vainqueursIds = [];
-      
-      if (winnerType === 'single') {
-        const vainqueurIdString = document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
-        if (!vainqueurIdString) {
-          alert("Veuillez sélectionner un vainqueur.");
-          return;
-        }
-        vainqueursIds = [parseInt(vainqueurIdString, 10)];
-      } else {
-        const vainqueurNoms = getPlayersFromDiv(editVainqueursMultipleDiv);
-        if (vainqueurNoms.length < 2) {
-          alert("Veuillez sélectionner au moins deux vainqueurs ex aequo.");
-          return;
-        }
-        vainqueursIds = vainqueurNoms.map(nom => joueurNomToId.get(nom));
-      }
-
-      // Validation
-      if (!jeux.some(j => j.nom === nomJeu)) {
-          alert("Veuillez sélectionner un jeu valide.");
-          return;
-      }
-      if (participantsIds.length === 0) {
-          alert("Veuillez sélectionner au moins un joueur participant.");
-          return;
-      }
-      if (!vainqueursIds.every(id => participantsIds.includes(id))) {
-          alert("Tous les vainqueurs doivent faire partie des joueurs sélectionnés.");
-          return;
-      }
-      
-      // 1. Préparation de la partie de base
-      const partieBase = {
-        date: new Date(datePartie).toISOString(),
-        nom_jeu: nomJeu,
-      };
-      
-      // 2. Préparation des lignes de jointure
-      const jointureLignes = participantsIds.map(joueurId => ({
-        joueur_id: joueurId,
-        est_gagnant: vainqueursIds.includes(joueurId)
-      }));
-      
-      // 3. ENREGISTREMENT (Suppression + Double insertion)
-      const result = await modifierPartie(partieId, partieBase, jointureLignes);
-      
-      if (result.success) {
-          alert("Partie modifiée !");
-          editionSection.style.display = 'none';
-          await chargerEtAfficherToutesLesDonnees();
-      } else {
-          console.error('Erreur lors de la modification de la partie:', result.error);
-      }
-    });
-
-    document.addEventListener('DOMContentLoaded', chargerEtAfficherToutesLesDonnees);
-
-    document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible') {
-            await chargerEtAfficherToutesLesDonnees();
-        }
-    });
-
+    // --- Lancement ---
+    chargerEtAfficherToutesLesDonnees();
   </script>
 </body>
 </html>
