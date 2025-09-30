@@ -77,7 +77,7 @@
             try {
                 const { data, error } = await supabase
                     .from('joueurs')
-                    .select('id, nom') // Simplifié pour n'inclure que les champs nécessaires
+                    .select('id, nom') 
                     .eq('groupe_id', selectedGroupId)
                     .order('nom', { ascending: true });
                 if (error) throw error;
@@ -93,7 +93,7 @@
             try {
                 const { data, error } = await supabase
                     .from('parties')
-                    .select('nom_jeu, gagnant, participants') // Récupérer tous les champs nécessaires aux stats
+                    .select('nom_jeu, gagnant, participants') 
                     .eq('groupe_id', selectedGroupId);
                 if (error) throw error;
                 return data;
@@ -103,17 +103,15 @@
             }
         }
         
-        // La fonction chargerJeux est retirée car la logique de propriétaire est supprimée.
-
         // --- Fonctions d'ajout/modification/suppression ---
         async function ajouterJoueur(joueurData) {
             try {
-                // Alias est mis à la même valeur que le nom par défaut pour simplifier la base.
+                // Utilisation du nom comme alias par défaut
                 const { data, error } = await supabase
                     .from('joueurs')
                     .insert({ 
                         ...joueurData, 
-                        alias: joueurData.nom, // Alias = Nom du joueur
+                        alias: joueurData.nom, 
                         groupe_id: selectedGroupId 
                     })
                     .select();
@@ -128,7 +126,7 @@
 
         async function modifierJoueur(id, joueurData) {
             try {
-                // On met à jour le nom et l'alias (simplifié)
+                // Mise à jour du nom et de l'alias (simplifié)
                 const { data, error } = await supabase
                     .from('joueurs')
                     .update({ nom: joueurData.nom, alias: joueurData.nom })
@@ -145,7 +143,6 @@
 
         async function supprimerJoueur(id) {
             try {
-                // Suppression simple sans gestion de photos
                 const { error } = await supabase
                     .from('joueurs')
                     .delete()
@@ -189,7 +186,7 @@
                 return;
             }
 
-            const joueurData = { nom: nomJoueur }; // Seul le nom est inséré
+            const joueurData = { nom: nomJoueur }; 
 
             let result;
             if (id) {
@@ -208,7 +205,7 @@
 
         // --- Fonctions d'affichage et de filtrage ---
         function generateAlphaFilters() {
-            // ... (Code de génération de filtre alphabétique inchangé) ...
+            // ... (Code de génération de filtre alphabétique) ...
             const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             const alphaFilterContainer = document.getElementById('alpha-filter-container');
             alphaFilterContainer.innerHTML = '';
@@ -238,14 +235,12 @@
         }
 
         async function chargerEtAfficherJoueurs() {
-            console.log("Chargement et affichage des joueurs et parties...");
             joueurs = await chargerJoueurs();
             parties = await chargerParties();
             afficherListeJoueurs();
         }
 
         function afficherListeJoueurs() {
-            console.log("Affichage de la liste des joueurs...");
             listeJoueurs.innerHTML = '';
             const filterText = inputRecherche.value.toLowerCase();
             const joueursTries = [...joueurs].sort((a, b) => a.nom.localeCompare(b.nom));
@@ -256,7 +251,7 @@
             }
 
             let joueursFiltres = joueursTries.filter(joueur => {
-                const nomComplet = joueur.nom.toLowerCase(); // Pas d'alias
+                const nomComplet = joueur.nom.toLowerCase();
                 if (filterText && !nomComplet.includes(filterText)) {
                     return false;
                 }
@@ -271,7 +266,7 @@
                 return;
             }
 
-            // --- Logique de comptage des victoires ---
+            // --- Logique de comptage des victoires (Résolution du problème de statistiques) ---
             const statsParties = {};
             joueurs.forEach(j => statsParties[j.nom.toLowerCase()] = { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: {} });
 
@@ -280,22 +275,20 @@
                 let gagnants = [];
 
                 try {
-                    // Tente de traiter le champ participants/gagnant comme JSON (pour listes)
+                    // 1. Tente de parser JSON
                     participants = JSON.parse(p.participants);
                     gagnants = p.gagnant ? JSON.parse(p.gagnant) : [];
                 } catch (e) {
-                    // Sinon, traite comme une chaîne simple (pour compatibilité)
+                    // 2. Si échec (ancienne donnée ou string), utilise split/trim
                     participants = p.participants ? p.participants.split(',').map(n => n.trim()) : [];
                     gagnants = p.gagnant ? p.gagnant.split(',').map(n => n.trim()) : [];
                 }
 
-                // Assurer que gagnants est un tableau (si la base stocke un seul nom en string)
                 if (!Array.isArray(gagnants)) gagnants = [gagnants];
                 if (!Array.isArray(participants)) participants = [participants];
 
                 const gagnantsLower = gagnants.map(n => String(n).toLowerCase());
                 const participantsLower = participants.map(n => String(n).toLowerCase());
-
 
                 joueurs.forEach(joueur => {
                     const joueurNomLower = joueur.nom.toLowerCase();
@@ -331,11 +324,10 @@
                     }
                 }
 
-                // --- Photo et nom (Simplifié) ---
+                // --- Photo et nom ---
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'joueur-header';
                 const img = document.createElement('img');
-                // Placeholder par défaut sans photo
                 img.src = 'https://via.placeholder.com/100x100?text=👤'; 
                 img.alt = `Photo de ${joueur.nom}`;
                 img.className = 'joueur-photo';
@@ -377,14 +369,9 @@
                 btnSupprimer.textContent = '🗑️ Supprimer';
                 btnSupprimer.addEventListener('click', async (event) => {
                     event.stopPropagation();
-                    if (confirm(`Supprimer le joueur "${joueur.nom}" ? Cela ne supprime pas les parties enregistrées, mais il ne sera plus disponible pour de nouvelles parties.`)) {
-                        const result = await supprimerJoueur(joueur.id);
-                        if (result.success) {
-                            alert(`Joueur "${joueur.nom}" supprimé avec succès !`);
-                            await chargerEtAfficherJoueurs();
-                        } else {
-                            console.error("Erreur lors de la suppression:", result.error);
-                        }
+                    if (confirm(`Supprimer le joueur "${joueur.nom}" ?`)) {
+                        await supprimerJoueur(joueur.id);
+                        await chargerEtAfficherJoueurs();
                     }
                 });
                 btns.appendChild(btnSupprimer);
@@ -395,10 +382,8 @@
         }
 
         function ouvrirModaleModifier(id) {
-            console.log("Ouverture modale pour modification, ID:", id);
             const joueur = joueurs.find(j => j.id === id);
             if (!joueur) {
-                console.error("Joueur non trouvé avec l'ID:", id);
                 alert("Erreur: Impossible de charger les données du joueur.");
                 return;
             }
@@ -429,19 +414,6 @@
             }
         });
 
-    </script>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    }, err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
     </script>
 </body>
 </html>

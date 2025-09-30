@@ -98,7 +98,7 @@
         const groupeIdCreeDiv = document.getElementById('groupe-id-cree');
         const groupeAliasCreate = document.getElementById('groupe-alias-create');
 
-        let generatedCodeAcces = null; // Stocke le code à 6 caractères généré
+        let generatedCodeAcces = null; 
 
         // --- Fonctions utilitaires ---
 
@@ -138,13 +138,11 @@
 
         // --- Logique de gestion de groupe ---
 
-        // 1. Démarrer la sélection de groupe
         btnSelectGroup.addEventListener('click', () => {
             showSection(selectionGroupeDiv);
             groupeCodeSelect.focus();
         });
 
-        // 2. Démarrer la création de groupe
         btnCreateGroup.addEventListener('click', () => {
             generatedCodeAcces = generateCodeAcces();
             groupeIdCreeDiv.textContent = generatedCodeAcces;
@@ -152,39 +150,35 @@
             groupeAliasCreate.focus();
         });
 
-        // 3. Boutons Annuler/Retour
         btnBacks.forEach(button => {
             button.addEventListener('click', resetToInitialView);
         });
 
-        // 4. Soumission du formulaire de SÉLECTION/REJOINDRE
+        // Soumission du formulaire de SÉLECTION/REJOINDRE
         formSelection.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // Le joueur entre le code d'accès de 6 caractères (qui est une chaîne de caractères)
             const inputCodeAcces = groupeCodeSelect.value.toUpperCase(); 
 
-            // Chercher le groupe par le champ code_acces
             const { data, error } = await supabase
                 .from('groupes')
-                .select('id, alias') // On sélectionne l'ID INTERNE (BIGINT)
-                .eq('code_acces', inputCodeAcces) // CRITIQUE : on filtre sur code_acces
+                .select('id, alias') 
+                .eq('code_acces', inputCodeAcces) // CRITIQUE : on filtre sur code_acces (text)
                 .single();
 
-            if (error && error.code !== 'PGRST116') { // PGRST116 = Pas de ligne trouvée
+            if (error && error.code !== 'PGRST116') { 
                 alert("Erreur de connexion : " + error.message);
                 console.error(error);
                 return;
             }
 
             if (data) {
-                // data.id contient l'ID BIGINT auto-incrémenté
                 selectAndRedirect(data.id, data.alias);
             } else {
                 alert("Code de groupe invalide. Veuillez vérifier le code et réessayer.");
             }
         });
 
-        // 5. Soumission du formulaire de CRÉATION
+        // Soumission du formulaire de CRÉATION
         formCreation.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -201,18 +195,16 @@
                 .from('groupes')
                 .insert([
                     { 
-                        // CRITIQUE : on utilise le champ code_acces (text)
+                        // CRITIQUE : on utilise code_acces et alias. On OMET id (bigint auto-incrémenté)
                         code_acces: codeAcces, 
                         alias: newAlias 
                     }
                 ])
-                // CRITIQUE : on demande le retour de l'ID (BIGINT) et de l'alias
-                .select('id, alias'); 
+                .select('id, alias'); // On demande le retour de l'ID généré
                 
             if (error) {
                 console.error("Erreur détaillée lors de la création du groupe:", error); 
-                // Affiche le message d'erreur précis pour le débogage RLS/Contrainte
-                alert(`Erreur lors de la création du groupe : ${error.message}. Code: ${error.code}. Vérifiez RLS.`);
+                alert(`Erreur lors de la création du groupe : ${error.message}. Code: ${error.code}.`);
                 return;
             }
             
@@ -229,11 +221,10 @@
             if (currentGroupId) {
                 const confirmSwitch = confirm(`Groupe actuel : ${currentGroupAlias || currentGroupId}. Voulez-vous continuer ou changer de groupe ?`);
                 if (confirmSwitch) {
-                    location.href = 'index.html'; // Continuer
+                    location.href = 'index.html';
                 } else {
                     localStorage.removeItem('selected_group_id');
                     localStorage.removeItem('selected_group_alias');
-                    // Reste sur la vue initiale pour choisir
                 }
             }
         });
