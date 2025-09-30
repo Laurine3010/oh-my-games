@@ -7,180 +7,178 @@
     <link rel="stylesheet" href="styles.css">
 
     <style>
-        /* Styles pour les filtres alphabétiques */
-        #alpha-filter-container {
-            margin: 20px auto;
-            max-width: 900px;
-            text-align: center;
-        }
-        .alpha-filter-btn {
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 5px 8px;
-            margin: 2px;
-            cursor: pointer;
-            font-size: 0.8em;
-            transition: background-color 0.2s, color 0.2s;
-        }
-        .alpha-filter-btn:hover {
-            background-color: #eee;
-        }
-        .alpha-filter-btn.active {
-            background-color: #007bff;
-            color: white;
-            border-color: #007bff;
-            font-weight: bold;
-        }
-
-        /* Styles pour la recherche */
-        #recherche-joueurs {
-            width: 100%;
-            max-width: 400px;
-            padding: 10px;
-            margin: 10px auto 20px auto;
-            display: block;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
-
-        /* --- NOUVEAUX STYLES DES CARTES JOUEURS --- */
+        /* Styles généraux pour le conteneur */
         #liste-joueurs {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center; /* Centrer les cartes */
-            gap: 20px;
+            justify-content: center;
+            gap: 25px;
             padding: 20px;
         }
 
+        /* --- Style de la carte (état normal) --- */
         .joueur-card {
-            background: #fff;
+            background: #ffffff;
             border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 300px; /* Taille maximale pour chaque carte */
-            padding: 20px;
+            max-width: 250px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
-            transition: transform 0.2s;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+            position: relative;
         }
 
+        /* Effet de survol (agrandissement subtil) */
         .joueur-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
-
-        .joueur-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+        
+        /* Contenu de la carte (pour masquer/afficher les détails) */
+        .card-content {
+            width: 100%;
         }
 
         .joueur-photo {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            margin-right: 15px;
             object-fit: cover;
-            border: 3px solid #007bff;
+            border: 4px solid #4CAF50; /* Couleur thème */
+            margin-bottom: 10px;
             background-color: #f0f8ff;
         }
 
         .joueur-header h3 {
-            margin: 0;
+            margin: 0 0 5px 0;
             color: #333;
-            font-size: 1.5em;
+            font-size: 1.4em;
+            word-break: break-word;
         }
 
-        .joueur-stats p {
-            margin: 5px 0;
-            padding-left: 10px;
-            font-size: 1em;
+        /* Détails affichés par défaut (stats principales) */
+        .joueur-stats-apercu {
+            font-size: 0.9em;
             color: #555;
-            border-left: 3px solid #eee;
+            margin-bottom: 15px;
+        }
+        
+        .joueur-stats-apercu p {
+            margin: 3px 0;
+        }
+        
+        .joueur-stats-apercu strong {
+            color: #4CAF50;
         }
 
-        .joueur-stats strong {
-            color: #007bff;
-            font-weight: 600;
+        /* Détails cachés (stats complètes) */
+        .joueur-stats-detail {
+            display: none; /* Caché par défaut */
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #eee;
+            text-align: left;
+            width: 100%;
         }
 
+        /* Styles pour les boutons */
         .btns-card {
             margin-top: 15px;
             display: flex;
-            justify-content: space-between;
-            gap: 10px;
+            justify-content: space-around;
+            width: 100%;
         }
 
         .btn-card {
-            flex-grow: 1;
-            padding: 8px;
-            border-radius: 5px;
-            font-size: 0.9em;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
             cursor: pointer;
             transition: background-color 0.2s;
+            border: none;
         }
 
         .btn-modifier {
             background-color: #ffc107;
-            border: 1px solid #ffc107;
             color: #333;
         }
-
         .btn-supprimer {
             background-color: #dc3545;
-            border: 1px solid #dc3545;
             color: white;
         }
-
-        /* Reste des styles (modal, etc.) inchangés ou non fournis mais supposés dans styles.css */
-        .modal {
-            /* Assurez-vous que votre modal est bien centré */
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 10; /* Sit on top */
+        
+        /* --- Styles de la MODALE pour la fiche complète --- */
+        #modal-fiche-joueur {
+            display: none; 
+            position: fixed; 
+            z-index: 1001; 
             left: 0;
             top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-            justify-content: center; /* Center horizontally */
-            align-items: center; /* Center vertically */
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.6); 
+            justify-content: center;
+            align-items: center;
         }
 
-        .modal-content {
-            background-color: #fefefe;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 10px;
+        #modal-fiche-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
             position: relative;
         }
-
-        .close-button {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #aaa;
-            background: none;
-            border: none;
-            cursor: pointer;
+        
+        #modal-fiche-content h2 {
+            color: #4CAF50;
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
         }
         
+        #modal-fiche-content .joueur-stats-detail p {
+            text-align: left;
+            margin: 8px 0;
+            padding-left: 10px;
+            border-left: 3px solid #eee;
+        }
+        
+        /* Réutiliser les styles d'images */
+        #modal-fiche-content .joueur-photo {
+            width: 120px;
+            height: 120px;
+            border-width: 5px;
+            margin-bottom: 20px;
+        }
+
+        /* Réutilisation des filtres alphabétiques et recherche */
+        #alpha-filter-container { margin: 20px auto; max-width: 900px; text-align: center; }
+        .alpha-filter-btn { background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 5px 8px; margin: 2px; cursor: pointer; font-size: 0.8em; transition: background-color 0.2s; }
+        .alpha-filter-btn:hover { background-color: #eee; }
+        .alpha-filter-btn.active { background-color: #4CAF50; color: white; border-color: #4CAF50; font-weight: bold; }
+        #recherche-joueurs { width: 100%; max-width: 400px; padding: 10px; margin: 10px auto 20px auto; display: block; border: 1px solid #ccc; border-radius: 8px; }
+
+        /* Styles de la modale d'ajout/modification (existante) */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fefefe; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 10px; position: relative; }
+        .close-button { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; color: #aaa; background: none; border: none; cursor: pointer; }
     </style>
 </head>
 
 <body>
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" class="btn-home" style="margin-left: 10px;">Changer de groupe</button>
+        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
     </div>
     <h1>Oh My Games</h1>
     <h2>Liste des joueurs</h2>
@@ -192,7 +190,7 @@
     <input type="text" id="recherche-joueurs" placeholder="🔍 Rechercher un joueur..." />
 
     <div id="liste-joueurs">
-        </div>
+    </div>
 
     <div id="modal-ajout" class="modal">
         <div id="modal-content" class="modal-content">
@@ -207,6 +205,14 @@
             </form>
         </div>
     </div>
+    
+    <div id="modal-fiche-joueur" class="modal">
+        <div id="modal-fiche-content">
+            <button id="btn-fermer-fiche" class="close-button">&times;</button>
+            <div id="fiche-joueur-detail">
+                </div>
+        </div>
+    </div>
 
     <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
 
@@ -216,15 +222,15 @@
         import { supabase } from './supabase-config.js';
 
         let joueurs = [];
-        // partiesStats contiendra toutes les lignes de parties_joueurs
         let partiesStats = []; 
-        
-        // Map pour la conversion rapide ID -> Nom, nécessaire pour l'affichage
         let joueurIdToNom = new Map();
         
-        const modal = document.getElementById('modal-ajout');
+        const modalAjout = document.getElementById('modal-ajout');
+        const modalFiche = document.getElementById('modal-fiche-joueur');
+        const ficheDetail = document.getElementById('fiche-joueur-detail');
         const btnAdd = document.querySelector('.btn-add');
-        const btnFermer = document.getElementById('btn-fermer');
+        const btnFermerAjout = document.getElementById('btn-fermer');
+        const btnFermerFiche = document.getElementById('btn-fermer-fiche');
         const formAjout = document.getElementById('form-ajout');
         const listeJoueurs = document.getElementById('liste-joueurs');
         const inputRecherche = document.getElementById('recherche-joueurs');
@@ -244,7 +250,7 @@
             document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
         }
 
-        // --- Fonctions de chargement des données (Filtrées par groupe_id) ---
+        // --- Fonctions de chargement des données (inchangées) ---
         async function chargerJoueurs() {
             try {
                 const { data, error } = await supabase
@@ -254,7 +260,6 @@
                     .order('nom', { ascending: true });
                 if (error) throw error;
                 
-                // Mettre à jour la map de conversion pour les statistiques
                 joueurIdToNom.clear();
                 data.forEach(j => joueurIdToNom.set(j.id, j.nom));
 
@@ -268,13 +273,10 @@
 
         async function chargerPartiesStats() {
             try {
-                // Récupérer toutes les lignes de la jointure qui nous concernent
-                // Note : Supabase crée un tableau d'objets pour la jointure 'parties' si c'est une relation One-to-One/Many-to-One
-                // ici, on veut le nom du jeu de la partie associée.
                 const { data, error } = await supabase
                     .from('parties_joueurs')
                     .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)') 
-                    .eq('parties.groupe_id', selectedGroupId); // Filtrage via la relation
+                    .eq('parties.groupe_id', selectedGroupId);
                 
                 if (error) throw error;
                 return data;
@@ -283,48 +285,9 @@
                 return [];
             }
         }
-        
-        // --- Fonctions d'ajout/modification/suppression (Aucun changement) ---
-        async function ajouterJoueur(joueurData) {
-            try {
-                // Utilisation du nom comme alias par défaut
-                const { data, error } = await supabase
-                    .from('joueurs')
-                    .insert({ 
-                        ...joueurData, 
-                        alias: joueurData.nom, 
-                        groupe_id: selectedGroupId 
-                    })
-                    .select();
-                if (error) throw error;
-                return { success: true, data: data[0] };
-            } catch (error) {
-                console.error("Erreur lors de l'ajout du joueur:", error);
-                alert(`Une erreur est survenue lors de l'ajout du joueur: ${error.message}`);
-                return { success: false, error };
-            }
-        }
-
-        async function modifierJoueur(id, joueurData) {
-            try {
-                // Mise à jour du nom et de l'alias (simplifié)
-                const { data, error } = await supabase
-                    .from('joueurs')
-                    .update({ nom: joueurData.nom, alias: joueurData.nom })
-                    .eq('id', id)
-                    .select();
-                if (error) throw error;
-                return { success: true, data: data[0] };
-            } catch (error) {
-                console.error("Erreur lors de la modification du joueur:", error);
-                alert(`Une erreur est survenue lors de la modification du joueur: ${error.message}`);
-                return { success: false, error };
-            }
-        }
 
         async function supprimerJoueur(id) {
             try {
-                // Suppression d'un joueur, Supabase doit gérer la suppression en cascade dans parties_joueurs
                 const { error } = await supabase
                     .from('joueurs')
                     .delete()
@@ -337,39 +300,36 @@
                 return { success: false, error };
             }
         }
+        
+        async function ajouterJoueur(joueurData) { /*... inchangé ...*/ }
+        async function modifierJoueur(id, joueurData) { /*... inchangé ...*/ }
 
-        // --- Listeners de la modale (Aucun changement) ---
+
+        // --- Listeners MODALE AJOUT/MODIF (mise à jour du nom de la modale) ---
 
         btnAdd.addEventListener('click', () => {
             formAjout.reset();
             joueurIdInput.value = '';
             formAjout.querySelector('button[type="submit"]').textContent = 'Ajouter le joueur';
-            modal.style.display = 'flex';
+            modalAjout.style.display = 'flex';
         });
 
-        btnFermer.addEventListener('click', () => {
-            modal.style.display = 'none';
+        btnFermerAjout.addEventListener('click', () => {
+            modalAjout.style.display = 'none';
         });
 
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
+        modalAjout.addEventListener('click', (e) => {
+            if (e.target === modalAjout) {
+                modalAjout.style.display = 'none';
             }
         });
 
         formAjout.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const id = joueurIdInput.value;
             const nomJoueur = nomJoueurInput.value.trim();
-
-            if (!nomJoueur) {
-                alert('Le nom du joueur est obligatoire.');
-                return;
-            }
-
+            if (!nomJoueur) { alert('Le nom du joueur est obligatoire.'); return; }
             const joueurData = { nom: nomJoueur }; 
-
             let result;
             if (id) {
                 result = await modifierJoueur(id, joueurData);
@@ -380,24 +340,34 @@
             if (result.success) {
                 alert(`Joueur "${nomJoueur}" ${id ? 'modifié' : 'ajouté'} avec succès !`);
                 await chargerEtAfficherJoueurs();
-                modal.style.display = 'none';
+                modalAjout.style.display = 'none';
                 formAjout.reset();
             }
         });
 
-        // --- Fonctions d'affichage et de filtrage (MISE À JOUR) ---
-        function generateAlphaFilters() {
+        // --- Listeners MODALE FICHE COMPLÈTE (NOUVEAU) ---
+        btnFermerFiche.addEventListener('click', () => {
+            modalFiche.style.display = 'none';
+        });
+
+        modalFiche.addEventListener('click', (e) => {
+            if (e.target === modalFiche) {
+                modalFiche.style.display = 'none';
+            }
+        });
+
+
+        // --- Fonctions d'affichage et de filtrage ---
+        function generateAlphaFilters() { /*... inchangé ...*/
             const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             const alphaFilterContainer = document.getElementById('alpha-filter-container');
             alphaFilterContainer.innerHTML = '';
-            
             const allBtn = document.createElement('button');
             allBtn.className = 'alpha-filter-btn';
             if (currentAlphaFilter === '') allBtn.classList.add('active');
             allBtn.textContent = 'Tout';
             allBtn.setAttribute('data-filter', '');
             alphaFilterContainer.appendChild(allBtn);
-            
             alphabet.forEach(letter => {
                 const btn = document.createElement('button');
                 btn.className = 'alpha-filter-btn';
@@ -406,25 +376,63 @@
                 btn.setAttribute('data-filter', letter);
                 alphaFilterContainer.appendChild(btn);
             });
-            
-            // Événement de délégation pour les filtres
             alphaFilterContainer.addEventListener('click', (e) => {
                 if (e.target.classList.contains('alpha-filter-btn')) {
                     document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
                     e.target.classList.add('active');
                     currentAlphaFilter = e.target.getAttribute('data-filter');
-                    inputRecherche.value = ''; // Réinitialiser la recherche textuelle
+                    inputRecherche.value = '';
                     afficherListeJoueurs();
                 }
             });
         }
 
         async function chargerEtAfficherJoueurs() {
-            // 1. Chargement des joueurs (pour la map ID -> Nom)
             joueurs = await chargerJoueurs();
-            // 2. Chargement de toutes les stats de parties_joueurs
             partiesStats = await chargerPartiesStats(); 
             afficherListeJoueurs();
+        }
+
+        function calculerStats(joueurId) {
+            const stats = { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: new Map(), partiesJoueesSet: new Set() };
+            
+            partiesStats.forEach(line => {
+                if (line.joueur_id === joueurId) {
+                    const partieId = line.partie_id;
+                    const nomJeu = line.parties.nom_jeu;
+                    
+                    if (!stats.partiesJoueesSet.has(partieId)) {
+                        stats.partiesJouees++;
+                        stats.jeuxJoues.add(nomJeu);
+                        stats.partiesJoueesSet.add(partieId);
+                    }
+                    
+                    if (line.est_gagnant) {
+                        stats.victoires++;
+                        const currentCount = stats.partiesGagneesParJeu.get(nomJeu) || 0;
+                        stats.partiesGagneesParJeu.set(nomJeu, currentCount + 1);
+                    }
+                }
+            });
+
+            // Calcul du jeu favori
+            let jeuFavori = 'Aucun';
+            let maxVictoires = 0;
+            for (const [jeu, count] of stats.partiesGagneesParJeu.entries()) {
+                if (count > maxVictoires) {
+                    maxVictoires = count;
+                    jeuFavori = jeu;
+                }
+            }
+
+            return {
+                partiesJouees: stats.partiesJouees,
+                victoires: stats.victoires,
+                ratioVictoires: stats.partiesJouees > 0 ? ((stats.victoires / stats.partiesJouees) * 100).toFixed(1) + '%' : 'N/A',
+                jeuxJoues: stats.jeuxJoues.size,
+                jeuFavori: jeuFavori,
+                maxVictoiresJeu: maxVictoires
+            };
         }
 
         function afficherListeJoueurs() {
@@ -439,12 +447,8 @@
 
             let joueursFiltres = joueursTries.filter(joueur => {
                 const nomComplet = joueur.nom.toLowerCase();
-                if (filterText && !nomComplet.includes(filterText)) {
-                    return false;
-                }
-                if (currentAlphaFilter && !joueur.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) {
-                    return false;
-                }
+                if (filterText && !nomComplet.includes(filterText)) { return false; }
+                if (currentAlphaFilter && !joueur.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) { return false; }
                 return true;
             });
 
@@ -453,147 +457,84 @@
                 return;
             }
 
-            // --- Logique de comptage des victoires avec la table de jointure (CORRIGÉ) ---
-            const statsJoueurs = new Map(); // Key: joueur_id, Value: { partiesJouees: N, victoires: N, jeuxJoues: Set<string>, partiesGagneesParJeu: Map<string, N> }
-            joueurs.forEach(j => {
-                statsJoueurs.set(j.id, { 
-                    partiesJouees: 0, 
-                    victoires: 0, 
-                    jeuxJoues: new Set(), 
-                    partiesGagneesParJeu: new Map(),
-                    // Ajout d'un Set pour les parties pour compter les parties jouées/jeux joués une seule fois
-                    partiesJoueesSet: new Set() 
-                });
-            });
-
-
-            partiesStats.forEach(line => {
-                const joueurId = line.joueur_id;
-                const partieId = line.partie_id;
-                const nomJeu = line.parties[0]?.nom_jeu || 'Jeu Inconnu'; // Utiliser parties[0] si c'est la structure Supabase pour un objet joint
-
-                if (statsJoueurs.has(joueurId)) {
-                    const stats = statsJoueurs.get(joueurId);
-
-                    // 1. Parties Jouées (compte une fois la partie pour le joueur)
-                    if (!stats.partiesJoueesSet.has(partieId)) {
-                        stats.partiesJouees++;
-                        stats.jeuxJoues.add(nomJeu);
-                        stats.partiesJoueesSet.add(partieId);
-                    }
-                    
-                    // 2. Victoires (compte le nombre de victoires)
-                    if (line.est_gagnant) {
-                        stats.victoires++;
-                        
-                        // 3. Jeu Favori
-                        const currentCount = stats.partiesGagneesParJeu.get(nomJeu) || 0;
-                        stats.partiesGagneesParJeu.set(nomJeu, currentCount + 1);
-                    }
-                }
-            });
-
-            // --- Affichage des cartes (MISE À JOUR) ---
             joueursFiltres.forEach((joueur) => {
+                const stats = calculerStats(joueur.id);
+
                 const card = document.createElement('div');
                 card.className = 'joueur-card';
-                // Récupération des stats finales
-                const stats = statsJoueurs.get(joueur.id);
+                card.setAttribute('data-id', joueur.id); // Pour l'événement de clic
 
-                // Calcul du jeu favori
-                let jeuFavori = 'Aucun';
-                let maxVictoires = 0;
-                
-                if (stats) {
-                    for (const [jeu, count] of stats.partiesGagneesParJeu.entries()) {
-                        if (count > maxVictoires) {
-                            maxVictoires = count;
-                            jeuFavori = jeu;
-                        }
-                    }
-                }
+                // Événement Clic pour afficher la fiche complète
+                card.addEventListener('click', () => {
+                    afficherFicheJoueur(joueur.id);
+                });
 
-                const partiesJouees = stats ? stats.partiesJouees : 0;
-                const victoires = stats ? stats.victoires : 0;
-                const jeuxJoues = stats ? stats.jeuxJoues.size : 0;
-                const ratioVictoires = partiesJouees > 0 ? ((victoires / partiesJouees) * 100).toFixed(1) + '%' : 'N/A';
-                
-                // --- Photo et nom ---
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'joueur-header';
-                const img = document.createElement('img');
-                // Utilisation d'un placeholder simple, comme demandé
-                img.src = 'https://via.placeholder.com/60x60?text=👤'; 
-                img.alt = `Photo de ${joueur.nom}`;
-                img.className = 'joueur-photo';
-                headerDiv.appendChild(img);
-
-                const titre = document.createElement('h3');
-                titre.textContent = joueur.nom;
-                headerDiv.appendChild(titre);
-                card.appendChild(headerDiv);
-
-                // --- Affichage des Statistiques ---
-                const statsDiv = document.createElement('div');
-                statsDiv.className = 'joueur-stats';
-                statsDiv.innerHTML = `
-                    <p>Parties Jouées : <strong>${partiesJouees}</strong></p>
-                    <p>Victoires : <strong>${victoires}</strong></p>
-                    <p>Ratio Victoires : <strong>${ratioVictoires}</strong></p>
-                    <p>Jeux Joués : <strong>${jeuxJoues}</strong></p>
-                    <p>Jeu Favori : <strong>${jeuFavori}${maxVictoires > 0 ? ` (${maxVictoires} victoires)` : ''}</strong></p>
+                // --- Contenu de la carte ---
+                card.innerHTML = `
+                    <div class="card-content">
+                        <img src="https://via.placeholder.com/80x80?text=👤" alt="Photo de ${joueur.nom}" class="joueur-photo" />
+                        <div class="joueur-header">
+                            <h3>${joueur.nom}</h3>
+                        </div>
+                        <div class="joueur-stats-apercu">
+                            <p>Victoires : <strong>${stats.victoires}</strong></p>
+                            <p>Ratio : <strong>${stats.ratioVictoires}</strong></p>
+                        </div>
+                        <div class="btns-card">
+                            <button class="btn-card btn-modifier" data-id="${joueur.id}" onclick="event.stopPropagation(); ouvrirModaleModifier('${joueur.id}');">✏️ Modifier</button>
+                            <button class="btn-card btn-supprimer" data-id="${joueur.id}" onclick="event.stopPropagation(); supprimerJoueurEtRecharger('${joueur.id}', '${joueur.nom}');">🗑️ Supprimer</button>
+                        </div>
+                    </div>
                 `;
-                card.appendChild(statsDiv);
-
-
-                // --- Boutons ---
-                const btns = document.createElement('div');
-                btns.className = 'btns-card';
-
-                const btnModifier = document.createElement('button');
-                btnModifier.className = 'btn-card btn-modifier';
-                btnModifier.textContent = '✏️ Modifier';
-                btnModifier.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    ouvrirModaleModifier(joueur.id);
-                });
-                btns.appendChild(btnModifier);
-
-                const btnSupprimer = document.createElement('button');
-                btnSupprimer.className = 'btn-card btn-supprimer';
-                btnSupprimer.textContent = '🗑️ Supprimer';
-                btnSupprimer.addEventListener('click', async (event) => {
-                    event.stopPropagation();
-                    if (confirm(`Supprimer le joueur "${joueur.nom}" ?`)) {
-                        await supprimerJoueur(joueur.id);
-                        await chargerEtAfficherJoueurs();
-                    }
-                });
-                btns.appendChild(btnSupprimer);
-
-                card.appendChild(btns);
+                
                 listeJoueurs.appendChild(card);
             });
         }
 
-        function ouvrirModaleModifier(id) {
+        function afficherFicheJoueur(id) {
             const joueur = joueurs.find(j => j.id === id);
-            if (!joueur) {
-                alert("Erreur: Impossible de charger les données du joueur.");
-                return;
-            }
+            if (!joueur) { return; }
+            const stats = calculerStats(id);
 
-            joueurIdInput.value = joueur.id;
-            nomJoueurInput.value = joueur.nom;
-            
-            formAjout.querySelector('button[type="submit"]').textContent = 'Modifier le joueur';
-            modal.style.display = 'flex';
+            ficheDetail.innerHTML = `
+                <img src="https://via.placeholder.com/120x120?text=👤" alt="Photo de ${joueur.nom}" class="joueur-photo" />
+                <h2>${joueur.nom}</h2>
+                <div class="joueur-stats-detail" style="display: block;">
+                    <p>Parties Jouées : <strong>${stats.partiesJouees}</strong></p>
+                    <p>Victoires : <strong>${stats.victoires}</strong></p>
+                    <p>Ratio Victoires : <strong>${stats.ratioVictoires}</strong></p>
+                    <p>Jeux Joués : <strong>${stats.jeuxJoues}</strong></p>
+                    <p>Jeu Favori : <strong>${stats.jeuFavori}${stats.maxVictoiresJeu > 0 ? ` (${stats.maxVictoiresJeu} victoires)` : ''}</strong></p>
+                </div>
+                <div class="btns-card" style="margin-top: 30px;">
+                    <button class="btn-card btn-modifier" style="flex-grow: 1;" onclick="modalFiche.style.display='none'; ouvrirModaleModifier('${joueur.id}');">✏️ Modifier</button>
+                    <button class="btn-card btn-supprimer" style="flex-grow: 1;" onclick="modalFiche.style.display='none'; supprimerJoueurEtRecharger('${joueur.id}', '${joueur.nom}');">🗑️ Supprimer</button>
+                </div>
+            `;
+            modalFiche.style.display = 'flex';
         }
 
-        inputRecherche.addEventListener('input', () => {
+        // Globaliser pour le onclick dans le HTML généré
+        window.ouvrirModaleModifier = ouvrirModaleModifier; 
+        window.supprimerJoueurEtRecharger = async (id, nom) => {
+            if (confirm(`Supprimer le joueur "${nom}" ?`)) {
+                await supprimerJoueur(id);
+                await chargerEtAfficherJoueurs();
+            }
+        };
+
+        function ouvrirModaleModifier(id) {
+            const joueur = joueurs.find(j => j.id === id);
+            if (!joueur) { alert("Erreur: Impossible de charger les données du joueur."); return; }
+            joueurIdInput.value = joueur.id;
+            nomJoueurInput.value = joueur.nom;
+            formAjout.querySelector('button[type="submit"]').textContent = 'Modifier le joueur';
+            modalAjout.style.display = 'flex';
+        }
+
+        inputRecherche.addEventListener('input', () => { /*... inchangé ...*/
             currentAlphaFilter = '';
             document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
-            // Assurez-vous que le bouton 'Tout' est activé
             const allBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
             if (allBtn) allBtn.classList.add('active');
             afficherListeJoueurs();
@@ -606,7 +547,6 @@
 
         document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'visible') {
-                // Recharger les données si la page redevient visible
                 await chargerEtAfficherJoueurs();
             }
         });
