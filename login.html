@@ -1,278 +1,272 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oh My Games - Gérer les groupes</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    <img src="omg_img.png" alt="Fond" class="background-image" />
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f0f2f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      color: #333;
-    }
-    .container {
-      background-color: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
-    h2 {
-      color: #0056b3;
-      margin-bottom: 20px;
-    }
-    input[type="text"] {
-      width: calc(100% - 22px);
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      font-size: 16px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      margin-top: 10px;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .btn-secondary {
-      background-color: #6c757d;
-    }
-    .btn-secondary:hover {
-      background-color: #5a6268;
-    }
-    #my-groups-list {
-      list-style-type: none;
-      padding: 0;
-      margin-top: 20px;
-      text-align: left;
-    }
-    #my-groups-list li {
-      background-color: #f8f9fa;
-      padding: 15px;
-      border-radius: 5px;
-      margin-bottom: 10px;
-      border: 1px solid #e9ecef;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    #my-groups-list li a {
-      font-weight: bold;
-      color: #007bff;
-      text-decoration: none;
-      flex-grow: 1;
-    }
-    #my-groups-list li a:hover {
-      text-decoration: underline;
-    }
-    .group-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .alias-input-container {
-      display: none;
-      margin-top: 10px;
-    }
-    #my-groups-list li .alias-btn {
-        margin-left: 10px;
-        padding: 5px 10px;
-        width: auto;
-    }
-    #group-code-display {
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 1.2em;
-        margin-top: 10px;
-        padding: 8px;
-        background-color: #e9ecef;
-        border-radius: 5px;
-        display: none; /* Masqué par défaut */
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oh My Games - Connexion Groupe</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 { margin-bottom: 20px; }
+        .main-options button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        .form-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+        }
+        #creation-groupe-section input[type="text"] {
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 2px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .group-item button {
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Gérer les groupes</h2>
-    <div class="group-actions">
-      <h3>Mes groupes :</h3>
-      <ul id="my-groups-list"></ul>
-      
-      <h3>Rejoindre un groupe :</h3>
-      <input type="text" id="join-group-code" placeholder="Code du groupe (6 caractères)">
-      <button id="join-group-btn">Rejoindre le groupe</button>
-      
-      <h3>Créer un nouveau groupe :</h3>
-      <input type="text" id="create-alias-input" placeholder="Nom du groupe (ex: Famille)">
-      <button id="create-group-btn">Créer un groupe</button>
+    <div class="container">
+        <h1>Oh My Games</h1>
+        <h2>Gestion des Groupes</h2>
+
+        <div class="main-options">
+            <button id="btn-select-group">Sélectionner un groupe existant</button>
+            <button id="btn-create-group">Créer un nouveau groupe</button>
+        </div>
+
+        <div id="selection-groupe-section" class="form-section" style="display:none;">
+            <h3>Sélectionner un groupe</h3>
+            <p>Groupes auxquels vous êtes assigné(e) :</p>
+            <div id="liste-groupes-utilisateur">
+                <p>Chargement...</p>
+            </div>
+            <button onclick="location.href='index.html'" style="margin-top: 15px;">Retour à l'accueil</button>
+        </div>
+
+        <div id="creation-groupe-section" class="form-section" style="display:none;">
+            <h3>Créer un groupe</h3>
+            <form id="form-creation-groupe">
+                <label for="code-groupe-auto">Code unique (6 caractères) :</label><br />
+                <input type="text" id="code-groupe-auto" value="XXXXXX" readonly style="margin-bottom: 15px;"><br />
+
+                <label for="alias-groupe">Alias du groupe (Optionnel) :</label><br />
+                <input type="text" id="alias-groupe" placeholder="Ex: Les Amis du Mardi" maxlength="50"><br /><br />
+                
+                <button type="submit">Créer et Sélectionner le Groupe</button>
+                <button type="button" id="btn-cancel-creation" style="margin-top: 10px;">Annuler</button>
+            </form>
+        </div>
+
     </div>
-  </div>
 
-  <script type="module">
-    import { supabase } from './supabase-config.js';
+    <script type="module">
+        import { supabase } from './supabase-config.js';
 
-    // DOM Elements
-    const myGroupsList = document.getElementById('my-groups-list');
-    const joinGroupCodeInput = document.getElementById('join-group-code');
-    const joinGroupBtn = document.getElementById('join-group-btn');
-    const createAliasInput = document.getElementById('create-alias-input');
-    const createGroupBtn = document.getElementById('create-group-btn');
+        const userId = localStorage.getItem('logged_in_user_id');
+        const userEmail = localStorage.getItem('logged_in_user_email');
+        
+        // DOM elements
+        const btnSelectGroup = document.getElementById('btn-select-group');
+        const btnCreateGroup = document.getElementById('btn-create-group');
+        const mainOptionsDiv = document.querySelector('.main-options');
+        const selectionSection = document.getElementById('selection-groupe-section');
+        const creationSection = document.getElementById('creation-groupe-section');
+        const listeGroupesDiv = document.getElementById('liste-groupes-utilisateur');
+        const formCreation = document.getElementById('form-creation-groupe');
+        const codeGroupeAutoInput = document.getElementById('code-groupe-auto');
+        const aliasGroupeInput = document.getElementById('alias-groupe');
+        const btnCancelCreation = document.getElementById('btn-cancel-creation');
 
-    // Identifiant unique pour le joueur (pour simuler la connexion)
-    // En production, ce serait généré par l'authentification
-    let userId = localStorage.getItem('guest_user_id');
-    if (!userId) {
-        userId = crypto.randomUUID();
-        localStorage.setItem('guest_user_id', userId);
-    }
-    
-    // --- Fonctions utilitaires ---
+        if (!userId) {
+            alert("Erreur: Utilisateur non connecté. Redirection vers l'accueil.");
+            location.href = 'index.html'; // Redirection si non connecté
+            throw new Error("Utilisateur non connecté.");
+        }
 
-    // Génère un code aléatoire à 6 caractères
-    function generateGroupCode() {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < 6; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-      }
-      return result;
-    }
+        // --- Fonctions utilitaires ---
+        
+        function generateRandomCode(length = 6) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
 
-    // Récupère les groupes de l'utilisateur
-    async function getUserGroups() {
-      const { data: groupes, error } = await supabase
-        .from('joueurs_groupes')
-        .select('groupe_id, groupes(code, alias)')
-        .eq('joueur_id', userId);
+        function showSection(sectionToShow) {
+            mainOptionsDiv.style.display = 'none';
+            selectionSection.style.display = 'none';
+            creationSection.style.display = 'none';
 
-      if (error) {
-        console.error("Erreur de récupération des groupes:", error);
-        return [];
-      }
-      return groupes.map(g => ({ ...g.groupes, groupe_id: g.groupe_id }));
-    }
+            if (sectionToShow === 'select') {
+                selectionSection.style.display = 'block';
+                chargerGroupesUtilisateur();
+            } else if (sectionToShow === 'create') {
+                creationSection.style.display = 'block';
+                codeGroupeAutoInput.value = generateRandomCode();
+            } else { // 'options'
+                mainOptionsDiv.style.display = 'block';
+            }
+        }
+        
+        // --- Logique Supabase ---
 
-    // Affiche les groupes de l'utilisateur
-    async function displayUserGroups() {
-      const groupes = await getUserGroups();
-      myGroupsList.innerHTML = '';
-      if (groupes.length > 0) {
-        groupes.forEach(groupe => {
-          const li = document.createElement('li');
-          const link = document.createElement('a');
-          link.href = 'index.html';
-          link.textContent = groupe.alias || `Groupe : ${groupe.code}`;
-          link.addEventListener('click', () => {
-            localStorage.setItem('selected_group_id', groupe.groupe_id);
-            localStorage.setItem('selected_group_alias', groupe.alias);
-          });
+        async function chargerGroupesUtilisateur() {
+            listeGroupesDiv.innerHTML = '<p>Chargement des groupes...</p>';
+            try {
+                // Jointure entre la table des joueurs et la table des groupes (groupes_joueurs)
+                const { data, error } = await supabase
+                    .from('joueurs')
+                    .select('groupes_joueurs ( groupe_id, groupes (id, code, alias) )')
+                    .eq('user_id', userId)
+                    .single();
 
-          li.appendChild(link);
-          
-          const codeSpan = document.createElement('span');
-          codeSpan.textContent = groupe.code;
-          codeSpan.style.fontFamily = 'monospace';
-          codeSpan.style.fontSize = '0.9em';
-          codeSpan.style.backgroundColor = '#e9ecef';
-          codeSpan.style.padding = '2px 5px';
-          codeSpan.style.borderRadius = '3px';
-          li.appendChild(codeSpan);
-          
-          myGroupsList.appendChild(li);
+                if (error) throw error;
+                
+                const groupes = data.groupes_joueurs.map(gj => gj.groupes);
+
+                if (groupes.length === 0) {
+                    listeGroupesDiv.innerHTML = '<p>Vous n\'êtes assigné(e) à aucun groupe. Créez-en un ou demandez à un administrateur de vous en assigner un.</p>';
+                    return;
+                }
+
+                afficherGroupes(groupes);
+
+            } catch (error) {
+                console.error("Erreur lors du chargement des groupes:", error);
+                listeGroupesDiv.innerHTML = `<p style="color:red;">Erreur: ${error.message}</p>`;
+            }
+        }
+        
+        function afficherGroupes(groupes) {
+            listeGroupesDiv.innerHTML = '';
+            groupes.forEach(groupe => {
+                const aliasDisplay = groupe.alias ? ` (${groupe.alias})` : '';
+                const div = document.createElement('div');
+                div.classList.add('group-item');
+                div.innerHTML = `
+                    <span>Code: <strong>${groupe.code}</strong>${aliasDisplay}</span>
+                    <button data-group-id="${groupe.id}" data-group-alias="${groupe.alias || groupe.code}">Sélectionner</button>
+                `;
+                listeGroupesDiv.appendChild(div);
+            });
+        }
+        
+        async function creerEtSelectionnerGroupe(code, alias) {
+            try {
+                // 1. Créer le groupe
+                const { data: newGroupData, error: groupError } = await supabase
+                    .from('groupes')
+                    .insert({ code: code, alias: alias || null })
+                    .select()
+                    .single();
+
+                if (groupError) throw groupError;
+                const newGroupId = newGroupData.id;
+
+                // 2. Assigner l'utilisateur (joueur) au groupe
+                // Récupérer le joueur_id de l'utilisateur connecté
+                const { data: playerData, error: playerError } = await supabase
+                    .from('joueurs')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .single();
+
+                if (playerError) throw playerError;
+                const playerId = playerData.id;
+                
+                const { error: assignError } = await supabase
+                    .from('groupes_joueurs')
+                    .insert({ groupe_id: newGroupId, joueur_id: playerId });
+
+                if (assignError) throw assignError;
+
+                // 3. Sélectionner et rediriger
+                localStorage.setItem('selected_group_id', newGroupId);
+                localStorage.setItem('selected_group_alias', alias || code);
+                alert(`Groupe '${alias || code}' créé et sélectionné avec succès!`);
+                location.href = 'parties.html';
+
+            } catch (error) {
+                console.error("Erreur lors de la création du groupe:", error);
+                alert(`Erreur lors de la création du groupe: ${error.message}`);
+            }
+        }
+
+
+        // --- Listeners d'événement ---
+        
+        btnSelectGroup.addEventListener('click', () => showSection('select'));
+        btnCreateGroup.addEventListener('click', () => showSection('create'));
+        btnCancelCreation.addEventListener('click', () => showSection('options'));
+
+        // Sélection d'un groupe existant
+        listeGroupesDiv.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const groupId = e.target.getAttribute('data-group-id');
+                const groupAlias = e.target.getAttribute('data-group-alias');
+                
+                if (groupId) {
+                    localStorage.setItem('selected_group_id', groupId);
+                    localStorage.setItem('selected_group_alias', groupAlias);
+                    alert(`Groupe '${groupAlias}' sélectionné!`);
+                    location.href = 'parties.html';
+                }
+            }
         });
-      } else {
-        myGroupsList.innerHTML = '<li>Vous n\'appartenez à aucun groupe.</li>';
-      }
-    }
-
-    // --- Écouteurs d'événements ---
-
-    // Rejoint un groupe avec un code
-    joinGroupBtn.addEventListener('click', async () => {
-      const groupCode = joinGroupCodeInput.value.trim().toUpperCase();
-      if (groupCode.length !== 6) {
-        alert("Le code de groupe doit faire 6 caractères.");
-        return;
-      }
-      
-      const { data: groupe, error: findError } = await supabase
-        .from('groupes')
-        .select('id')
-        .eq('code', groupCode)
-        .single();
         
-      if (findError || !groupe) {
-        alert("Code de groupe invalide ou inexistant.");
-        return;
-      }
-      
-      const { error: joinError } = await supabase
-        .from('joueurs_groupes')
-        .insert({ joueur_id: userId, groupe_id: groupe.id });
+        // Soumission du formulaire de création
+        formCreation.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = codeGroupeAutoInput.value;
+            const alias = aliasGroupeInput.value.trim();
+            creerEtSelectionnerGroupe(code, alias);
+        });
         
-      if (joinError) {
-        alert(`Erreur: Vous êtes déjà membre de ce groupe.`);
-      } else {
-        alert("Groupe rejoint avec succès !");
-        joinGroupCodeInput.value = '';
-        displayUserGroups();
-      }
-    });
-
-    // Crée un nouveau groupe
-    createGroupBtn.addEventListener('click', async () => {
-      const alias = createAliasInput.value.trim();
-      if (!alias) {
-          alert("Veuillez donner un nom à votre groupe.");
-          return;
-      }
-
-      const newCode = generateGroupCode();
-      const { data: newGroupe, error } = await supabase
-        .from('groupes')
-        .insert({ code: newCode, alias: alias })
-        .select()
-        .single();
-
-      if (error) {
-        alert(`Erreur de création de groupe: ${error.message}`);
-        return;
-      }
-
-      const { error: joinError } = await supabase
-        .from('joueurs_groupes')
-        .insert({ joueur_id: userId, groupe_id: newGroupe.id });
+        // --- Initialisation ---
         
-      if (joinError) {
-        alert(`Erreur de liaison au groupe: ${joinError.message}`);
-      } else {
-        alert(`Nouveau groupe créé : "${alias}" avec le code : ${newCode}.`);
-        createAliasInput.value = '';
-        displayUserGroups();
-      }
-    });
-
-    // Vérification initiale de l'état
-    displayUserGroups();
-
-  </script>
+        // Vérifier si un groupe est déjà sélectionné et rediriger si oui
+        if (localStorage.getItem('selected_group_id')) {
+            showSection('select'); // Afficher la sélection par défaut
+        } else {
+            showSection('options');
+        }
+    </script>
 </body>
 </html>
