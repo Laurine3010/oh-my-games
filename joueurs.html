@@ -5,17 +5,185 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oh My Games - Joueurs</title>
     <link rel="stylesheet" href="styles.css">
+
+    <style>
+        /* Styles pour les filtres alphabétiques */
+        #alpha-filter-container {
+            margin: 20px auto;
+            max-width: 900px;
+            text-align: center;
+        }
+        .alpha-filter-btn {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px 8px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .alpha-filter-btn:hover {
+            background-color: #eee;
+        }
+        .alpha-filter-btn.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+            font-weight: bold;
+        }
+
+        /* Styles pour la recherche */
+        #recherche-joueurs {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            margin: 10px auto 20px auto;
+            display: block;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        /* --- NOUVEAUX STYLES DES CARTES JOUEURS --- */
+        #liste-joueurs {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center; /* Centrer les cartes */
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .joueur-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 300px; /* Taille maximale pour chaque carte */
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s;
+        }
+
+        .joueur-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .joueur-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .joueur-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+            border: 3px solid #007bff;
+            background-color: #f0f8ff;
+        }
+
+        .joueur-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .joueur-stats p {
+            margin: 5px 0;
+            padding-left: 10px;
+            font-size: 1em;
+            color: #555;
+            border-left: 3px solid #eee;
+        }
+
+        .joueur-stats strong {
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        .btns-card {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .btn-card {
+            flex-grow: 1;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-modifier {
+            background-color: #ffc107;
+            border: 1px solid #ffc107;
+            color: #333;
+        }
+
+        .btn-supprimer {
+            background-color: #dc3545;
+            border: 1px solid #dc3545;
+            color: white;
+        }
+
+        /* Reste des styles (modal, etc.) inchangés ou non fournis mais supposés dans styles.css */
+        .modal {
+            /* Assurez-vous que votre modal est bien centré */
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 10; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #aaa;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        
+    </style>
 </head>
 
 <body>
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+        <button onclick="location.href='login.html'" class="btn-home" style="margin-left: 10px;">Changer de groupe</button>
     </div>
     <h1>Oh My Games</h1>
     <h2>Liste des joueurs</h2>
-    <img src="omg_img.png" alt="Fond" class="background-image" />
-
     <button class="btn-add">➕ Ajouter un joueur</button>
 
     <div id="alpha-filter-container">
@@ -101,6 +269,8 @@
         async function chargerPartiesStats() {
             try {
                 // Récupérer toutes les lignes de la jointure qui nous concernent
+                // Note : Supabase crée un tableau d'objets pour la jointure 'parties' si c'est une relation One-to-One/Many-to-One
+                // ici, on veut le nom du jeu de la partie associée.
                 const { data, error } = await supabase
                     .from('parties_joueurs')
                     .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)') 
@@ -215,17 +385,19 @@
             }
         });
 
-        // --- Fonctions d'affichage et de filtrage ---
+        // --- Fonctions d'affichage et de filtrage (MISE À JOUR) ---
         function generateAlphaFilters() {
             const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             const alphaFilterContainer = document.getElementById('alpha-filter-container');
             alphaFilterContainer.innerHTML = '';
+            
             const allBtn = document.createElement('button');
             allBtn.className = 'alpha-filter-btn';
             if (currentAlphaFilter === '') allBtn.classList.add('active');
             allBtn.textContent = 'Tout';
             allBtn.setAttribute('data-filter', '');
             alphaFilterContainer.appendChild(allBtn);
+            
             alphabet.forEach(letter => {
                 const btn = document.createElement('button');
                 btn.className = 'alpha-filter-btn';
@@ -234,12 +406,14 @@
                 btn.setAttribute('data-filter', letter);
                 alphaFilterContainer.appendChild(btn);
             });
+            
+            // Événement de délégation pour les filtres
             alphaFilterContainer.addEventListener('click', (e) => {
                 if (e.target.classList.contains('alpha-filter-btn')) {
                     document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
                     e.target.classList.add('active');
                     currentAlphaFilter = e.target.getAttribute('data-filter');
-                    inputRecherche.value = '';
+                    inputRecherche.value = ''; // Réinitialiser la recherche textuelle
                     afficherListeJoueurs();
                 }
             });
@@ -286,28 +460,29 @@
                     partiesJouees: 0, 
                     victoires: 0, 
                     jeuxJoues: new Set(), 
-                    partiesGagneesParJeu: new Map() 
+                    partiesGagneesParJeu: new Map(),
+                    // Ajout d'un Set pour les parties pour compter les parties jouées/jeux joués une seule fois
+                    partiesJoueesSet: new Set() 
                 });
             });
 
-            const partiesComptees = new Set(); // Pour compter les parties une seule fois par joueur (même s'il est co-gagnant)
 
             partiesStats.forEach(line => {
                 const joueurId = line.joueur_id;
                 const partieId = line.partie_id;
-                const nomJeu = line.parties.nom_jeu;
-                
+                const nomJeu = line.parties[0]?.nom_jeu || 'Jeu Inconnu'; // Utiliser parties[0] si c'est la structure Supabase pour un objet joint
+
                 if (statsJoueurs.has(joueurId)) {
                     const stats = statsJoueurs.get(joueurId);
 
                     // 1. Parties Jouées (compte une fois la partie pour le joueur)
-                    if (!partiesComptees.has(`${joueurId}-${partieId}`)) {
+                    if (!stats.partiesJoueesSet.has(partieId)) {
                         stats.partiesJouees++;
                         stats.jeuxJoues.add(nomJeu);
-                        partiesComptees.add(`${joueurId}-${partieId}`);
+                        stats.partiesJoueesSet.add(partieId);
                     }
                     
-                    // 2. Victoires
+                    // 2. Victoires (compte le nombre de victoires)
                     if (line.est_gagnant) {
                         stats.victoires++;
                         
@@ -318,28 +493,37 @@
                 }
             });
 
-            // --- Affichage des cartes ---
+            // --- Affichage des cartes (MISE À JOUR) ---
             joueursFiltres.forEach((joueur) => {
                 const card = document.createElement('div');
                 card.className = 'joueur-card';
-                const stats = statsJoueurs.get(joueur.id) || { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: new Map() };
+                // Récupération des stats finales
+                const stats = statsJoueurs.get(joueur.id);
 
                 // Calcul du jeu favori
                 let jeuFavori = 'Aucun';
                 let maxVictoires = 0;
                 
-                for (const [jeu, count] of stats.partiesGagneesParJeu.entries()) {
-                    if (count > maxVictoires) {
-                        maxVictoires = count;
-                        jeuFavori = jeu;
+                if (stats) {
+                    for (const [jeu, count] of stats.partiesGagneesParJeu.entries()) {
+                        if (count > maxVictoires) {
+                            maxVictoires = count;
+                            jeuFavori = jeu;
+                        }
                     }
                 }
 
+                const partiesJouees = stats ? stats.partiesJouees : 0;
+                const victoires = stats ? stats.victoires : 0;
+                const jeuxJoues = stats ? stats.jeuxJoues.size : 0;
+                const ratioVictoires = partiesJouees > 0 ? ((victoires / partiesJouees) * 100).toFixed(1) + '%' : 'N/A';
+                
                 // --- Photo et nom ---
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'joueur-header';
                 const img = document.createElement('img');
-                img.src = 'https://via.placeholder.com/100x100?text=👤'; 
+                // Utilisation d'un placeholder simple, comme demandé
+                img.src = 'https://via.placeholder.com/60x60?text=👤'; 
                 img.alt = `Photo de ${joueur.nom}`;
                 img.className = 'joueur-photo';
                 headerDiv.appendChild(img);
@@ -353,10 +537,10 @@
                 const statsDiv = document.createElement('div');
                 statsDiv.className = 'joueur-stats';
                 statsDiv.innerHTML = `
-                    <p>Parties Jouées : <strong>${stats.partiesJouees}</strong></p>
-                    <p>Victoires : <strong>${stats.victoires}</strong></p>
-                    <p>Ratio Victoires : <strong>${stats.partiesJouees > 0 ? ((stats.victoires / stats.partiesJouees) * 100).toFixed(1) + '%' : 'N/A'}</strong></p>
-                    <p>Jeux Joués : <strong>${stats.jeuxJoues.size}</strong></p>
+                    <p>Parties Jouées : <strong>${partiesJouees}</strong></p>
+                    <p>Victoires : <strong>${victoires}</strong></p>
+                    <p>Ratio Victoires : <strong>${ratioVictoires}</strong></p>
+                    <p>Jeux Joués : <strong>${jeuxJoues}</strong></p>
                     <p>Jeu Favori : <strong>${jeuFavori}${maxVictoires > 0 ? ` (${maxVictoires} victoires)` : ''}</strong></p>
                 `;
                 card.appendChild(statsDiv);
@@ -409,6 +593,7 @@
         inputRecherche.addEventListener('input', () => {
             currentAlphaFilter = '';
             document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
+            // Assurez-vous que le bouton 'Tout' est activé
             const allBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
             if (allBtn) allBtn.classList.add('active');
             afficherListeJoueurs();
@@ -421,6 +606,7 @@
 
         document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'visible') {
+                // Recharger les données si la page redevient visible
                 await chargerEtAfficherJoueurs();
             }
         });
