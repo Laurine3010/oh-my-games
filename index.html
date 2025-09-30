@@ -5,6 +5,78 @@
     <link rel="stylesheet" href="styles.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Styles spécifiques pour le dashboard si non inclus dans styles.css */
+        .dashboard-section {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .stats-overview {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .stat-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px 30px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            min-width: 150px;
+        }
+        .stat-card h3 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1em;
+        }
+        .stat-card p {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 5px 0 0;
+        }
+        .recent-games-section {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        .recent-game-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dotted #eee;
+            align-items: center;
+        }
+        .recent-game-item:last-child {
+            border-bottom: none;
+        }
+        .recent-game-item strong {
+            color: #3498db;
+        }
+        .recent-game-item .date {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        .btn-goto-parties {
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <h1>Oh My Games</h1>
@@ -73,7 +145,7 @@
             if (!selectedGroupId) return null;
             const { data, error } = await supabase
                 .from('joueurs')
-                .select('*')
+                .select('id, nom')
                 .eq('groupe_id', selectedGroupId);
             if (error) {
                 console.error("Erreur lors du chargement des joueurs:", error);
@@ -94,8 +166,44 @@
             }
             return data;
         }
+        
+        // --- NOUVELLE LOGIQUE : Assurer l'existence du joueur par défaut ---
+        async function ensureDefaultPlayerExists(groupId) {
+            const defaultPlayerName = "Laurine";
+            
+            try {
+                // 1. Vérifier si "Laurine" existe
+                let { data, error } = await supabase
+                    .from('joueurs')
+                    .select('id')
+                    .eq('nom', defaultPlayerName)
+                    .eq('groupe_id', groupId)
+                    .limit(1);
 
-        // --- Fonction pour afficher les statistiques et les dernières parties ---
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    // 2. Si "Laurine" n'existe pas, la créer
+                    console.log(`Création du joueur par défaut: ${defaultPlayerName}`);
+                    const { error: insertError } = await supabase
+                        .from('joueurs')
+                        .insert({ 
+                            nom: defaultPlayerName,
+                            groupe_id: groupId,
+                            alias: defaultPlayerName 
+                        });
+
+                    if (insertError) throw insertError;
+                    
+                    console.log("Joueur 'Laurine' créé avec succès.");
+                }
+            } catch (error) {
+                console.error("Erreur lors de la gestion du joueur par défaut 'Laurine':", error);
+            }
+        }
+
+
+        // --- Fonction principale de chargement ---
 
         async function loadDashboardData() {
             console.log("Chargement des données du tableau de bord...");
@@ -105,7 +213,7 @@
             const totalPartiesElement = document.getElementById('total-parties');
             const recentGamesList = document.getElementById('recent-games-list');
 
-            // Redirection si aucun groupe n'est sélectionné
+            // 1. Vérification et affichage du groupe
             selectedGroupId = localStorage.getItem('selected_group_id');
             if (!selectedGroupId) {
                 location.href = 'login.html';
@@ -115,23 +223,31 @@
             const selectedGroupAlias = localStorage.getItem('selected_group_alias');
             document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
 
-            // Afficher un état de chargement initial
+            // 2. Assurer l'existence du joueur "Laurine"
+            await ensureDefaultPlayerExists(selectedGroupId);
+
+            // 3. Afficher un état de chargement initial
             if (recentGamesList) {
                 recentGamesList.innerHTML = '<p class="no-recent-games">Chargement en cours...</p>';
             }
+            totalJeuxElement.textContent = "..."
+            totalJoueursElement.textContent = "..."
+            totalPartiesElement.textContent = "..."
 
+            // 4. Chargement des données
             const [jeux, joueurs, parties] = await Promise.all([chargerJeux(), chargerJoueurs(), chargerParties()]);
 
-            // Gérer les cas où les requêtes échouent
-            if (!jeux) { totalJeuxElement.textContent = "Erreur"; } else { totalJeuxElement.textContent = jeux.length; }
-            if (!joueurs) { totalJoueursElement.textContent = "Erreur"; } else { totalJoueursElement.textContent = joueurs.length; }
+            // 5. Mise à jour des statistiques
+            if (jeux) { totalJeuxElement.textContent = jeux.length; } else { totalJeuxElement.textContent = "Erreur"; }
+            if (joueurs) { totalJoueursElement.textContent = joueurs.length; } else { totalJoueursElement.textContent = "Erreur"; }
+            
+            // 6. Affichage des dernières parties
             if (!parties) { 
                 totalPartiesElement.textContent = "Erreur"; 
                 recentGamesList.innerHTML = '<p class="no-recent-games">Impossible de charger les parties.</p>';
             } else {
                 totalPartiesElement.textContent = parties.length;
 
-                // Affichage des dernières parties
                 recentGamesList.innerHTML = '';
                 const partiesTriees = [...parties].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const maxRecentGames = 5;
@@ -149,15 +265,15 @@
                             day: 'numeric'
                         });
                         
-                        let vainqueur;
+                        let vainqueur = '';
                         try {
                            const gagnantData = JSON.parse(partie.gagnant);
                            vainqueur = Array.isArray(gagnantData) ? gagnantData.join(', ') : gagnantData;
                         } catch (e) {
-                           vainqueur = partie.gagnant;
+                           vainqueur = partie.gagnant || '';
                         }
 
-                        const gagnantInfo = (vainqueur && String(vainqueur).trim() !== '') ?
+                        const gagnantInfo = (vainqueur.trim() !== '') ?
                             ` (Gagnant : <strong>${vainqueur}</strong>)` :
                             '';
 
