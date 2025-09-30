@@ -998,3 +998,82 @@ tr:hover {
     text-align: center;
     min-height: 30px;
 }
+
+/* ========================================= */
+/* === Styles spécifiques à la page LOGIN === */
+/* ========================================= */
+
+/* Nouvelle classe pour forcer le centrage de tout le body (utilisée sur login.html) */
+.login-page {
+    /* Annule le padding vertical de base pour le centrage parfait */
+    padding-top: 0;
+    padding-bottom: 0; 
+    margin: 0; /* Assurer l'absence de marge */
+    
+    /* Active le centrage Flexbox - CRITIQUE: direction column pour éviter l'alignement en ligne */
+    display: flex;
+    flex-direction: column; /* <-- Ajout/Correction CRITIQUE */
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* ========================================= */
+/* === Styles spécifiques à la page LOGIN === */
+/* ========================================= */
+
+/* Le body de la page login DOIT utiliser les styles de body de base pour conserver les titres */
+/* Nous centrons le conteneur lui-même par les marges, pas le body par flexbox */
+.login-page {
+    /* Nous enlevons uniquement le padding de bas de page car le body est très court */
+    padding-bottom: 20px; 
+}
+
+
+/* Style général pour le conteneur central (utilisé sur login.html) */
+.login-page .container {
+    max-width: 450px; 
+    width: 100%;
+    padding: 30px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.95); 
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative; 
+    z-index: 10;
+    
+    /* Centrage du container au milieu de l'écran SANS utiliser flex sur le body */
+    margin: 50px auto 20px auto; 
+}
+
+/* Styles de boutons d'action */
+.action-buttons button {
+    padding: 12px 25px;
+    margin: 10px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    color: #333;
+    border: 2px solid #ccc;
+    transition: all 0.3s;
+}
+
+.action-buttons button:hover {
+    background-color: #007acc; 
+    color: white;
+    border-color: #007acc;
+}
+
+#creation-groupe #groupe-id-cree {
+    font-weight: bold;
+    color: #e74c3c; 
+    font-size: 1.5em;
+    margin: 10px 0 20px;
+    padding: 5px;
+    border: 1px dashed #e74c3c;
+    display: inline-block;
+    letter-spacing: 2px;
+}
