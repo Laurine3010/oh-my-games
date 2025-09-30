@@ -85,6 +85,11 @@
     }
     #my-groups-list a {
       font-weight: bold;
+      color: #007bff;
+      text-decoration: none;
+    }
+    #my-groups-list a:hover {
+      text-decoration: underline;
     }
     .group-actions {
       display: flex;
@@ -96,11 +101,26 @@
 <body>
   <div class="container">
     <div id="auth-section">
-      <h2>Connexion / Inscription</h2>
+      <h2>Connexion</h2>
       <form id="auth-form">
         <input type="email" id="email" placeholder="Email" required><br>
         <input type="password" id="password" placeholder="Mot de passe" required><br>
-        <button type="submit">Se connecter</button>
+        <button type="submit" id="login-btn">Se connecter</button>
+        <div class="link-text">
+          <p>Pas encore de compte ? <a href="#" id="show-signup-form">S'inscrire</a></p>
+        </div>
+      </form>
+    </div>
+
+    <div id="signup-section" style="display:none;">
+      <h2>Inscription</h2>
+      <form id="signup-form">
+        <input type="email" id="signup-email" placeholder="Email" required><br>
+        <input type="password" id="signup-password" placeholder="Mot de passe" required><br>
+        <button type="submit">S'inscrire</button>
+        <div class="link-text">
+          <p>Déjà un compte ? <a href="#" id="show-login-form">Se connecter</a></p>
+        </div>
       </form>
     </div>
 
@@ -129,12 +149,18 @@
     const authForm = document.getElementById('auth-form');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
+    const signupSection = document.getElementById('signup-section');
+    const signupForm = document.getElementById('signup-form');
+    const signupEmailInput = document.getElementById('signup-email');
+    const signupPasswordInput = document.getElementById('signup-password');
     const groupSelectionSection = document.getElementById('group-selection-section');
     const myGroupsList = document.getElementById('my-groups-list');
     const groupCodeInput = document.getElementById('group-code-input');
     const joinGroupBtn = document.getElementById('join-group-btn');
     const createGroupBtn = document.getElementById('create-group-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const showSignupLink = document.getElementById('show-signup-form');
+    const showLoginLink = document.getElementById('show-login-form');
 
     // --- Fonctions utilitaires ---
 
@@ -175,7 +201,7 @@
           const link = document.createElement('a');
           link.href = 'index.html';
           link.textContent = `Groupe : ${groupe.code}`;
-          link.addEventListener('click', (e) => {
+          link.addEventListener('click', () => {
             localStorage.setItem('selected_group_code', groupe.code);
           });
           li.appendChild(link);
@@ -191,37 +217,62 @@
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         authSection.style.display = 'none';
+        signupSection.style.display = 'none';
         groupSelectionSection.style.display = 'block';
         displayUserGroups();
       } else {
         authSection.style.display = 'block';
+        signupSection.style.display = 'none';
         groupSelectionSection.style.display = 'none';
       }
     }
 
     // --- Écouteurs d'événements ---
 
-    // Gère la connexion et l'inscription
+    // Bascule entre les formulaires de connexion et d'inscription
+    showSignupLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      authSection.style.display = 'none';
+      signupSection.style.display = 'block';
+    });
+
+    showLoginLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      signupSection.style.display = 'none';
+      authSection.style.display = 'block';
+    });
+
+    // Gère la connexion
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = emailInput.value;
       const password = passwordInput.value;
 
-      let { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       
-      if (error && error.message.includes('Invalid login credentials')) {
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
-        if (signUpError) {
-          alert(`Erreur d'inscription: ${signUpError.message}`);
-        } else {
-          alert('Inscription réussie ! Veuillez vérifier votre email pour valider votre compte.');
-          authSection.style.display = 'none';
-        }
-      } else if (error) {
-        alert(`Erreur de connexion: ${error.message}`);
+      if (error) {
+        alert(`Erreur de connexion : ${error.message}`);
       } else {
         alert('Connexion réussie !');
         checkAuthStatus();
+      }
+    });
+
+    // Gère l'inscription
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = signupEmailInput.value;
+      const password = signupPasswordInput.value;
+      
+      const { error } = await supabase.auth.signUp({ email, password });
+      
+      if (error) {
+        alert(`Erreur d'inscription : ${error.message}`);
+      } else {
+        alert('Inscription réussie ! Veuillez vérifier votre email pour valider votre compte.');
+        // Bascule vers la page de connexion après l'inscription
+        signupSection.style.display = 'none';
+        authSection.style.display = 'block';
       }
     });
 
@@ -297,7 +348,6 @@
 
     // Vérification initiale de l'état de connexion
     checkAuthStatus();
-
   </script>
 </body>
 </html>
