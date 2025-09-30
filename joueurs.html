@@ -128,7 +128,7 @@
             }
         }
 
-        // --- Listeners MODALE AJOUT/MODIF (POINT CLÉ) ---
+        // --- Listeners MODALE AJOUT/MODIF ---
 
         // OUVERTURE PAR LE BOUTON AJOUTER
         btnAdd.addEventListener('click', () => {
@@ -198,6 +198,7 @@
         }
 
         function calculerStats(joueurId) {
+            // Note : 'jeuxJoues' est conservé dans l'objet de stats, mais non affiché.
             const stats = { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: new Map(), partiesJoueesSet: new Set() };
             
             partiesStats.forEach(line => {
@@ -233,7 +234,7 @@
                 partiesJouees: stats.partiesJouees,
                 victoires: stats.victoires,
                 ratioVictoires: stats.partiesJouees > 0 ? ((stats.victoires / stats.partiesJouees) * 100).toFixed(1) + '%' : 'N/A',
-                jeuxJoues: stats.jeuxJoues.size,
+                // jeuxJoues: stats.jeuxJoues.size, <--- Retiré de l'objet de retour pour simplification si non utilisé
                 jeuFavori: jeuFavori,
                 maxVictoiresJeu: maxVictoires
             };
@@ -269,7 +270,7 @@
                 card.setAttribute('data-id', joueur.id);
                 card.setAttribute('tabindex', '0'); 
 
-                // --- Contenu de la carte (SANS IMAGE) ---
+                // --- Contenu de la carte (SANS IMAGE et SANS JEUX JOUÉS) ---
                 card.innerHTML = `
                     <div class="card-content">
                         <div class="joueur-header">
@@ -279,7 +280,6 @@
                             <p>Victoires : <strong>${stats.victoires}</strong></p>
                             <p>Ratio : <strong>${stats.ratioVictoires}</strong></p>
                             <p>Parties Jouées : <strong>${stats.partiesJouees}</strong></p>
-                            <p>Jeux Joués : <strong>${stats.jeuxJoues.size}</strong></p>
                             <p>Jeu Favori : <strong>${stats.jeuFavori}${stats.maxVictoiresJeu > 0 ? ` (${stats.maxVictoiresJeu} victoires)` : ''}</strong></p>
                         </div>
                         <div class="btns-card">
