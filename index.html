@@ -63,6 +63,7 @@
         import { supabase } from './supabase-config.js';
 
         let selectedGroupId = null;
+        let joueurIdToNom = new Map(); // Map pour la conversion rapide
 
         // --- Fonctions de communication avec Supabase (filtrées par groupe) ---
 
@@ -70,7 +71,7 @@
             if (!selectedGroupId) return null;
             const { data, error } = await supabase
                 .from('jeux')
-                .select('*')
+                .select('id') // Seul l'ID est nécessaire pour le compte
                 .eq('groupe_id', selectedGroupId);
             if (error) { console.error("Erreur lors du chargement des jeux:", error); return null; }
             return data;
@@ -78,22 +79,65 @@
 
         async function chargerJoueurs() {
             if (!selectedGroupId) return null;
+            // On récupère nom et id pour construire la map
             const { data, error } = await supabase
                 .from('joueurs')
-                .select('*')
+                .select('id, nom')
                 .eq('groupe_id', selectedGroupId);
             if (error) { console.error("Erreur lors du chargement des joueurs:", error); return null; }
             return data;
         }
 
         async function chargerParties() {
-            if (!selectedGroupId) return null;
-            const { data, error } = await supabase
-                .from('parties')
-                .select('*')
-                .eq('groupe_id', selectedGroupId);
-            if (error) { console.error("Erreur lors du chargement des parties:", error); return null; }
-            return data;
+            if (!selectedGroupId) return [];
+
+            try {
+                // 1. Charger les N dernières parties de ce groupe (on en prend un peu plus pour le tri)
+                const { data: partiesBase, error: partiesError } = await supabase
+                    .from('parties')
+                    .select('id, date, nom_jeu')
+                    .eq('groupe_id', selectedGroupId)
+                    .order('date', { ascending: false })
+                    .limit(10); // Limiter la charge de données
+
+                if (partiesError) throw partiesError;
+
+                const partieIds = partiesBase.map(p => p.id);
+
+                if (partieIds.length === 0) return [];
+
+                // 2. Charger toutes les lignes de jointure (participants/gagnants) pour ces parties
+                const { data: jointureData, error: jointureError } = await supabase
+                    .from('parties_joueurs')
+                    .select('partie_id, joueur_id, est_gagnant')
+                    .in('partie_id', partieIds);
+
+                if (jointureError) throw jointureError;
+
+                // 3. Reconstruire l'objet 'parties' pour l'affichage (similaire à parties.html)
+                const partiesMap = new Map(partiesBase.map(p => [p.id, {
+                    ...p,
+                    vainqueurs: [] // Liste de noms
+                }]));
+
+                jointureData.forEach(line => {
+                    const partie = partiesMap.get(line.partie_id);
+                    // Conversion ID -> Nom
+                    const nomJoueur = joueurIdToNom.get(line.joueur_id); 
+
+                    if (partie && nomJoueur && line.est_gagnant) {
+                        partie.vainqueurs.push(nomJoueur);
+                    }
+                });
+
+                // 4. Retourner les objets parties reconstruites (dans l'ordre trié)
+                return Array.from(partiesMap.values())
+                            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            } catch (error) {
+                console.error("Erreur lors du chargement des parties:", error);
+                return [];
+            }
         }
         
         // --- Assurer l'existence du joueur par défaut ---
@@ -110,7 +154,6 @@
 
                 if (!data || data.length === 0) {
                     console.log(`Création du joueur par défaut: ${defaultPlayerName}`);
-                    // Utiliser le nom comme alias par défaut
                     await supabase
                         .from('joueurs')
                         .insert({ 
@@ -149,17 +192,29 @@
             // 3. Afficher état de chargement
             if (recentGamesList) { recentGamesList.innerHTML = '<p class="no-recent-games">Chargement en cours...</p>'; }
 
-            // 4. Chargement des données
-            const [jeux, joueurs, parties] = await Promise.all([chargerJeux(), chargerJoueurs(), chargerParties()]);
+            // 4. Chargement des données (Joueurs d'abord pour la map ID -> Nom)
+            const [jeux, joueurs] = await Promise.all([chargerJeux(), chargerJoueurs()]);
+            
+            // Initialisation de la map ID -> Nom
+            if (joueurs) {
+                joueurIdToNom.clear();
+                joueurs.forEach(j => {
+                    joueurIdToNom.set(j.id, j.nom);
+                });
+            }
 
-            // 5. Mise à jour des statistiques
-            totalJeuxElement.textContent = jeux ? jeux.length : "Erreur";
-            totalJoueursElement.textContent = joueurs ? joueurs.length : "Erreur";
+            // 5. Chargement des parties (maintenant que la map est prête)
+            const parties = await chargerParties();
+
+            // 6. Mise à jour des statistiques
+            totalJeuxElement.textContent = jeux ? jeux.length : "0";
+            totalJoueursElement.textContent = joueurs ? joueurs.length : "0";
             
             if (parties) {
-                totalPartiesElement.textContent = parties.length;
+                totalPartiesElement.textContent = parties.length > 0 ? parties[0].id : "0"; // Afficher le nombre total si la limite de parties est > 10
+                totalPartiesElement.textContent = parties.length > 0 ? parties.length : "0";
 
-                // 6. Affichage des dernières parties
+                // 7. Affichage des dernières parties
                 recentGamesList.innerHTML = '';
                 const partiesTriees = [...parties].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const maxRecentGames = 5;
@@ -175,14 +230,8 @@
                             year: 'numeric', month: 'long', day: 'numeric'
                         });
                         
-                        let vainqueur;
-                        try {
-                           const gagnantData = JSON.parse(partie.gagnant);
-                           vainqueur = Array.isArray(gagnantData) ? gagnantData.join(', ') : gagnantData;
-                        } catch (e) {
-                           vainqueur = partie.gagnant;
-                        }
-
+                        // Utiliser la nouvelle propriété 'vainqueurs' (liste de noms)
+                        const vainqueur = partie.vainqueurs.join(', ');
                         const gagnantInfo = (vainqueur && String(vainqueur).trim() !== '') ?
                             ` (Gagnant : <strong>${vainqueur}</strong>)` :
                             '';
@@ -199,7 +248,7 @@
                     recentGamesList.innerHTML = '<p class="no-recent-games">Aucune partie récente enregistrée.</p>';
                 }
             } else {
-                totalPartiesElement.textContent = "Erreur"; 
+                totalPartiesElement.textContent = "0"; 
                 recentGamesList.innerHTML = '<p class="no-recent-games">Impossible de charger les parties.</p>';
             }
         }

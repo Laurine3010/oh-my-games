@@ -6,48 +6,87 @@
     <title>Oh My Games - Connexion/Groupe</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        .container {
-            max-width: 400px;
-            margin: 50px auto;
+        /* Styles spécifiques pour le centrage du contenu de la page de connexion */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
             padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
+        }
+        
+        /* Conteneur principal qui remplace le body centré par défaut */
+        .container {
+            max-width: 450px; /* Légèrement élargi pour un meilleur look */
+            width: 100%;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
             text-align: center;
-            background-color: #f9f9f9;
+            background-color: rgba(255, 255, 255, 0.95); /* Fond légèrement transparent pour laisser voir l'image */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative; /* Pour que le z-index fonctionne */
+            z-index: 10;
         }
+        
+        /* Assurez-vous que l'image de fond reste en arrière-plan */
+        .background-image {
+            z-index: 1; 
+        }
+        
+        /* Styles de boutons d'action */
         .action-buttons button {
-            padding: 10px 20px;
+            padding: 12px 25px;
             margin: 10px;
-            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: 2px solid #555;
+            background-color: #fff;
+            color: #555;
+            transition: all 0.3s;
         }
+        .action-buttons button:hover {
+            background-color: #5cb85c;
+            color: white;
+            border-color: #5cb85c;
+        }
+
         .form-section {
             margin-top: 20px;
             padding-top: 20px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #ccc;
         }
         .form-section label {
             display: block;
-            margin-top: 10px;
+            margin-top: 15px;
+            font-weight: bold;
         }
         .form-section input[type="text"] {
             width: 80%;
-            padding: 8px;
-            margin-top: 5px;
+            padding: 10px;
+            margin-top: 8px;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 6px;
+            text-align: center;
+            text-transform: uppercase; /* Pour le code d'accès */
         }
         #creation-groupe #groupe-id-cree {
             font-weight: bold;
-            color: #28a745;
-            font-size: 1.1em;
-            margin-bottom: 15px;
+            color: #d9534f; /* Couleur différente pour le code à copier */
+            font-size: 1.5em;
+            margin: 10px 0 20px;
+            padding: 5px;
+            border: 1px dashed #d9534f;
+            display: inline-block;
+            letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <img src="omg_img.png" alt="Fond" class="background-image" /> <div class="container">
         <h1>Oh My Games</h1>
-        <h2>Gestion du Groupe</h2>
+        <h2>Connexion/Gestion du Groupe</h2>
 
         <div id="action-selection" class="action-buttons">
             <p>Que souhaitez-vous faire ?</p>
@@ -60,21 +99,21 @@
             <form id="form-selection">
                 <label for="groupe-code-select">Code du Groupe (6 caractères) :</label>
                 <input type="text" id="groupe-code-select" placeholder="Ex: ABCD12" maxlength="6" required>
-                <button type="submit" style="margin-top: 15px;">Accéder au groupe</button>
-                <button type="button" class="btn-back" style="margin-top: 10px;">Annuler</button>
+                <button type="submit" class="btn-add" style="margin-top: 15px;">Accéder au groupe</button>
+                <button type="button" class="btn-back btn-supprimer" style="margin-top: 10px;">Annuler</button>
             </form>
         </div>
 
         <div id="creation-groupe" class="form-section" style="display: none;">
             <h3>Création de Groupe</h3>
             <form id="form-creation">
-                <p>Un code unique a été généré :</p>
+                <p>⚠️ **Notez bien ce code d'accès unique :**</p>
                 <div id="groupe-id-cree"></div>
                 
                 <label for="groupe-alias-create">Alias du Groupe (Optionnel) :</label>
                 <input type="text" id="groupe-alias-create" placeholder="Ex: Groupe du Vendredi Soir" maxlength="50">
-                <button type="submit" style="margin-top: 15px;">Confirmer la création</button>
-                <button type="button" class="btn-back" style="margin-top: 10px;">Annuler</button>
+                <button type="submit" class="btn-add" style="margin-top: 15px;">Confirmer la création</button>
+                <button type="button" class="btn-back btn-supprimer" style="margin-top: 10px;">Annuler</button>
             </form>
         </div>
     </div>
@@ -219,12 +258,16 @@
             const currentGroupAlias = localStorage.getItem('selected_group_alias');
 
             if (currentGroupId) {
+                // Si l'utilisateur arrive sur login.html alors qu'il a déjà un groupe sélectionné
                 const confirmSwitch = confirm(`Groupe actuel : ${currentGroupAlias || currentGroupId}. Voulez-vous continuer ou changer de groupe ?`);
                 if (confirmSwitch) {
                     location.href = 'index.html';
                 } else {
+                    // Si l'utilisateur choisit de changer, on efface l'ancien groupe
                     localStorage.removeItem('selected_group_id');
                     localStorage.removeItem('selected_group_alias');
+                    // Et on reste sur la page de login pour qu'il puisse choisir ou créer
+                    resetToInitialView(); 
                 }
             }
         });

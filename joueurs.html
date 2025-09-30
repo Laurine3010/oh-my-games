@@ -48,7 +48,11 @@
         import { supabase } from './supabase-config.js';
 
         let joueurs = [];
-        let parties = [];
+        // partiesStats contiendra toutes les lignes de parties_joueurs
+        let partiesStats = []; 
+        
+        // Map pour la conversion rapide ID -> Nom, nécessaire pour l'affichage
+        let joueurIdToNom = new Map();
         
         const modal = document.getElementById('modal-ajout');
         const btnAdd = document.querySelector('.btn-add');
@@ -81,6 +85,11 @@
                     .eq('groupe_id', selectedGroupId)
                     .order('nom', { ascending: true });
                 if (error) throw error;
+                
+                // Mettre à jour la map de conversion pour les statistiques
+                joueurIdToNom.clear();
+                data.forEach(j => joueurIdToNom.set(j.id, j.nom));
+
                 return data;
             } catch (error) {
                 console.error("Erreur lors du chargement des joueurs:", error);
@@ -89,21 +98,23 @@
             }
         }
 
-        async function chargerParties() {
+        async function chargerPartiesStats() {
             try {
+                // Récupérer toutes les lignes de la jointure qui nous concernent
                 const { data, error } = await supabase
-                    .from('parties')
-                    .select('nom_jeu, gagnant, participants') 
-                    .eq('groupe_id', selectedGroupId);
+                    .from('parties_joueurs')
+                    .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)') 
+                    .eq('parties.groupe_id', selectedGroupId); // Filtrage via la relation
+                
                 if (error) throw error;
                 return data;
             } catch (error) {
-                console.error("Erreur lors du chargement des parties:", error);
+                console.error("Erreur lors du chargement des statistiques de parties:", error);
                 return [];
             }
         }
         
-        // --- Fonctions d'ajout/modification/suppression ---
+        // --- Fonctions d'ajout/modification/suppression (Aucun changement) ---
         async function ajouterJoueur(joueurData) {
             try {
                 // Utilisation du nom comme alias par défaut
@@ -143,6 +154,7 @@
 
         async function supprimerJoueur(id) {
             try {
+                // Suppression d'un joueur, Supabase doit gérer la suppression en cascade dans parties_joueurs
                 const { error } = await supabase
                     .from('joueurs')
                     .delete()
@@ -156,7 +168,7 @@
             }
         }
 
-        // --- Listeners de la modale ---
+        // --- Listeners de la modale (Aucun changement) ---
 
         btnAdd.addEventListener('click', () => {
             formAjout.reset();
@@ -205,7 +217,6 @@
 
         // --- Fonctions d'affichage et de filtrage ---
         function generateAlphaFilters() {
-            // ... (Code de génération de filtre alphabétique) ...
             const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             const alphaFilterContainer = document.getElementById('alpha-filter-container');
             alphaFilterContainer.innerHTML = '';
@@ -235,8 +246,10 @@
         }
 
         async function chargerEtAfficherJoueurs() {
+            // 1. Chargement des joueurs (pour la map ID -> Nom)
             joueurs = await chargerJoueurs();
-            parties = await chargerParties();
+            // 2. Chargement de toutes les stats de parties_joueurs
+            partiesStats = await chargerPartiesStats(); 
             afficherListeJoueurs();
         }
 
@@ -266,58 +279,56 @@
                 return;
             }
 
-            // --- Logique de comptage des victoires (Résolution du problème de statistiques) ---
-            const statsParties = {};
-            joueurs.forEach(j => statsParties[j.nom.toLowerCase()] = { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: {} });
-
-            parties.forEach(p => {
-                let participants = [];
-                let gagnants = [];
-
-                try {
-                    // 1. Tente de parser JSON
-                    participants = JSON.parse(p.participants);
-                    gagnants = p.gagnant ? JSON.parse(p.gagnant) : [];
-                } catch (e) {
-                    // 2. Si échec (ancienne donnée ou string), utilise split/trim
-                    participants = p.participants ? p.participants.split(',').map(n => n.trim()) : [];
-                    gagnants = p.gagnant ? p.gagnant.split(',').map(n => n.trim()) : [];
-                }
-
-                if (!Array.isArray(gagnants)) gagnants = [gagnants];
-                if (!Array.isArray(participants)) participants = [participants];
-
-                const gagnantsLower = gagnants.map(n => String(n).toLowerCase());
-                const participantsLower = participants.map(n => String(n).toLowerCase());
-
-                joueurs.forEach(joueur => {
-                    const joueurNomLower = joueur.nom.toLowerCase();
-
-                    // Vérification de participation
-                    if (participantsLower.includes(joueurNomLower)) {
-                        statsParties[joueurNomLower].partiesJouees++;
-                        statsParties[joueurNomLower].jeuxJoues.add(p.nom_jeu);
-                        
-                        // Vérification de victoire
-                        if (gagnantsLower.includes(joueurNomLower)) {
-                            statsParties[joueurNomLower].victoires++;
-                            const jeu = p.nom_jeu;
-                            statsParties[joueurNomLower].partiesGagneesParJeu[jeu] = (statsParties[joueurNomLower].partiesGagneesParJeu[jeu] || 0) + 1;
-                        }
-                    }
+            // --- Logique de comptage des victoires avec la table de jointure (CORRIGÉ) ---
+            const statsJoueurs = new Map(); // Key: joueur_id, Value: { partiesJouees: N, victoires: N, jeuxJoues: Set<string>, partiesGagneesParJeu: Map<string, N> }
+            joueurs.forEach(j => {
+                statsJoueurs.set(j.id, { 
+                    partiesJouees: 0, 
+                    victoires: 0, 
+                    jeuxJoues: new Set(), 
+                    partiesGagneesParJeu: new Map() 
                 });
+            });
+
+            const partiesComptees = new Set(); // Pour compter les parties une seule fois par joueur (même s'il est co-gagnant)
+
+            partiesStats.forEach(line => {
+                const joueurId = line.joueur_id;
+                const partieId = line.partie_id;
+                const nomJeu = line.parties.nom_jeu;
+                
+                if (statsJoueurs.has(joueurId)) {
+                    const stats = statsJoueurs.get(joueurId);
+
+                    // 1. Parties Jouées (compte une fois la partie pour le joueur)
+                    if (!partiesComptees.has(`${joueurId}-${partieId}`)) {
+                        stats.partiesJouees++;
+                        stats.jeuxJoues.add(nomJeu);
+                        partiesComptees.add(`${joueurId}-${partieId}`);
+                    }
+                    
+                    // 2. Victoires
+                    if (line.est_gagnant) {
+                        stats.victoires++;
+                        
+                        // 3. Jeu Favori
+                        const currentCount = stats.partiesGagneesParJeu.get(nomJeu) || 0;
+                        stats.partiesGagneesParJeu.set(nomJeu, currentCount + 1);
+                    }
+                }
             });
 
             // --- Affichage des cartes ---
             joueursFiltres.forEach((joueur) => {
                 const card = document.createElement('div');
                 card.className = 'joueur-card';
-                const stats = statsParties[joueur.nom.toLowerCase()];
+                const stats = statsJoueurs.get(joueur.id) || { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: new Map() };
 
                 // Calcul du jeu favori
                 let jeuFavori = 'Aucun';
                 let maxVictoires = 0;
-                for (const [jeu, count] of Object.entries(stats.partiesGagneesParJeu)) {
+                
+                for (const [jeu, count] of stats.partiesGagneesParJeu.entries()) {
                     if (count > maxVictoires) {
                         maxVictoires = count;
                         jeuFavori = jeu;
@@ -346,7 +357,7 @@
                     <p>Victoires : <strong>${stats.victoires}</strong></p>
                     <p>Ratio Victoires : <strong>${stats.partiesJouees > 0 ? ((stats.victoires / stats.partiesJouees) * 100).toFixed(1) + '%' : 'N/A'}</strong></p>
                     <p>Jeux Joués : <strong>${stats.jeuxJoues.size}</strong></p>
-                    <p>Jeu Favori : <strong>${jeuFavori}</strong></p>
+                    <p>Jeu Favori : <strong>${jeuFavori}${maxVictoires > 0 ? ` (${maxVictoires} victoires)` : ''}</strong></p>
                 `;
                 card.appendChild(statsDiv);
 

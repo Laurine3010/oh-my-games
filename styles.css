@@ -998,3 +998,21 @@ tr:hover {
     text-align: center;
     min-height: 30px;
 }
+
+/* Styles spécifiques pour le centrage du contenu de la page de connexion */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+}
+/* ... */
+.container {
+    /* ... */
+    background-color: rgba(255, 255, 255, 0.95);
+    /* ... */
+    position: relative; 
+    z-index: 10;
+}

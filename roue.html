@@ -6,7 +6,7 @@
   <title>Oh My Games - Roue des jeux</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* Styles pour la roue (si non inclus dans styles.css) */
+    /* Styles pour la roue - Simplification et correction */
     #roue-container {
       display: flex;
       flex-direction: column;
@@ -15,11 +15,12 @@
     }
     #roue-wrapper {
       position: relative;
-      width: 350px; /* Taille de la roue */
-      height: 350px;
+      width: 400px; /* Taille de la roue */
+      height: 400px;
       border-radius: 50%;
-      overflow: hidden;
-      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      border: 5px solid #333;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      overflow: hidden; /* Important pour cacher le débordement des segments */
     }
     #roue {
       width: 100%;
@@ -28,59 +29,93 @@
       /* La transition sera ajoutée et retirée par JS */
     }
     .roue-segment {
+      /* Le segment couvre tout le cercle au départ */
       position: absolute;
       top: 0;
       right: 0;
-      width: 50%;
-      height: 50%;
-      transform-origin: 0% 100%; /* Pivot au centre de la roue */
-    }
-
-    /* Style pour transformer le segment en 'part de tarte' */
-    .roue-segment::before {
-        content: '';
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); /* Couvre le quadrant */
-        transform-origin: 0% 100%;
-        background-color: inherit;
-        /* Rotation et Skew pour former le segment, défini par JS */
-        transform: rotate(var(--rotation)) skewY(var(--skew)); 
+      bottom: 0;
+      left: 0;
+      /* Masquage de la portion du cercle (très technique) */
+      clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 0, 50% 0);
+      transform-origin: 50% 50%; /* Rotation à partir du centre */
     }
 
     /* Positionnement du texte */
     .roue-texte {
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: rotate(var(--text-rotation)) translate(-50%, 0) rotate(90deg); /* Déplacer et aligner le texte */
-        padding: 5px;
-        font-weight: bold;
-        color: #333; /* Couleur du texte */
-        white-space: nowrap;
-        text-align: center;
-        width: 80%;
+      position: absolute;
+      /* Positionnement pour être sur le rayon */
+      top: 50%;
+      left: 50%;
+      width: 50%; /* La largeur est la moitié du rayon */
+      text-align: center;
+      /* Décalage sur le rayon, rotation pour aligner, et rotation pour être à l'horizontal */
+      transform: 
+        rotate(var(--rotation-deg)) /* Rotation pour centrer sur le segment */
+        translate(30%) /* Décalage sur le rayon (ajustement visuel) */
+        rotate(90deg); /* Texte à la verticale */
+      transform-origin: 0% 0%;
+      padding: 5px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 1px 1px 2px #000;
+      font-size: 0.8em;
+      white-space: nowrap;
+      overflow: hidden;
     }
     
     /* Le pointeur */
     #roue-pointeur {
       position: absolute;
-      top: -20px; 
+      top: -25px; 
       left: 50%;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-top: 20px solid black; /* Pointe vers le bas (ou le haut si on ajuste le conteneur) */
-      z-index: 10;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-top: 25px solid #d93d3d; /* Pointe rouge */
+      z-index: 100;
     }
+    
+    #roue-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 30px;
+        height: 30px;
+        background-color: #333;
+        border-radius: 50%;
+        z-index: 101;
+    }
+    
     #resultat-roue {
       margin-top: 30px;
       font-size: 1.5em;
       font-weight: bold;
       min-height: 2em;
+    }
+    
+    .filter-controls {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        text-align: center;
+    }
+    .filter-controls label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+    .filter-controls select, .filter-controls input {
+        width: 80%;
+        padding: 8px;
+        margin-top: 5px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
     }
   </style>
 </head>
@@ -88,92 +123,171 @@
 
   <h1>Oh My Games</h1>
   <h2>Roue des jeux</h2>
+  <div id="group-info" style="text-align: right; margin-top: -30px; margin-right: 10px;">
+    <span id="current-group-alias"></span>
+    <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+  </div>
   <img src="omg_img.png" alt="Fond" class="background-image" />
   
   <main id="roue-container">
+    
+    <div class="filter-controls">
+        <h3>Filtres de la roue</h3>
+        <label for="nombre-joueurs">Nombre de joueurs actuels:</label>
+        <input type="number" id="nombre-joueurs" min="1" max="10" value="4">
+        <button id="btn-appliquer-filtres" style="margin-top: 15px;">Appliquer les filtres et recharger</button>
+        <p id="info-jeux-dispo" style="margin-top: 10px;">Chargement...</p>
+    </div>
+    
     <div id="roue-wrapper">
       <div id="roue"></div>
-      <div id="roue-pointeur" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%);"></div>
+      <div id="roue-pointeur"></div>
+      <div id="roue-center"></div>
     </div>
+    
     <div id="resultat-roue"></div>
-    <button id="btn-spin">Faire tourner la roue !</button>
+    <button id="btn-spin" disabled>Faire tourner la roue !</button>
   </main>
 
   <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
 
   <script type="module">
+    console.log("Script roue.html chargé.");
+
     import { supabase } from './supabase-config.js';
 
-    // --- Vérification et récupération du Groupe ---
-    const selectedGroupId = localStorage.getItem('selected_group_id');
-    if (!selectedGroupId) {
-        // Redirection si aucun groupe sélectionné
-        location.href = 'login.html';
-        throw new Error("Groupe non sélectionné.");
-    }
-    // ---------------------------------------------
-
-    async function chargerJeux() {
-        // AJOUT DU FILTRE PAR GROUPE
-        const { data, error } = await supabase
-            .from('jeux')
-            .select('nom')
-            .eq('groupe_id', selectedGroupId); 
-            
-        if (error) {
-            console.error("Erreur lors du chargement des jeux:", error);
-            return [];
-        }
-        return data.map(jeu => jeu.nom);
-    }
-
+    // --- Variables globales et DOM ---
     const roue = document.getElementById('roue');
     const btnSpin = document.getElementById('btn-spin');
     const resultatRoue = document.getElementById('resultat-roue');
-    let jeux = [];
+    const inputNbJoueurs = document.getElementById('nombre-joueurs');
+    const btnAppliquerFiltres = document.getElementById('btn-appliquer-filtres');
+    const infoJeuxDispo = document.getElementById('info-jeux-dispo');
+    
+    let jeuxComplets = []; // Tous les jeux du groupe
+    let jeuxFiltres = []; // Les jeux affichés dans la roue
+    let selectedGroupId = null;
 
-    function afficherRoulette(jeux) {
-        roue.innerHTML = '';
-        const angleTotal = 360;
-        const nombreJeux = jeux.length;
-        if (nombreJeux === 0) return;
+    // Couleurs plus contrastées pour la roue
+    const couleurs = [
+        '#FF5733', '#FFC300', '#33FF57', '#33C4FF', '#BB33FF', 
+        '#FF33BB', '#00FFC3', '#C3FF00', '#3357FF', '#FF3333'
+    ]; 
+    // ---------------------------------------------
+
+    // --- Initialisation du Groupe ---
+    selectedGroupId = localStorage.getItem('selected_group_id');
+    if (!selectedGroupId) {
+        location.href = 'login.html';
+        throw new Error("Groupe non sélectionné.");
+    }
+    const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+    document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
+    // ---------------------------------
+
+    // --- Fonctions de chargement et filtrage ---
+
+    /**
+     * Charge tous les jeux du groupe depuis Supabase.
+     */
+    async function chargerJeux() {
+        try {
+            const { data, error } = await supabase
+                .from('jeux')
+                .select('nom, min_joueurs, max_joueurs, prete')
+                .eq('groupe_id', selectedGroupId)
+                .eq('prete', false); // Exclure les jeux prêtés (logique standard)
+            
+            if (error) throw error;
+            jeuxComplets = data;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des jeux:", error);
+            return [];
+        }
+    }
+    
+    /**
+     * Applique les filtres (nombre de joueurs) aux jeux chargés.
+     * @param {number} nbJoueurs - Nombre de joueurs actuel.
+     */
+    function appliquerFiltres(nbJoueurs) {
+        if (!jeuxComplets || jeuxComplets.length === 0) {
+            jeuxFiltres = [];
+            return;
+        }
+
+        nbJoueurs = parseInt(nbJoueurs, 10);
         
-        const angleParJeu = angleTotal / nombreJeux;
-        // Couleurs plus vives pour le contraste
-        const couleurs = ['#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#5f27cd', '#ff9f43', '#ee5253', '#0abde3', '#10ac84', '#576574']; 
-
-        jeux.forEach((jeu, index) => {
-            const segment = document.createElement('div');
-            const rotation = index * angleParJeu;
-            // Calcul du skew pour former un segment parfait
-            const skew = 90 - angleParJeu; 
-            // Rotation du texte pour qu'il soit centré sur le segment
-            const textRotation = rotation + (angleParJeu / 2);
-
-            segment.className = 'roue-segment';
-            segment.style.backgroundColor = couleurs[index % couleurs.length];
-            segment.style.setProperty('--rotation', `${rotation}deg`);
-            segment.style.setProperty('--skew', `${skew}deg`);
-
-            const texteDiv = document.createElement('div');
-            texteDiv.className = 'roue-texte';
-            texteDiv.textContent = jeu;
-            texteDiv.style.setProperty('--text-rotation', `${textRotation}deg`);
+        jeuxFiltres = jeuxComplets.filter(jeu => {
+            const min = jeu.min_joueurs || 1;
+            const max = jeu.max_joueurs || 99; // 99 pour les jeux sans max défini
             
-            // Appliquer la rotation au segment pour positionner le texte
-            segment.style.transform = `rotate(${rotation}deg)`;
-            
-            // Pour que le texte soit horizontal au milieu du segment :
-            texteDiv.style.transform = `rotate(${-angleParJeu / 2}deg) translate(80px)`;
-            
-            segment.appendChild(texteDiv);
-            roue.appendChild(segment);
+            return nbJoueurs >= min && nbJoueurs <= max;
         });
     }
 
+    // --- Fonctions d'affichage de la roue ---
+
+    function afficherRoulette(jeux) {
+        roue.innerHTML = '';
+        const nombreJeux = jeux.length;
+        
+        if (nombreJeux === 0) {
+            infoJeuxDispo.textContent = `0 jeu disponible pour ${inputNbJoueurs.value} joueurs.`;
+            btnSpin.disabled = true;
+            resultatRoue.textContent = "Aucun jeu ne correspond aux filtres.";
+            return;
+        }
+        
+        infoJeuxDispo.textContent = `${nombreJeux} jeu${nombreJeux > 1 ? 'x' : ''} disponible${nombreJeux > 1 ? 's' : ''}.`;
+        btnSpin.disabled = false;
+        resultatRoue.textContent = "Prêt à tourner !";
+
+        // Calcul de l'angle pour chaque segment
+        const angleParJeu = 360 / nombreJeux;
+        let rotationCourante = 0;
+
+        jeux.forEach((jeu, index) => {
+            const segment = document.createElement('div');
+            
+            // Les segments sont des cercles masqués puis tournés et coupés
+            segment.className = 'roue-segment';
+            segment.style.backgroundColor = couleurs[index % couleurs.length];
+            
+            // Rotation pour positionner le segment
+            segment.style.transform = `rotate(${rotationCourante}deg)`;
+
+            // Masquer la partie du segment qui ne correspond pas à l'angle
+            // La technique de clip-path permet de visualiser le segment
+            // Pour des segments de plus de 90 degrés, il faut superposer plusieurs triangles, mais pour simplifier, 
+            // nous allons utiliser une simple rotation et une coupe visuelle.
+
+            // Solution la plus simple (mais visuellement imparfaite pour les petits segments)
+            // C'est la rotation du segment lui-même qui crée l'effet d'une part de tarte.
+            
+            // Rotation du texte pour le centrer dans le segment
+            const textRotation = rotationCourante + (angleParJeu / 2);
+
+            const texteDiv = document.createElement('div');
+            texteDiv.className = 'roue-texte';
+            texteDiv.textContent = jeu.nom;
+            // Positionner le texte le long du rayon et le mettre à l'horizontal
+            texteDiv.style.setProperty('--rotation-deg', `${textRotation}deg`);
+            
+            segment.appendChild(texteDiv);
+            roue.appendChild(segment);
+            
+            rotationCourante += angleParJeu;
+        });
+    }
+
+
+    // --- Logique de la rotation ---
+
     btnSpin.addEventListener('click', () => {
-        if (jeux.length === 0) {
-            resultatRoue.textContent = "Aucun jeu disponible !";
+        if (jeuxFiltres.length === 0) {
+            resultatRoue.textContent = "Aucun jeu disponible ! Appliquez des filtres.";
             return;
         }
 
@@ -181,60 +295,62 @@
         resultatRoue.textContent = "La roue tourne...";
         roue.style.transition = "transform 5s cubic-bezier(0.2, 0.9, 0.4, 1)";
         
-        // La rotation doit être très grande pour l'effet (5 tours minimum)
-        const tours = 5;
-        // La plage de rotation finale est choisie aléatoirement
-        const rotationFinale = Math.floor(Math.random() * 360);
-        const deg = tours * 360 + rotationFinale;
+        const nombreJeux = jeuxFiltres.length;
+        const angleParJeu = 360 / nombreJeux;
+
+        // Choix de l'index gagnant (0 est le premier segment en partant du haut, sens horaire)
+        const indexChoisi = Math.floor(Math.random() * nombreJeux);
         
-        // La roue est initialement tournée pour que le premier segment (index 0) soit centré sur le pointeur
-        // Le pointeur est à 90 degrés, on décale l'ensemble.
-        // Si le pointeur est en haut (0 degrés), on n'a pas besoin de ce décalage initial.
-        // Assumons que le pointeur est à 0 degré (en haut) pour simplifier:
+        // Déterminer la rotation nécessaire pour amener le segment choisi au niveau du pointeur (0°)
+        // L'angle de début du segment choisi est (indexChoisi * angleParJeu)
+        // Pour le centrer sur 0°, il faut le faire tourner de 360 - (angle de début + angleParJeu / 2)
+        const angleTarget = 360 - (indexChoisi * angleParJeu + (angleParJeu / 2));
+
+        // Ajouter des tours pour l'effet visuel
+        const tours = 5;
+        const deg = tours * 360 + angleTarget;
         
         roue.style.transform = `rotate(${deg}deg)`;
 
-        roue.addEventListener('transitionend', () => {
+        roue.addEventListener('transitionend', function handler() {
             roue.style.transition = 'none';
             
-            // Calcul de la rotation restante modulo 360 pour déterminer le segment
-            const rotationRestante = deg % 360;
-            const angleParJeu = 360 / jeux.length;
+            const jeuChoisi = jeuxFiltres[indexChoisi];
             
-            // L'index est calculé à partir de la rotation restante.
-            // Si le pointeur est à 0° (en haut) et la rotation va dans le sens horaire :
-            // Index 0 est entre 0° et angleParJeu, Index 1 entre angleParJeu et 2*angleParJeu, etc.
-            // On inverse la rotation car la roue tourne dans le sens horaire.
-            const indexChoisi = Math.floor((360 - rotationRestante) / angleParJeu);
+            // Réajuster la rotation pour que le segment choisi soit exactement centré (en retirant les tours)
+            roue.style.transform = `rotate(${angleTarget}deg)`;
             
-            const jeuChoisi = jeux[indexChoisi % jeux.length]; // Utiliser modulo pour s'assurer qu'on reste dans le tableau
-            
-            // Réajuster la rotation pour centrer visuellement le segment choisi (facultatif mais plus propre)
-            const angleCorrection = 360 - (indexChoisi * angleParJeu);
-            roue.style.transform = `rotate(${angleCorrection}deg)`;
-            
-            resultatRoue.textContent = `Félicitations, vous jouez à "${jeuChoisi}" ! 🎉`;
+            resultatRoue.textContent = `Félicitations, vous jouez à "${jeuChoisi.nom}" ! 🎉`;
             btnSpin.disabled = false;
+            
+            roue.removeEventListener('transitionend', handler); // Nettoyage
         }, { once: true });
     });
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        jeux = await chargerJeux();
-        if (jeux.length > 0) {
-            afficherRoulette(jeux);
-        } else {
-            resultatRoue.textContent = "Aucun jeu disponible pour la roue (Veuillez ajouter des jeux à votre groupe).";
+    // --- Logique d'initialisation et des listeners ---
+
+    btnAppliquerFiltres.addEventListener('click', () => {
+        const nbJoueurs = inputNbJoueurs.value;
+        if (nbJoueurs < 1) {
+            alert("Le nombre de joueurs doit être d'au moins 1.");
+            return;
         }
+        appliquerFiltres(nbJoueurs);
+        afficherRoulette(jeuxFiltres);
     });
 
-    document.addEventListener('visibilitychange', async () => {
+    async function initialiserRoue() {
+        await chargerJeux();
+        // Filtrer les jeux pour 4 joueurs par défaut au chargement
+        appliquerFiltres(inputNbJoueurs.value); 
+        afficherRoulette(jeuxFiltres);
+    }
+
+    document.addEventListener('DOMContentLoaded', initialiserRoue);
+
+    document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            jeux = await chargerJeux();
-            if (jeux.length > 0) {
-                afficherRoulette(jeux);
-            } else {
-                resultatRoue.textContent = "Aucun jeu disponible pour la roue (Veuillez ajouter des jeux à votre groupe).";
-            }
+            initialiserRoue();
         }
     });
   </script>

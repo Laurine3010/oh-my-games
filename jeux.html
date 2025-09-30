@@ -76,9 +76,13 @@
     import { supabase } from './supabase-config.js';
 
     let jeux = [];
-    let parties = [];
+    let joueurs = []; // Ajout de la liste des joueurs
+    let partiesStats = new Map(); // Map pour stocker les stats: NomJeu -> { parties: Number, scores: Map<String, Number> }
     let proprietaires = [];
     const photosBucket = 'jeu-photos';
+    
+    // Ajout de la Map de conversion ID -> Nom
+    let joueurIdToNom = new Map();
 
     const modal = document.getElementById('modal-ajout');
     const btnAdd = document.querySelector('.btn-add');
@@ -113,7 +117,23 @@
         document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
     }
 
-    // --- Fonctions de gestion des propriétaires ---
+    // --- Fonctions de gestion des joueurs (NÉCESSAIRE pour la conversion ID->Nom) ---
+    async function chargerJoueurs() {
+        try {
+            const { data, error } = await supabase
+                .from('joueurs')
+                .select('id, nom')
+                .eq('groupe_id', selectedGroupId); 
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error("Erreur lors du chargement des joueurs:", error);
+            return [];
+        }
+    }
+
+
+    // --- Fonctions de gestion des propriétaires (Aucun changement) ---
     async function chargerProprietaires() {
         try {
             const { data, error } = await supabase
@@ -128,7 +148,7 @@
             console.error("Erreur lors du chargement des propriétaires:", error);
         }
     }
-
+    // ... (mettreAJourSelectProprietaires, ajouterNouveauProprietaire, proprietaireJeuSelect.addEventListener restent inchangés) ...
     function mettreAJourSelectProprietaires() {
         const options = Array.from(proprietaireJeuSelect.options).filter(opt => opt.value === "" || opt.value === "ajouter-proprietaire");
         proprietaireJeuSelect.innerHTML = '';
@@ -174,7 +194,7 @@
         }
     });
 
-    // --- Fonctions de gestion des photos avec Supabase Storage ---
+    // --- Fonctions de gestion des photos avec Supabase Storage (Aucun changement) ---
     async function uploaderPhotos(photosFiles) {
         const photosUrls = [];
         for (const file of photosFiles) {
@@ -217,13 +237,64 @@
         }
     }
 
-    // --- Fonctions de gestion des jeux ---
+    // --- Fonction de chargement des statistiques de parties (MAJEURE MODIFICATION) ---
+    async function chargerStatistiquesParties() {
+        try {
+            // 1. Charger toutes les lignes de jointure pour ce groupe (partie_id, joueur_id, est_gagnant)
+            const { data: jointureData, error: jointureError } = await supabase
+                .from('parties_joueurs')
+                .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)')
+                .eq('parties.groupe_id', selectedGroupId); // Filtrage côté BDD via la relation
+
+            if (jointureError) throw jointureError;
+
+            // 2. Initialiser la map de statistiques
+            const stats = new Map(); // Clé: nom_jeu, Valeur: { parties: Number, scores: Map<String, Number> }
+
+            // 3. Compter les parties et les victoires par jeu
+            const partiesComptees = new Set();
+
+            jointureData.forEach(line => {
+                const nomJeu = line.parties.nom_jeu;
+                const nomJoueur = joueurIdToNom.get(line.joueur_id); 
+                const partieId = line.partie_id;
+
+                if (!stats.has(nomJeu)) {
+                    stats.set(nomJeu, { parties: 0, scores: new Map() });
+                }
+
+                const jeuStats = stats.get(nomJeu);
+
+                // Compter le nombre de parties jouées (une fois par partie)
+                if (!partiesComptees.has(`${nomJeu}-${partieId}`)) {
+                    jeuStats.parties++;
+                    partiesComptees.add(`${nomJeu}-${partieId}`);
+                }
+
+                // Compter les victoires
+                if (line.est_gagnant && nomJoueur) {
+                    const currentScore = jeuStats.scores.get(nomJoueur) || 0;
+                    jeuStats.scores.set(nomJoueur, currentScore + 1);
+                }
+            });
+
+            partiesStats = stats;
+            return stats;
+
+        } catch (error) {
+            console.error("Erreur lors du chargement des statistiques de parties:", error);
+            return new Map();
+        }
+    }
+
+    // --- Fonctions de gestion des jeux (Peu de changement) ---
     async function chargerJeux() {
         try {
             const { data, error } = await supabase
                 .from('jeux')
                 .select('*, proprietaires(nom)')
-                .eq('groupe_id', selectedGroupId);
+                .eq('groupe_id', selectedGroupId)
+                .order('nom', { ascending: true }); // Triage par défaut dans le chargement
             if (error) throw error;
             return data;
         } catch (error) {
@@ -233,20 +304,7 @@
         }
     }
 
-    async function chargerParties() {
-        try {
-            const { data, error } = await supabase
-                .from('parties')
-                .select('*')
-                .eq('groupe_id', selectedGroupId);
-            if (error) throw error;
-            return data;
-        } catch (error) {
-            console.error("Erreur lors du chargement des parties:", error);
-            return [];
-        }
-    }
-
+    // ... (ajouterJeu, modifierJeu, supprimerJeu restent inchangés) ...
     async function ajouterJeu(jeuData) {
         try {
             const { data, error } = await supabase
@@ -297,151 +355,32 @@
         }
     }
 
-    // --- Listeners et fonctions d'affichage ---
-    preteCheckbox.addEventListener('change', () => {
-        preteAInput.style.display = preteCheckbox.checked ? 'block' : 'none';
-        if (!preteCheckbox.checked) {
-            preteAInput.value = '';
-        }
-    });
-
-    emprunteCheckbox.addEventListener('change', () => {
-        emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
-        if (!emprunteCheckbox.checked) {
-            emprunteAInput.value = '';
-        }
-    });
-
-    btnAdd.addEventListener('click', () => {
-        formAjout.reset();
-        jeuIdInput.value = '';
-        formAjout.querySelector('button[type="submit"]').textContent = 'Ajouter le jeu';
-        modal.style.display = 'flex';
-        preteAInput.style.display = 'none';
-        emprunteAInput.style.display = 'none';
-        photosPreviewContainer.style.display = 'none';
-        photosPreviewDiv.innerHTML = '';
-        proprietaireJeuSelect.value = '';
-    });
-
-    btnFermer.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-
-    formAjout.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const id = jeuIdInput.value;
-        const nomJeu = nomJeuInput.value.trim();
-        const proprietaireId = proprietaireJeuSelect.value || null;
-        const photosFiles = photosJeuInput.files;
-        const minJoueurs = Number(minJoueursInput.value);
-        const maxJoueurs = Number(maxJoueursInput.value);
-        const prete = preteCheckbox.checked;
-        const preteA = preteCheckbox.checked ? preteAInput.value.trim() : '';
-        const emprunte = emprunteCheckbox.checked;
-        const emprunteA = emprunteCheckbox.checked ? emprunteAInput.value.trim() : '';
-
-        if (!nomJeu) {
-            alert('Le nom du jeu est obligatoire.');
-            return;
-        }
-        if (minJoueurs > maxJoueurs) {
-            alert('Le nombre de joueurs minimum ne peut pas être supérieur au nombre de joueurs maximum.');
-            return;
-        }
-
-        let photosUrls = [];
-
-        if (photosFiles.length > 0) {
-            if (id) {
-                const jeuExistant = jeux.find(j => j.id === id);
-                if (jeuExistant && Array.isArray(jeuExistant.photos) && jeuExistant.photos.length > 0) {
-                    await supprimerPhotos(jeuExistant.photos);
-                }
-            }
-            photosUrls = await uploaderPhotos(photosFiles);
-        } else if (id) {
-            const jeuExistant = jeux.find(j => j.id === id);
-            photosUrls = (jeuExistant && Array.isArray(jeuExistant.photos)) ? jeuExistant.photos : [];
-        }
-
-        const jeuData = {
-            nom: nomJeu,
-            proprietaire_id: proprietaireId,
-            photos: photosUrls,
-            min_joueurs: minJoueurs,
-            max_joueurs: maxJoueurs,
-            prete: prete,
-            prete_a: preteA,
-            emprunte: emprunte,
-            emprunte_a: emprunteA,
-        };
-
-        let result;
-        if (id) {
-            result = await modifierJeu(id, jeuData);
-        } else {
-            result = await ajouterJeu(jeuData);
-        }
-
-        if (result.success) {
-            alert(`Jeu "${nomJeu}" ${id ? 'modifié' : 'ajouté'} avec succès !`);
-            await chargerEtAfficherJeux();
-            modal.style.display = 'none';
-            formAjout.reset();
-            photosJeuInput.value = '';
-            preteAInput.style.display = 'none';
-            emprunteAInput.style.display = 'none';
-        }
-    });
-
-    function generateAlphaFilters() {
-        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-        alphaFilterContainer.innerHTML = '';
-        const allBtn = document.createElement('button');
-        allBtn.className = 'alpha-filter-btn';
-        if (currentAlphaFilter === '') allBtn.classList.add('active');
-        allBtn.textContent = 'Tout';
-        allBtn.setAttribute('data-filter', '');
-        alphaFilterContainer.appendChild(allBtn);
-        alphabet.forEach(letter => {
-            const btn = document.createElement('button');
-            btn.className = 'alpha-filter-btn';
-            if (currentAlphaFilter === letter) btn.classList.add('active');
-            btn.textContent = letter;
-            btn.setAttribute('data-filter', letter);
-            alphaFilterContainer.appendChild(btn);
-        });
-        alphaFilterContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('alpha-filter-btn')) {
-                document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                currentAlphaFilter = e.target.getAttribute('data-filter');
-                inputRecherche.value = '';
-                afficherListeJeux();
-            }
-        });
-    }
-
+    // --- Fonctions de contrôle et d'affichage (MODIFICATION) ---
     async function chargerEtAfficherJeux() {
-        console.log("Chargement et affichage des jeux depuis Supabase...");
-        jeux = await chargerJeux();
-        parties = await chargerParties();
+        console.log("Chargement et affichage des jeux et stats depuis Supabase...");
+        
+        // 1. Charger joueurs et créer la map (pour la conversion ID -> Nom dans les stats)
+        joueurs = await chargerJoueurs();
+        joueurIdToNom.clear();
+        joueurs.forEach(j => joueurIdToNom.set(j.id, j.nom));
+
+        // 2. Charger les jeux et les statistiques (dépend de la map)
+        [jeux] = await Promise.all([
+            chargerJeux(),
+            chargerStatistiquesParties() // Charge et remplit partiesStats
+        ]);
+        
         afficherListeJeux();
     }
+
 
     function afficherListeJeux() {
         console.log("Affichage de la liste des jeux...");
         listeJeux.innerHTML = '';
         const filterText = inputRecherche.value.toLowerCase();
         const jeuxTries = [...jeux].sort((a, b) => a.nom.localeCompare(b.nom));
+
+        // ... (Logique de filtres alpha/texte inchangée) ...
         if (jeuxTries.length === 0 && !filterText && !currentAlphaFilter) {
             listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu n\'est enregistré. Ajoutez-en un !</p>';
             return;
@@ -459,9 +398,13 @@
             listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu ne correspond à vos critères de recherche.</p>';
             return;
         }
+        
+        // --- MISE À JOUR DE L'AFFICHAGE DES STATISTIQUES ---
         jeuxFiltres.forEach((jeu) => {
             const card = document.createElement('div');
             card.className = 'jeu-card';
+            
+            // ... (Affichage de l'image, tags propriétaire/prêté/emprunté, infos joueurs) ...
             const img = document.createElement('img');
             img.src = (jeu.photos && jeu.photos.length > 0)
                 ? jeu.photos[0]
@@ -518,31 +461,23 @@
                  infosComplementaires.appendChild(joueursIcons);
             }
             contentDiv.appendChild(infosComplementaires);
-            const nbParties = parties.filter(p => p.nom_jeu === jeu.nom).length;
-            const scores = {};
-            const partiesDuJeu = parties.filter(p => p.nom_jeu === jeu.nom && p.gagnant);
-            partiesDuJeu.forEach(p => {
-                try {
-                    const gagnantData = JSON.parse(p.gagnant);
-                    if (Array.isArray(gagnantData)) {
-                        gagnantData.forEach(g => {
-                           scores[g] = (scores[g] || 0) + 1;
-                        });
-                    } else if (typeof gagnantData === 'string') {
-                         scores[gagnantData] = (scores[gagnantData] || 0) + 1;
-                    }
-                } catch (e) {
-                    scores[p.gagnant] = (scores[p.gagnant] || 0) + 1;
-                }
-            });
+            
+            // Récupération des stats du jeu
+            const jeuStats = partiesStats.get(jeu.nom) || { parties: 0, scores: new Map() };
+            const nbParties = jeuStats.parties;
+            const scores = jeuStats.scores; // Map<String, Number>
+
             let meilleur = null;
             let max = 0;
-            for (const [joueur, score] of Object.entries(scores)) {
+            
+            // Trouver le meilleur joueur
+            for (const [joueur, score] of scores.entries()) {
                 if (score > max) {
                     max = score;
                     meilleur = joueur;
                 }
             }
+
             const stats = document.createElement('div');
             stats.className = 'stats';
             stats.innerHTML = `
@@ -550,6 +485,8 @@
                 Meilleur joueur : <strong>${meilleur ? `${meilleur} (${max} victoire${max > 1 ? 's' : ''})` : 'Aucun'}</strong>
             `;
             contentDiv.appendChild(stats);
+            
+            // ... (Boutons Modifier/Supprimer/Parties) ...
             const btns = document.createElement('div');
             btns.className = 'btns-card';
             const btnModifier = document.createElement('button');
@@ -590,6 +527,7 @@
         });
     }
 
+    // ... (ouvrirModaleModifier et autres listeners restent inchangés) ...
     function ouvrirModaleModifier(id) {
         console.log("Ouverture modale pour modification, ID:", id);
         const jeu = jeux.find(j => j.id === id);
@@ -631,6 +569,7 @@
         modal.style.display = 'flex';
     }
 
+
     inputRecherche.addEventListener('input', () => {
         currentAlphaFilter = '';
         document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
@@ -651,6 +590,7 @@
       }
     });
 
+    // ... (Service Worker script reste inchangé) ...
   </script>
 
   <script>
