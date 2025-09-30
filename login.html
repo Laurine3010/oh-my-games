@@ -98,12 +98,12 @@
         const groupeIdCreeDiv = document.getElementById('groupe-id-cree');
         const groupeAliasCreate = document.getElementById('groupe-alias-create');
 
-        let generatedGroupId = null; // Stocke l'ID généré pour la création
+        let generatedCodeAcces = null; // Stocke le code à 6 caractères généré
 
         // --- Fonctions utilitaires ---
 
-        /** Génère un ID de 6 caractères alphanumériques. */
-        function generateGroupId() {
+        /** Génère un code d'accès de 6 caractères alphanumériques. */
+        function generateCodeAcces() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let result = '';
             for (let i = 0; i < 6; i++) {
@@ -127,11 +127,12 @@
             creationGroupeDiv.style.display = 'none';
         }
 
-        /** Stocke l'ID du groupe et redirige */
-        function selectAndRedirect(id, alias) {
-            localStorage.setItem('selected_group_id', id);
-            localStorage.setItem('selected_group_alias', alias || id);
-            alert(`Groupe sélectionné : ${alias || id}`);
+        /** Stocke l'ID INTERNE du groupe et redirige */
+        function selectAndRedirect(id_interne, alias) {
+            // id_interne est le BIGINT auto-incrémenté
+            localStorage.setItem('selected_group_id', id_interne); 
+            localStorage.setItem('selected_group_alias', alias || 'Groupe sans alias');
+            alert(`Groupe sélectionné : ${alias || id_interne}`);
             location.href = 'index.html';
         }
 
@@ -145,8 +146,8 @@
 
         // 2. Démarrer la création de groupe
         btnCreateGroup.addEventListener('click', () => {
-            generatedGroupId = generateGroupId();
-            groupeIdCreeDiv.textContent = generatedGroupId;
+            generatedCodeAcces = generateCodeAcces();
+            groupeIdCreeDiv.textContent = generatedCodeAcces;
             showSection(creationGroupeDiv);
             groupeAliasCreate.focus();
         });
@@ -159,13 +160,14 @@
         // 4. Soumission du formulaire de SÉLECTION/REJOINDRE
         formSelection.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const inputId = groupeCodeSelect.value.toUpperCase();
+            // Le joueur entre le code d'accès de 6 caractères (qui est une chaîne de caractères)
+            const inputCodeAcces = groupeCodeSelect.value.toUpperCase(); 
 
-            // 1. Chercher le groupe
+            // Chercher le groupe par le champ code_acces
             const { data, error } = await supabase
                 .from('groupes')
-                .select('id, alias')
-                .eq('id', inputId)
+                .select('id, alias') // On sélectionne l'ID INTERNE (BIGINT)
+                .eq('code_acces', inputCodeAcces) // CRITIQUE : on filtre sur code_acces
                 .single();
 
             if (error && error.code !== 'PGRST116') { // PGRST116 = Pas de ligne trouvée
@@ -175,7 +177,7 @@
             }
 
             if (data) {
-                // 2. Groupe trouvé -> Sélectionner et rediriger
+                // data.id contient l'ID BIGINT auto-incrémenté
                 selectAndRedirect(data.id, data.alias);
             } else {
                 alert("Code de groupe invalide. Veuillez vérifier le code et réessayer.");
@@ -187,8 +189,9 @@
             e.preventDefault();
             
             const newAlias = groupeAliasCreate.value.trim() || null;
+            const codeAcces = generatedCodeAcces; 
             
-            if (!generatedGroupId) {
+            if (!codeAcces) {
                 alert("Erreur: Le code du groupe n'a pas été généré.");
                 return;
             }
@@ -197,23 +200,23 @@
             const { data, error } = await supabase
                 .from('groupes')
                 .insert([
-                    { id: generatedGroupId, alias: newAlias }
+                    { 
+                        // CRITIQUE : on utilise le champ code_acces (text)
+                        code_acces: codeAcces, 
+                        alias: newAlias 
+                    }
                 ])
-                .select();
+                // CRITIQUE : on demande le retour de l'ID (BIGINT) et de l'alias
+                .select('id, alias'); 
                 
             if (error) {
-                console.error("Erreur lors de la création du groupe:", error);
-                // Gérer le cas très rare où l'ID généré existe déjà (clé primaire dupliquée)
-                if (error.code === '23505') { 
-                    alert("Erreur interne : Code groupe déjà utilisé. Veuillez réessayer la création.");
-                    resetToInitialView();
-                } else {
-                    alert("Une erreur est survenue lors de la création du groupe.");
-                }
+                console.error("Erreur détaillée lors de la création du groupe:", error); 
+                // Affiche le message d'erreur précis pour le débogage RLS/Contrainte
+                alert(`Erreur lors de la création du groupe : ${error.message}. Code: ${error.code}. Vérifiez RLS.`);
                 return;
             }
             
-            // 2. Création réussie -> Sélectionner et rediriger
+            // 2. Création réussie -> Sélectionner l'ID interne et rediriger
             const newGroup = data[0];
             selectAndRedirect(newGroup.id, newGroup.alias);
         });
