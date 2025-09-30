@@ -1,328 +1,447 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <title>Oh My Games - Joueurs</title>
-    <link rel="stylesheet" href="styles.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Styles spécifiques pour le tableau des joueurs */
-        #joueurs-list {
-            margin-top: 20px;
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #joueurs-list th, #joueurs-list td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-        #joueurs-list th {
-            background-color: #f2f2f2;
-            cursor: pointer;
-        }
-        .add-player-form {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            justify-content: center;
-        }
-        .add-player-form input[type="text"] {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            flex-grow: 1;
-            max-width: 250px;
-        }
-        .add-player-form button {
-            padding: 8px 15px;
-        }
-        .info-message {
-            margin-top: 15px;
-            font-style: italic;
-            color: #555;
-        }
-    </style>
+    <title>Oh My Games - Joueurs</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <h1>Oh My Games</h1>
-    <h2>Gestion des Joueurs</h2>
-    <img src="omg_img.png" alt="Fond" class="background-image">
 
-    <div class="add-player-form">
-        <input type="text" id="new-joueur-nom" placeholder="Nom du joueur" required>
-        <button id="btn-add-joueur">Ajouter le joueur</button>
+<body>
+    <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
+        <span id="current-group-alias"></span>
+        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+    </div>
+    <h1>Oh My Games</h1>
+    <h2>Liste des joueurs</h2>
+    <img src="omg_img.png" alt="Fond" class="background-image" />
+
+    <button class="btn-add">➕ Ajouter un joueur</button>
+
+    <div id="alpha-filter-container">
     </div>
 
-    <table id="joueurs-list">
-        <thead>
-            <tr>
-                <th>Nom/Alias</th>
-                <th onclick="sortTable(1)">Parties Jouées</th>
-                <th onclick="sortTable(2)">Victoires</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="joueurs-tbody">
-            <tr><td colspan="4" class="info-message">Chargement des joueurs...</td></tr>
-        </tbody>
-    </table>
-    
-    <div id="status-message" class="info-message"></div>
+    <input type="text" id="recherche-joueurs" placeholder="🔍 Rechercher un joueur..." />
+
+    <div id="liste-joueurs">
+        </div>
+
+    <div id="modal-ajout" class="modal">
+        <div id="modal-content" class="modal-content">
+            <button id="btn-fermer" class="close-button">&times;</button>
+            <h3>Ajouter/Modifier un joueur</h3>
+            <form id="form-ajout">
+                <input type="hidden" id="joueur-id">
+                <label for="nom-joueur">Nom du joueur :</label>
+                <input type="text" id="nom-joueur" name="nom-joueur" required><br><br>
+
+                <button type="submit">Ajouter le joueur</button>
+            </form>
+        </div>
+    </div>
 
     <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
 
     <script type="module">
+        console.log("Script joueurs.html chargé.");
+
         import { supabase } from './supabase-config.js';
 
-        // --- Vérification et récupération du Groupe ---
-        const selectedGroupId = localStorage.getItem('selected_group_id');
+        let joueurs = [];
+        let parties = [];
+        
+        const modal = document.getElementById('modal-ajout');
+        const btnAdd = document.querySelector('.btn-add');
+        const btnFermer = document.getElementById('btn-fermer');
+        const formAjout = document.getElementById('form-ajout');
+        const listeJoueurs = document.getElementById('liste-joueurs');
+        const inputRecherche = document.getElementById('recherche-joueurs');
+
+        const joueurIdInput = document.getElementById('joueur-id');
+        const nomJoueurInput = document.getElementById('nom-joueur');
+
+        let currentAlphaFilter = '';
+        let selectedGroupId = null;
+
+        // --- Vérification et affichage du groupe ---
+        selectedGroupId = localStorage.getItem('selected_group_id');
         if (!selectedGroupId) {
-            // Redirection si aucun groupe sélectionné
-            alert("Veuillez sélectionner un groupe.");
             location.href = 'login.html';
-            throw new Error("Groupe non sélectionné.");
+        } else {
+            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
         }
-        // ---------------------------------------------
 
-        // --- Références DOM ---
-        const joueursTbody = document.getElementById('joueurs-tbody');
-        const statusMessage = document.getElementById('status-message');
-        const newJoueurNomInput = document.getElementById('new-joueur-nom');
-        const btnAddJoueur = document.getElementById('btn-add-joueur');
-
-        // --- Fonctions Supabase (Filtrées par Groupe) ---
-
+        // --- Fonctions de chargement des données (Filtrées par groupe_id) ---
         async function chargerJoueurs() {
-            // Récupère TOUS les joueurs liés au groupe sélectionné
-            const { data, error } = await supabase
-                .from('joueurs')
-                .select('*')
-                .eq('groupe_id', selectedGroupId) // CRITIQUE : Filtre par groupe
-                .order('nom', { ascending: true });
-            
-            if (error) {
+            try {
+                const { data, error } = await supabase
+                    .from('joueurs')
+                    .select('id, nom') // Simplifié pour n'inclure que les champs nécessaires
+                    .eq('groupe_id', selectedGroupId)
+                    .order('nom', { ascending: true });
+                if (error) throw error;
+                return data;
+            } catch (error) {
                 console.error("Erreur lors du chargement des joueurs:", error);
+                alert(`Une erreur est survenue lors du chargement des joueurs: ${error.message}`);
                 return [];
             }
-            return data;
         }
 
         async function chargerParties() {
-            // Récupère TOUTES les parties jouées par ce groupe
-            const { data, error } = await supabase
-                .from('parties')
-                .select('gagnant')
-                .eq('groupe_id', selectedGroupId); // CRITIQUE : Filtre par groupe
-
-            if (error) {
+            try {
+                const { data, error } = await supabase
+                    .from('parties')
+                    .select('nom_jeu, gagnant, participants') // Récupérer tous les champs nécessaires aux stats
+                    .eq('groupe_id', selectedGroupId);
+                if (error) throw error;
+                return data;
+            } catch (error) {
                 console.error("Erreur lors du chargement des parties:", error);
                 return [];
             }
-            return data;
+        }
+        
+        // La fonction chargerJeux est retirée car la logique de propriétaire est supprimée.
+
+        // --- Fonctions d'ajout/modification/suppression ---
+        async function ajouterJoueur(joueurData) {
+            try {
+                // Alias est mis à la même valeur que le nom par défaut pour simplifier la base.
+                const { data, error } = await supabase
+                    .from('joueurs')
+                    .insert({ 
+                        ...joueurData, 
+                        alias: joueurData.nom, // Alias = Nom du joueur
+                        groupe_id: selectedGroupId 
+                    })
+                    .select();
+                if (error) throw error;
+                return { success: true, data: data[0] };
+            } catch (error) {
+                console.error("Erreur lors de l'ajout du joueur:", error);
+                alert(`Une erreur est survenue lors de l'ajout du joueur: ${error.message}`);
+                return { success: false, error };
+            }
         }
 
-        // --- Logique d'Agrégation et d'Affichage ---
+        async function modifierJoueur(id, joueurData) {
+            try {
+                // On met à jour le nom et l'alias (simplifié)
+                const { data, error } = await supabase
+                    .from('joueurs')
+                    .update({ nom: joueurData.nom, alias: joueurData.nom })
+                    .eq('id', id)
+                    .select();
+                if (error) throw error;
+                return { success: true, data: data[0] };
+            } catch (error) {
+                console.error("Erreur lors de la modification du joueur:", error);
+                alert(`Une erreur est survenue lors de la modification du joueur: ${error.message}`);
+                return { success: false, error };
+            }
+        }
 
-        async function loadPlayerStats() {
-            joueursTbody.innerHTML = '<tr><td colspan="4" class="info-message">Chargement des données...</td></tr>';
-            statusMessage.textContent = '';
+        async function supprimerJoueur(id) {
+            try {
+                // Suppression simple sans gestion de photos
+                const { error } = await supabase
+                    .from('joueurs')
+                    .delete()
+                    .eq('id', id);
+                if (error) throw error;
+                return { success: true };
+            } catch (error) {
+                console.error("Erreur lors de la suppression du joueur:", error);
+                alert(`Une erreur est survenue lors de la suppression du joueur: ${error.message}`);
+                return { success: false, error };
+            }
+        }
 
-            const [joueursData, partiesData] = await Promise.all([
-                chargerJoueurs(),
-                chargerParties()
-            ]);
+        // --- Listeners de la modale ---
 
-            if (joueursData.length === 0) {
-                joueursTbody.innerHTML = '<tr><td colspan="4" class="info-message">Aucun joueur dans ce groupe.</td></tr>';
+        btnAdd.addEventListener('click', () => {
+            formAjout.reset();
+            joueurIdInput.value = '';
+            formAjout.querySelector('button[type="submit"]').textContent = 'Ajouter le joueur';
+            modal.style.display = 'flex';
+        });
+
+        btnFermer.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        formAjout.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = joueurIdInput.value;
+            const nomJoueur = nomJoueurInput.value.trim();
+
+            if (!nomJoueur) {
+                alert('Le nom du joueur est obligatoire.');
                 return;
             }
 
-            const victoiresParJoueur = {};
-            const partiesJoueesParJoueur = {}; 
+            const joueurData = { nom: nomJoueur }; // Seul le nom est inséré
 
-            // Initialisation des compteurs pour tous les joueurs du groupe
-            joueursData.forEach(joueur => {
-                const nom = joueur.nom.trim();
-                victoiresParJoueur[nom] = 0;
-                partiesJoueesParJoueur[nom] = 0;
+            let result;
+            if (id) {
+                result = await modifierJoueur(id, joueurData);
+            } else {
+                result = await ajouterJoueur(joueurData);
+            }
+
+            if (result.success) {
+                alert(`Joueur "${nomJoueur}" ${id ? 'modifié' : 'ajouté'} avec succès !`);
+                await chargerEtAfficherJoueurs();
+                modal.style.display = 'none';
+                formAjout.reset();
+            }
+        });
+
+        // --- Fonctions d'affichage et de filtrage ---
+        function generateAlphaFilters() {
+            // ... (Code de génération de filtre alphabétique inchangé) ...
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            const alphaFilterContainer = document.getElementById('alpha-filter-container');
+            alphaFilterContainer.innerHTML = '';
+            const allBtn = document.createElement('button');
+            allBtn.className = 'alpha-filter-btn';
+            if (currentAlphaFilter === '') allBtn.classList.add('active');
+            allBtn.textContent = 'Tout';
+            allBtn.setAttribute('data-filter', '');
+            alphaFilterContainer.appendChild(allBtn);
+            alphabet.forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = 'alpha-filter-btn';
+                if (currentAlphaFilter === letter) btn.classList.add('active');
+                btn.textContent = letter;
+                btn.setAttribute('data-filter', letter);
+                alphaFilterContainer.appendChild(btn);
+            });
+            alphaFilterContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('alpha-filter-btn')) {
+                    document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentAlphaFilter = e.target.getAttribute('data-filter');
+                    inputRecherche.value = '';
+                    afficherListeJoueurs();
+                }
+            });
+        }
+
+        async function chargerEtAfficherJoueurs() {
+            console.log("Chargement et affichage des joueurs et parties...");
+            joueurs = await chargerJoueurs();
+            parties = await chargerParties();
+            afficherListeJoueurs();
+        }
+
+        function afficherListeJoueurs() {
+            console.log("Affichage de la liste des joueurs...");
+            listeJoueurs.innerHTML = '';
+            const filterText = inputRecherche.value.toLowerCase();
+            const joueursTries = [...joueurs].sort((a, b) => a.nom.localeCompare(b.nom));
+            
+            if (joueursTries.length === 0 && !filterText && !currentAlphaFilter) {
+                listeJoueurs.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun joueur n\'est enregistré. Ajoutez-en un !</p>';
+                return;
+            }
+
+            let joueursFiltres = joueursTries.filter(joueur => {
+                const nomComplet = joueur.nom.toLowerCase(); // Pas d'alias
+                if (filterText && !nomComplet.includes(filterText)) {
+                    return false;
+                }
+                if (currentAlphaFilter && !joueur.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) {
+                    return false;
+                }
+                return true;
             });
 
-            // 1. Parcourir toutes les parties filtrées par groupe
-            partiesData.forEach(partie => {
+            if (joueursFiltres.length === 0) {
+                listeJoueurs.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun joueur ne correspond à vos critères de recherche.</p>';
+                return;
+            }
+
+            // --- Logique de comptage des victoires ---
+            const statsParties = {};
+            joueurs.forEach(j => statsParties[j.nom.toLowerCase()] = { partiesJouees: 0, victoires: 0, jeuxJoues: new Set(), partiesGagneesParJeu: {} });
+
+            parties.forEach(p => {
+                let participants = [];
                 let gagnants = [];
+
                 try {
-                    // Si le champ 'gagnant' stocke un tableau JSON (plusieurs gagnants)
-                    gagnants = JSON.parse(partie.gagnant);
-                    if (!Array.isArray(gagnants)) {
-                        gagnants = [gagnants];
-                    }
+                    // Tente de traiter le champ participants/gagnant comme JSON (pour listes)
+                    participants = JSON.parse(p.participants);
+                    gagnants = p.gagnant ? JSON.parse(p.gagnant) : [];
                 } catch (e) {
-                    // Si c'est juste une chaîne de caractères
-                    if (partie.gagnant && partie.gagnant.trim() !== "") {
-                         gagnants = [partie.gagnant];
-                    }
+                    // Sinon, traite comme une chaîne simple (pour compatibilité)
+                    participants = p.participants ? p.participants.split(',').map(n => n.trim()) : [];
+                    gagnants = p.gagnant ? p.gagnant.split(',').map(n => n.trim()) : [];
                 }
-                
-                // CRITIQUE : Compter les victoires uniquement pour les joueurs du groupe
-                gagnants.forEach(gagnantNom => {
-                    const nom = String(gagnantNom).trim();
-                    if (victoiresParJoueur.hasOwnProperty(nom)) {
-                        victoiresParJoueur[nom]++;
+
+                // Assurer que gagnants est un tableau (si la base stocke un seul nom en string)
+                if (!Array.isArray(gagnants)) gagnants = [gagnants];
+                if (!Array.isArray(participants)) participants = [participants];
+
+                const gagnantsLower = gagnants.map(n => String(n).toLowerCase());
+                const participantsLower = participants.map(n => String(n).toLowerCase());
+
+
+                joueurs.forEach(joueur => {
+                    const joueurNomLower = joueur.nom.toLowerCase();
+
+                    // Vérification de participation
+                    if (participantsLower.includes(joueurNomLower)) {
+                        statsParties[joueurNomLower].partiesJouees++;
+                        statsParties[joueurNomLower].jeuxJoues.add(p.nom_jeu);
+                        
+                        // Vérification de victoire
+                        if (gagnantsLower.includes(joueurNomLower)) {
+                            statsParties[joueurNomLower].victoires++;
+                            const jeu = p.nom_jeu;
+                            statsParties[joueurNomLower].partiesGagneesParJeu[jeu] = (statsParties[joueurNomLower].partiesGagneesParJeu[jeu] || 0) + 1;
+                        }
                     }
                 });
-                
-                // NOTE : Si la table 'parties' incluait une liste de participants,
-                // il faudrait la décoder ici pour incrémenter partiesJoueesParJoueur.
-                // Sans cette liste, nous nous concentrons uniquement sur les victoires.
-                // Par simplification, nous laissons 'Parties Jouées' à 0 ou à une valeur par défaut.
-                // Si vous avez un champ participants dans 'parties', ajustez ici.
             });
-            
-            // Mise à jour de la table HTML
-            joueursTbody.innerHTML = '';
-            joueursData.forEach(joueur => {
-                const tr = document.createElement('tr');
-                const nom = joueur.nom.trim();
-                const victoires = victoiresParJoueur[nom] || 0;
-                
-                tr.dataset.joueurId = joueur.id; // Pour les actions (suppression)
-                tr.dataset.victoires = victoires; // Pour le tri
-                tr.dataset.parties = 0; // Défaut, car non calculé
 
-                // Affichage du nom et alias
-                const nomCell = document.createElement('td');
-                nomCell.textContent = joueur.alias || joueur.nom;
-                tr.appendChild(nomCell);
+            // --- Affichage des cartes ---
+            joueursFiltres.forEach((joueur) => {
+                const card = document.createElement('div');
+                card.className = 'joueur-card';
+                const stats = statsParties[joueur.nom.toLowerCase()];
 
-                // Parties jouées (simplifié à 0 car nous n'avons pas la liste des participants par partie)
-                const partiesCell = document.createElement('td');
-                partiesCell.textContent = '-'; 
-                tr.appendChild(partiesCell);
+                // Calcul du jeu favori
+                let jeuFavori = 'Aucun';
+                let maxVictoires = 0;
+                for (const [jeu, count] of Object.entries(stats.partiesGagneesParJeu)) {
+                    if (count > maxVictoires) {
+                        maxVictoires = count;
+                        jeuFavori = jeu;
+                    }
+                }
 
-                // Victoires
-                const victoiresCell = document.createElement('td');
-                victoiresCell.textContent = victoires;
-                tr.appendChild(victoiresCell);
+                // --- Photo et nom (Simplifié) ---
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'joueur-header';
+                const img = document.createElement('img');
+                // Placeholder par défaut sans photo
+                img.src = 'https://via.placeholder.com/100x100?text=👤'; 
+                img.alt = `Photo de ${joueur.nom}`;
+                img.className = 'joueur-photo';
+                headerDiv.appendChild(img);
 
-                // Actions
-                const actionsCell = document.createElement('td');
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Supprimer';
-                deleteButton.onclick = () => handleDelete(joueur.id, joueur.nom);
-                actionsCell.appendChild(deleteButton);
-                tr.appendChild(actionsCell);
+                const titre = document.createElement('h3');
+                titre.textContent = joueur.nom;
+                headerDiv.appendChild(titre);
+                card.appendChild(headerDiv);
 
-                joueursTbody.appendChild(tr);
+                // --- Affichage des Statistiques ---
+                const statsDiv = document.createElement('div');
+                statsDiv.className = 'joueur-stats';
+                statsDiv.innerHTML = `
+                    <p>Parties Jouées : <strong>${stats.partiesJouees}</strong></p>
+                    <p>Victoires : <strong>${stats.victoires}</strong></p>
+                    <p>Ratio Victoires : <strong>${stats.partiesJouees > 0 ? ((stats.victoires / stats.partiesJouees) * 100).toFixed(1) + '%' : 'N/A'}</strong></p>
+                    <p>Jeux Joués : <strong>${stats.jeuxJoues.size}</strong></p>
+                    <p>Jeu Favori : <strong>${jeuFavori}</strong></p>
+                `;
+                card.appendChild(statsDiv);
+
+
+                // --- Boutons ---
+                const btns = document.createElement('div');
+                btns.className = 'btns-card';
+
+                const btnModifier = document.createElement('button');
+                btnModifier.className = 'btn-card btn-modifier';
+                btnModifier.textContent = '✏️ Modifier';
+                btnModifier.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    ouvrirModaleModifier(joueur.id);
+                });
+                btns.appendChild(btnModifier);
+
+                const btnSupprimer = document.createElement('button');
+                btnSupprimer.className = 'btn-card btn-supprimer';
+                btnSupprimer.textContent = '🗑️ Supprimer';
+                btnSupprimer.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    if (confirm(`Supprimer le joueur "${joueur.nom}" ? Cela ne supprime pas les parties enregistrées, mais il ne sera plus disponible pour de nouvelles parties.`)) {
+                        const result = await supprimerJoueur(joueur.id);
+                        if (result.success) {
+                            alert(`Joueur "${joueur.nom}" supprimé avec succès !`);
+                            await chargerEtAfficherJoueurs();
+                        } else {
+                            console.error("Erreur lors de la suppression:", result.error);
+                        }
+                    }
+                });
+                btns.appendChild(btnSupprimer);
+
+                card.appendChild(btns);
+                listeJoueurs.appendChild(card);
             });
         }
 
-        // --- Logique d'ajout et de suppression ---
-
-        btnAddJoueur.addEventListener('click', async () => {
-            const nom = newJoueurNomInput.value.trim();
-            if (!nom) {
-                alert("Le nom du joueur ne peut pas être vide.");
+        function ouvrirModaleModifier(id) {
+            console.log("Ouverture modale pour modification, ID:", id);
+            const joueur = joueurs.find(j => j.id === id);
+            if (!joueur) {
+                console.error("Joueur non trouvé avec l'ID:", id);
+                alert("Erreur: Impossible de charger les données du joueur.");
                 return;
             }
 
-            statusMessage.textContent = 'Ajout en cours...';
-
-            const { error } = await supabase
-                .from('joueurs')
-                .insert([
-                    { nom: nom, alias: nom, groupe_id: selectedGroupId } // Lier au groupe
-                ]);
-
-            if (error) {
-                console.error("Erreur d'ajout:", error);
-                if (error.code === '23505') {
-                    statusMessage.textContent = "Erreur: Ce joueur existe déjà dans ce groupe.";
-                } else {
-                    statusMessage.textContent = "Erreur lors de l'ajout du joueur.";
-                }
-            } else {
-                newJoueurNomInput.value = '';
-                statusMessage.textContent = `Joueur "${nom}" ajouté avec succès.`;
-                loadPlayerStats();
-            }
-        });
-
-        async function handleDelete(id, nom) {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer le joueur "${nom}" ?`)) return;
-
-            statusMessage.textContent = `Suppression de "${nom}"...`;
-
-            const { error } = await supabase
-                .from('joueurs')
-                .delete()
-                .eq('id', id)
-                .eq('groupe_id', selectedGroupId); // Sécurité supplémentaire
-
-            if (error) {
-                console.error("Erreur de suppression:", error);
-                statusMessage.textContent = "Erreur lors de la suppression du joueur.";
-            } else {
-                statusMessage.textContent = `Joueur "${nom}" supprimé.`;
-                loadPlayerStats();
-            }
+            joueurIdInput.value = joueur.id;
+            nomJoueurInput.value = joueur.nom;
+            
+            formAjout.querySelector('button[type="submit"]').textContent = 'Modifier le joueur';
+            modal.style.display = 'flex';
         }
 
-        // --- Fonction de tri (simplifiée) ---
+        inputRecherche.addEventListener('input', () => {
+            currentAlphaFilter = '';
+            document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
+            const allBtn = document.querySelector('.alpha-filter-btn[data-filter=""]');
+            if (allBtn) allBtn.classList.add('active');
+            afficherListeJoueurs();
+        });
 
-        let sortDirection = 'asc';
-        let sortedColumn = -1;
+        document.addEventListener('DOMContentLoaded', async () => {
+            generateAlphaFilters();
+            await chargerEtAfficherJoueurs();
+        });
 
-        window.sortTable = (columnIndex) => {
-            if (sortedColumn === columnIndex) {
-                sortDirection = (sortDirection === 'asc') ? 'desc' : 'asc';
-            } else {
-                sortedColumn = columnIndex;
-                sortDirection = 'asc';
-            }
-
-            const tbody = document.getElementById('joueurs-tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-
-            rows.sort((a, b) => {
-                let aVal, bVal;
-                
-                // Utilisation des data-attributs pour les valeurs numériques
-                if (columnIndex === 1) { // Parties Jouées
-                    aVal = parseInt(a.dataset.parties || 0);
-                    bVal = parseInt(b.dataset.parties || 0);
-                } else if (columnIndex === 2) { // Victoires
-                    aVal = parseInt(a.dataset.victoires || 0);
-                    bVal = parseInt(b.dataset.victoires || 0);
-                } else { // Tri par Nom/Alias (colonne 0)
-                    aVal = a.cells[0].textContent.toLowerCase();
-                    bVal = b.cells[0].textContent.toLowerCase();
-                }
-
-                if (sortDirection === 'asc') {
-                    return (aVal > bVal) ? 1 : (aVal < bVal) ? -1 : 0;
-                } else {
-                    return (aVal < bVal) ? 1 : (aVal > bVal) ? -1 : 0;
-                }
-            });
-
-            tbody.innerHTML = '';
-            rows.forEach(row => tbody.appendChild(row));
-        };
-
-        // Chargement initial des données
-        document.addEventListener('DOMContentLoaded', loadPlayerStats);
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', async () => {
             if (document.visibilityState === 'visible') {
-                loadPlayerStats();
+                await chargerEtAfficherJoueurs();
             }
         });
 
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
