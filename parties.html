@@ -461,7 +461,7 @@
         const joueurDiv = document.createElement('div');
         joueurDiv.classList.add('selected-player');
         joueurDiv.setAttribute('data-player-id', joueurId); // Stocker l'ID ici
-        joueurDiv.innerHTML = `${joueurNom} <span class="remove-player" data-player-name="${joueurNom}">✖</span>`;
+        joueurDiv.innerHTML = `${joueurNom} <span class="remove-player" data-player-id="${joueurId}">✖</span>`; // Utiliser data-player-id pour le remove
         targetDiv.appendChild(joueurDiv);
     }
 
@@ -475,7 +475,7 @@
         targetDivRadios.innerHTML = '';
         
         if (joueursSelectionnesIds.length === 0) {
-            targetDivRadios.innerHTML = '<p>Sélectionnez au moins un joueur pour choisir le vainqueur.</p>';
+            targetDivRadios.innerHTML = '<p>Sélectionnez au moins un joueur participant pour choisir le vainqueur.</p>';
             return;
         }
 
@@ -507,7 +507,7 @@
     }
 
 
-    // 💥 CORRECTION: Cette fonction est maintenant appelée pour toute modification de joueur.
+    // 💥 CORRECTION: Cette fonction est appelée pour toute modification de joueur.
     function updateAllLists(currentEditWinnerId = null) {
       // Formulaire Nouvelle Partie
       const participantsIdsNew = getPlayerIdsFromDiv(joueursParticipationDiv);
@@ -517,7 +517,7 @@
       // Formulaire d'édition
       const participantsEditionIds = getPlayerIdsFromDiv(editJoueursParticipationDiv);
       
-      // Si on est en mode édition, on réutilise l'ID du vainqueur actuel
+      // Récupère l'ID du vainqueur actuel
       const currentEditWinner = currentEditWinnerId !== null ? currentEditWinnerId : 
                                 document.querySelector('#edit-liste-vainqueurs input[name="edit-partie-vainqueur-radio"]:checked')?.value;
                                 
@@ -787,7 +787,7 @@
         document.querySelector('h2').textContent = 'Nouvelle partie';
     });
 
-    // --- Soumission du formulaire de nouvelle partie (RÉVISION MINEURE) ---
+    // --- Soumission du formulaire de nouvelle partie ---
     formPartie.addEventListener('submit', async function (e) {
       e.preventDefault();
       const nomJeu = jeuInput.value;
@@ -866,7 +866,7 @@
         const joueurId = joueurNomToId.get(joueurNom);
         if (joueurId) {
             addPlayerToDiv(joueurNom, joueurId, joueursParticipationDiv);
-            updateAllLists(); // 💥 APPEL CLÉ
+            updateAllLists(); // 💥 Clé: met à jour la liste des vainqueurs
             joueurInput.value = '';
         }
     });
@@ -889,7 +889,7 @@
         const joueurId = joueurNomToId.get(joueurNom);
         if (joueurId) {
             addPlayerToDiv(joueurNom, joueurId, editJoueursParticipationDiv);
-            updateAllLists(); // 💥 APPEL CLÉ
+            updateAllLists(); // 💥 Clé: met à jour la liste des vainqueurs
             editJoueurInput.value = '';
         }
     });
@@ -911,17 +911,17 @@
     // Écouteur de délégation pour les boutons de suppression de joueurs
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('remove-player')) {
-        const targetDiv = e.target.parentNode.parentNode; // La liste des joueurs/vainqueurs
-        const playerId = e.target.parentNode.getAttribute('data-player-id'); // ID du joueur supprimé
+        const targetDiv = e.target.parentNode.parentNode; // La liste des joueurs/vainqueurs (participation ou vainqueurs-multiple)
+        const playerId = e.target.getAttribute('data-player-id'); // ID du joueur supprimé
         e.target.parentNode.remove();
         
-        // 💥 CORRECTION: On met à jour toutes les listes après une suppression
+        // CORRECTION: On met à jour toutes les listes après une suppression
         if (targetDiv.classList.contains('joueurs-list-container')) {
-          // Si on supprime un participant, il doit aussi être retiré de la liste des vainqueurs s'il y est.
-          // On le retire des vainqueurs multiples
+          
+          // Si on supprime un participant, il doit aussi être retiré de la liste des vainqueurs multiples s'il y est.
           if (targetDiv.id.includes('participation')) {
             const oppositeWinnerDiv = targetDiv.id === 'liste-joueurs-participation' ? vainqueursMultipleDiv : editVainqueursMultipleDiv;
-            oppositeWinnerDiv.querySelector(`[data-player-id="${playerId}"]`)?.remove();
+            oppositeWinnerDiv.querySelector(`.selected-player[data-player-id="${playerId}"]`)?.remove();
           }
           
           updateAllLists();
