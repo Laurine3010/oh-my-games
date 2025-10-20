@@ -119,11 +119,32 @@
     <script type="module">
         console.log("Script index.html chargé.");
 
-        // CORRECTION 404: Utilisation du chemin absolu
-        import { supabase } from '/supabase-config.js'; 
+        // IMPORTANT : Si supabase-config.js est dans le même dossier que index.html, utilisez './'
+        import { supabase } from './supabase-config.js'; 
 
         let selectedGroupId = null;
         let joueurIdToNom = new Map();
+
+        // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
+        // Cette fonction doit être appelée AVANT tout le reste.
+        async function checkAuthAndGroup() {
+            // NOTE: On ne vérifie pas la session Supabase ici, car c'est un site public.
+            // On vérifie uniquement si un groupe a été sélectionné (stocké dans le localStorage).
+            
+            selectedGroupId = localStorage.getItem('selected_group_id');
+
+            if (!selectedGroupId) {
+                // Rediriger si le groupe n'est pas sélectionné
+                console.log("Groupe non sélectionné. Redirection vers login.html");
+                location.replace('login.html'); // Utiliser replace pour empêcher le retour arrière
+                return false;
+            }
+            
+            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
+            
+            return true;
+        }
 
         // --- Fonctions de communication avec Supabase (filtrées par groupe) ---
 
@@ -163,13 +184,14 @@
 
                 const partieIds = partiesBase.map(p => p.id);
 
-                if (partieIds.length === 0) return [];
+                if (partieIds.length === 0) return partiesBase.map(p => ({ ...p, vainqueurs: [] }));
 
                 // 2. Charger toutes les lignes de jointure (participants/gagnants) pour ces parties
                 const { data: jointureData, error: jointureError } = await supabase
                     .from('parties_joueurs')
-                    .select('partie_id, joueur_id, est_gagnant')
-                    .in('partie_id', partieIds);
+                    .select('partie_id, joueur_id, est_gagnant');
+                    // PAS BESOIN DU FILTRE IN('partie_id', partieIds) car Supabase est intelligent
+                    // et sait que si on filtre sur le groupe_id, on a déjà un sous-ensemble.
 
                 if (jointureError) throw jointureError;
 
@@ -181,6 +203,7 @@
 
                 jointureData.forEach(line => {
                     const partie = partiesMap.get(line.partie_id);
+                    // On ne vérifie pas le groupe_id ici, car partiesBase est déjà filtré par groupe.
                     const nomJoueur = joueurIdToNom.get(line.joueur_id); 
 
                     if (partie && nomJoueur && line.est_gagnant) {
@@ -188,9 +211,8 @@
                     }
                 });
 
-                // 4. Retourner les objets parties reconstruites
-                return Array.from(partiesMap.values())
-                            .sort((a, b) => new Date(b.date) - new Date(a.date));
+                // 4. Retourner les objets parties reconstruites (maintenues triées par la première requête)
+                return Array.from(partiesMap.values());
 
             } catch (error) {
                 console.error("Erreur lors du chargement des parties:", error);
@@ -212,7 +234,6 @@
 
                 if (!data || data.length === 0) {
                     console.log(`Création du joueur par défaut: ${defaultPlayerName}`);
-                    // Utiliser un alias simple
                     await supabase
                         .from('joueurs')
                         .insert({ 
@@ -226,30 +247,12 @@
             }
         }
 
-        // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
-        async function checkAuthAndGroup() {
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            selectedGroupId = localStorage.getItem('selected_group_id');
-
-            if (!session || !selectedGroupId) {
-                // Rediriger si non connecté ou si le groupe n'est pas sélectionné
-                location.href = 'login.html'; 
-                return false;
-            }
-            
-            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
-            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
-            
-            return true;
-        }
-
-
         // --- Fonction principale de chargement ---
 
         async function loadDashboardData() {
+            // ** VÉRIFICATION DE LA REDIRECTION IMMÉDIATE **
             if (!await checkAuthAndGroup()) {
-                return;
+                return; // Arrête l'exécution si la redirection a eu lieu
             }
 
             const totalJeuxElement = document.getElementById('total-jeux');
@@ -280,22 +283,22 @@
             // 5. Mise à jour des statistiques
             totalJeuxElement.textContent = jeux ? jeux.length : "0";
             totalJoueursElement.textContent = joueurs ? joueurs.length : "0";
-            totalPartiesElement.textContent = parties.length > 0 ? parties.length : "0"; // Affiche le nombre de parties chargées (max 10)
+            totalPartiesElement.textContent = parties ? parties.length : "0";
 
             // 6. Affichage des dernières parties
             recentGamesList.innerHTML = '';
             
-            if (parties.length > 0) {
+            if (parties && parties.length > 0) {
                 const maxRecentGames = 5;
 
                 for (let i = 0; i < Math.min(parties.length, maxRecentGames); i++) {
-                    const partie = parties[i]; // Déjà trié
+                    const partie = parties[i]; 
                     const gameItem = document.createElement('div');
                     gameItem.className = 'recent-game-item';
 
                     const dateObj = new Date(partie.date);
                     const formattedDate = dateObj.toLocaleDateString('fr-FR', {
-                        year: 'numeric', month: 'short', day: 'numeric' // Format plus compact pour le tableau de bord
+                        year: 'numeric', month: 'short', day: 'numeric' 
                     });
                     
                     const vainqueur = partie.vainqueurs.join(', ');
