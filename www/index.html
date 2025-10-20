@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* Les styles devraient idéalement être dans styles.css */
         .dashboard-section {
             margin-top: 40px;
             display: flex;
@@ -13,16 +14,74 @@
             flex-wrap: wrap;
             gap: 20px;
         }
-        /* Styles stat-card, recent-games-section, etc. (à compléter dans styles.css ou ici) */
+        .stats-overview {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            min-width: 150px;
+        }
+        .stat-card h3 {
+            color: #333;
+            margin-top: 0;
+            font-size: 1em;
+        }
+        .stat-card p {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+            margin: 5px 0 0 0;
+        }
+        .recent-games-section {
+            max-width: 400px;
+            width: 100%;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .recent-game-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .recent-game-item:last-child {
+            border-bottom: none;
+        }
+        .recent-game-item .date {
+            font-size: 0.85em;
+            color: #666;
+        }
+        .btn-goto-parties {
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
     </style>
 </head>
 <body>
+    <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
+        <span id="current-group-alias"></span>
+        <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
+    </div>
+
     <h1>Oh My Games</h1>
     <h2>Que la partie commence!</h2>
-    <div id="group-info" style="text-align: right; margin-top: -30px;">
-        <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
-    </div>
+
     <img src="omg_img.png" alt="Fond" class="background-image">
 
     <div class="buttons-container">
@@ -60,10 +119,11 @@
     <script type="module">
         console.log("Script index.html chargé.");
 
-        import { supabase } from './supabase-config.js';
+        // CORRECTION 404: Utilisation du chemin absolu
+        import { supabase } from '/supabase-config.js'; 
 
         let selectedGroupId = null;
-        let joueurIdToNom = new Map(); // Map pour la conversion rapide
+        let joueurIdToNom = new Map();
 
         // --- Fonctions de communication avec Supabase (filtrées par groupe) ---
 
@@ -71,7 +131,7 @@
             if (!selectedGroupId) return null;
             const { data, error } = await supabase
                 .from('jeux')
-                .select('id') // Seul l'ID est nécessaire pour le compte
+                .select('id')
                 .eq('groupe_id', selectedGroupId);
             if (error) { console.error("Erreur lors du chargement des jeux:", error); return null; }
             return data;
@@ -79,7 +139,6 @@
 
         async function chargerJoueurs() {
             if (!selectedGroupId) return null;
-            // On récupère nom et id pour construire la map
             const { data, error } = await supabase
                 .from('joueurs')
                 .select('id, nom')
@@ -92,13 +151,13 @@
             if (!selectedGroupId) return [];
 
             try {
-                // 1. Charger les N dernières parties de ce groupe (on en prend un peu plus pour le tri)
+                // 1. Charger les N dernières parties de ce groupe (pour le tableau de bord)
                 const { data: partiesBase, error: partiesError } = await supabase
                     .from('parties')
                     .select('id, date, nom_jeu')
                     .eq('groupe_id', selectedGroupId)
                     .order('date', { ascending: false })
-                    .limit(10); // Limiter la charge de données
+                    .limit(10); // Limiter à 10 pour le tableau de bord
 
                 if (partiesError) throw partiesError;
 
@@ -114,7 +173,7 @@
 
                 if (jointureError) throw jointureError;
 
-                // 3. Reconstruire l'objet 'parties' pour l'affichage (similaire à parties.html)
+                // 3. Reconstruire l'objet 'parties'
                 const partiesMap = new Map(partiesBase.map(p => [p.id, {
                     ...p,
                     vainqueurs: [] // Liste de noms
@@ -122,7 +181,6 @@
 
                 jointureData.forEach(line => {
                     const partie = partiesMap.get(line.partie_id);
-                    // Conversion ID -> Nom
                     const nomJoueur = joueurIdToNom.get(line.joueur_id); 
 
                     if (partie && nomJoueur && line.est_gagnant) {
@@ -130,7 +188,7 @@
                     }
                 });
 
-                // 4. Retourner les objets parties reconstruites (dans l'ordre trié)
+                // 4. Retourner les objets parties reconstruites
                 return Array.from(partiesMap.values())
                             .sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -154,6 +212,7 @@
 
                 if (!data || data.length === 0) {
                     console.log(`Création du joueur par défaut: ${defaultPlayerName}`);
+                    // Utiliser un alias simple
                     await supabase
                         .from('joueurs')
                         .insert({ 
@@ -167,32 +226,44 @@
             }
         }
 
+        // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
+        async function checkAuthAndGroup() {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            selectedGroupId = localStorage.getItem('selected_group_id');
+
+            if (!session || !selectedGroupId) {
+                // Rediriger si non connecté ou si le groupe n'est pas sélectionné
+                location.href = 'login.html'; 
+                return false;
+            }
+            
+            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
+            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
+            
+            return true;
+        }
+
 
         // --- Fonction principale de chargement ---
 
         async function loadDashboardData() {
+            if (!await checkAuthAndGroup()) {
+                return;
+            }
+
             const totalJeuxElement = document.getElementById('total-jeux');
             const totalJoueursElement = document.getElementById('total-joueurs');
             const totalPartiesElement = document.getElementById('total-parties');
             const recentGamesList = document.getElementById('recent-games-list');
 
-            // 1. Vérification du groupe
-            selectedGroupId = localStorage.getItem('selected_group_id');
-            if (!selectedGroupId) {
-                location.href = 'login.html';
-                return;
-            }
-            
-            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
-            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
-
-            // 2. Assurer 'Laurine' existe
+            // 1. Assurer 'Laurine' existe (avant de charger la liste des joueurs)
             await ensureDefaultPlayerExists(selectedGroupId);
 
-            // 3. Afficher état de chargement
+            // 2. Afficher état de chargement
             if (recentGamesList) { recentGamesList.innerHTML = '<p class="no-recent-games">Chargement en cours...</p>'; }
-
-            // 4. Chargement des données (Joueurs d'abord pour la map ID -> Nom)
+            
+            // 3. Chargement des données (Joueurs d'abord pour la map ID -> Nom)
             const [jeux, joueurs] = await Promise.all([chargerJeux(), chargerJoueurs()]);
             
             // Initialisation de la map ID -> Nom
@@ -203,53 +274,45 @@
                 });
             }
 
-            // 5. Chargement des parties (maintenant que la map est prête)
+            // 4. Chargement des parties (maintenant que la map est prête)
             const parties = await chargerParties();
 
-            // 6. Mise à jour des statistiques
+            // 5. Mise à jour des statistiques
             totalJeuxElement.textContent = jeux ? jeux.length : "0";
             totalJoueursElement.textContent = joueurs ? joueurs.length : "0";
-            
-            if (parties) {
-                totalPartiesElement.textContent = parties.length > 0 ? parties[0].id : "0"; // Afficher le nombre total si la limite de parties est > 10
-                totalPartiesElement.textContent = parties.length > 0 ? parties.length : "0";
+            totalPartiesElement.textContent = parties.length > 0 ? parties.length : "0"; // Affiche le nombre de parties chargées (max 10)
 
-                // 7. Affichage des dernières parties
-                recentGamesList.innerHTML = '';
-                const partiesTriees = [...parties].sort((a, b) => new Date(b.date) - new Date(a.date));
+            // 6. Affichage des dernières parties
+            recentGamesList.innerHTML = '';
+            
+            if (parties.length > 0) {
                 const maxRecentGames = 5;
 
-                if (partiesTriees.length > 0) {
-                    for (let i = 0; i < Math.min(partiesTriees.length, maxRecentGames); i++) {
-                        const partie = partiesTriees[i];
-                        const gameItem = document.createElement('div');
-                        gameItem.className = 'recent-game-item';
+                for (let i = 0; i < Math.min(parties.length, maxRecentGames); i++) {
+                    const partie = parties[i]; // Déjà trié
+                    const gameItem = document.createElement('div');
+                    gameItem.className = 'recent-game-item';
 
-                        const dateObj = new Date(partie.date);
-                        const formattedDate = dateObj.toLocaleDateString('fr-FR', {
-                            year: 'numeric', month: 'long', day: 'numeric'
-                        });
-                        
-                        // Utiliser la nouvelle propriété 'vainqueurs' (liste de noms)
-                        const vainqueur = partie.vainqueurs.join(', ');
-                        const gagnantInfo = (vainqueur && String(vainqueur).trim() !== '') ?
-                            ` (Gagnant : <strong>${vainqueur}</strong>)` :
-                            '';
+                    const dateObj = new Date(partie.date);
+                    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+                        year: 'numeric', month: 'short', day: 'numeric' // Format plus compact pour le tableau de bord
+                    });
+                    
+                    const vainqueur = partie.vainqueurs.join(', ');
+                    const gagnantInfo = (vainqueur && String(vainqueur).trim() !== '') ?
+                        ` (Gagnant : <strong>${vainqueur}</strong>)` :
+                        '';
 
-                        gameItem.innerHTML = `
-                            <div>
-                                <strong>${partie.nom_jeu}</strong>${gagnantInfo}
-                            </div>
-                            <span class="date">${formattedDate}</span>
-                        `;
-                        recentGamesList.appendChild(gameItem);
-                    }
-                } else {
-                    recentGamesList.innerHTML = '<p class="no-recent-games">Aucune partie récente enregistrée.</p>';
+                    gameItem.innerHTML = `
+                        <div>
+                            <strong>${partie.nom_jeu}</strong>${gagnantInfo}
+                        </div>
+                        <span class="date">${formattedDate}</span>
+                    `;
+                    recentGamesList.appendChild(gameItem);
                 }
             } else {
-                totalPartiesElement.textContent = "0"; 
-                recentGamesList.innerHTML = '<p class="no-recent-games">Impossible de charger les parties.</p>';
+                recentGamesList.innerHTML = '<p class="no-recent-games">Aucune partie récente enregistrée.</p>';
             }
         }
 

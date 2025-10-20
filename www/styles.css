@@ -20,6 +20,7 @@ body {
   position: relative;
   min-height: 100vh;
   box-sizing: border-box;
+  background-color: #f4f4f4; /* Couleur de base pour le fond */
 }
 
 /* === Arrière-plan === */
@@ -335,7 +336,8 @@ form input[type="text"],
 form input[type="number"],
 form textarea,
 form select,
-form input[type="file"] {
+form input[type="file"],
+form input[type="datetime-local"] { /* Ajout du type datetime-local */
   width: calc(100% - 20px);
   padding: 10px;
   margin-bottom: 15px;
@@ -384,7 +386,7 @@ form button[type="submit"]:hover {
   height: 100%;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
+  /* display: flex; Ces règles sont gérées par le JS pour l'affichage/masquage */
   justify-content: center;
   align-items: center;
 }
@@ -431,6 +433,66 @@ form button[type="submit"]:hover {
   max-width: 400px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+
+/* ========================================= */
+/* === Styles spécifiques aux formulaires Partie & Edition === */
+/* ========================================= */
+.joueurs-list-container {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    background-color: #ffffff;
+    min-height: 40px; /* Assure une hauteur minimale */
+}
+.selected-player {
+    display: inline-block;
+    background-color: #e0f2ff;
+    border: 1px solid #b3d9ff;
+    padding: 5px 10px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    border-radius: 15px;
+    font-size: 0.9em;
+}
+.remove-player {
+    margin-left: 5px;
+    cursor: pointer;
+    color: #dc3545;
+    font-weight: bold;
+}
+.winner-selection {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+.winner-selection label {
+    display: block;
+    margin-bottom: 5px;
+}
+/* Styles pour les sections de sélection des vainqueurs (radios) */
+#liste-vainqueurs, #edit-liste-vainqueurs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 10px;
+    background-color: #f0f8ff;
+    border-radius: 8px;
+}
+#liste-vainqueurs label, #edit-liste-vainqueurs label {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0;
+    font-weight: normal;
+    color: #333;
+}
+#liste-vainqueurs input[type="radio"], #edit-liste-vainqueurs input[type="radio"] {
+    margin-right: 5px;
+    transform: scale(1.1);
+}
+/* FIN Styles spécifiques aux formulaires Partie & Edition */
+
 
 /* ========================================= */
 /* === Page des jeux (mise à jour stylisée) === */
@@ -715,8 +777,6 @@ form button[type="submit"]:hover {
     border-color: #007acc; 
 }
 
-/* Le joueur-header est au sommet de la carte maintenant */
-
 .joueur-header h3 {
     margin: 0 0 5px 0; 
     color: #333;
@@ -813,7 +873,7 @@ form button[type="submit"]:hover {
 /* FIN DE BLOC JOUEURS */
 
 /* ========================================= */
-/* === Historique des parties (reste du code) === */
+/* === Historique des parties (Tableau) === */
 /* ========================================= */
 #historique-parties {
   max-width: 900px;
@@ -961,34 +1021,15 @@ tr:hover {
   margin: 5px;
 }
 
-#liste-joueurs-ajout, #liste-vainqueurs, #edit-liste-joueurs, #edit-liste-vainqueurs {
-  background-color: #f0f8ff;
-  border: 1px solid #b3d9ff;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 15px;
-  max-height: 200px;
-  overflow-y: auto;
-  text-align: left;
-}
+/* Suppression des anciens sélecteurs basés sur des IDs de listes de checkboxes/radios,
+   qui sont remplacés par les sélecteurs génériques ci-dessus (.joueurs-list-container, .winner-selection) */
+/* Remplacement par un commentaire pour éviter de les laisser vides ou redondants:
+#liste-joueurs-ajout, #liste-vainqueurs, #edit-liste-joueurs, #edit-liste-vainqueurs,
+#liste-joueurs-ajout label, #liste-vainqueurs label, #edit-liste-joueurs label, #edit-liste-vainqueurs label,
+#liste-joueurs-ajout input[type="checkbox"], #liste-vainqueurs input[type="radio"],
+#edit-liste-joueurs input[type="checkbox"], #edit-liste-vainqueurs input[type="radio"] 
+*/
 
-#liste-joueurs-ajout label, #liste-vainqueurs label,
-#edit-liste-joueurs label, #edit-liste-vainqueurs label {
-  display: inline-block;
-  margin-right: 15px;
-  margin-bottom: 5px;
-  font-weight: normal;
-  color: #333;
-}
-
-#liste-joueurs-ajout input[type="checkbox"],
-#liste-vainqueurs input[type="radio"],
-#edit-liste-joueurs input[type="checkbox"],
-#edit-liste-vainqueurs input[type="radio"] {
-  margin-right: 5px;
-  transform: scale(1.2);
-  vertical-align: middle;
-}
 
 /* ========================================= */
 /* === Styles pour la roue des jeux === */
@@ -1079,7 +1120,6 @@ tr:hover {
 
 /* Nouvelle classe pour forcer le centrage de tout le body (utilisée sur login.html) */
 .login-page {
-    /* Nous enlevons uniquement le padding de bas de page car le body est très court */
     padding-bottom: 20px; 
 }
 

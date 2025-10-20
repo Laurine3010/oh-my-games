@@ -10,7 +10,7 @@
 <body>
   <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
     <span id="current-group-alias"></span>
-    <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+    <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
   </div>
   <h1>Oh My Games</h1>
   <h2>Liste des jeux</h2>
@@ -19,12 +19,14 @@
   <button class="btn-add">➕ Ajouter un jeu</button>
 
   <div id="alpha-filter-container">
-  </div>
+    </div>
 
   <input type="text" id="recherche-jeux" placeholder="🔍 Rechercher un jeu..." />
 
   <div id="liste-jeux">
-  </div>
+    </div>
+
+  <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
 
   <div id="modal-ajout" class="modal">
     <div id="modal-content" class="modal-content">
@@ -68,22 +70,21 @@
     </div>
   </div>
 
-  <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
-
   <script type="module">
     console.log("Script jeux.html chargé.");
 
-    import { supabase } from './supabase-config.js';
+    // CORRECTION 404: Utilisation du chemin absolu
+    import { supabase } from '/supabase-config.js';
 
     let jeux = [];
-    let joueurs = []; // Ajout de la liste des joueurs
-    let partiesStats = new Map(); // Map pour stocker les stats: NomJeu -> { parties: Number, scores: Map<String, Number> }
+    let joueurs = []; 
+    let partiesStats = new Map();
     let proprietaires = [];
     const photosBucket = 'jeu-photos';
     
-    // Ajout de la Map de conversion ID -> Nom
     let joueurIdToNom = new Map();
 
+    // DOM References
     const modal = document.getElementById('modal-ajout');
     const btnAdd = document.querySelector('.btn-add');
     const btnFermer = document.getElementById('btn-fermer');
@@ -104,17 +105,27 @@
     const emprunteAInput = document.getElementById('emprunte-a');
     const photosPreviewContainer = document.getElementById('photos-preview-container');
     const photosPreviewDiv = document.getElementById('photos-preview');
+    const btnSubmit = formAjout.querySelector('button[type="submit"]');
 
     let currentAlphaFilter = '';
     let selectedGroupId = null;
+    let oldPhotosUrls = []; // Pour stocker les URLs des photos existantes lors de la modification
 
-    // Redirection si aucun groupe n'est sélectionné
-    selectedGroupId = localStorage.getItem('selected_group_id');
-    if (!selectedGroupId) {
-        location.href = 'login.html';
-    } else {
+    // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
+    async function checkAuthAndGroup() {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        selectedGroupId = localStorage.getItem('selected_group_id');
+
+        if (!session || !selectedGroupId) {
+            location.href = 'login.html'; 
+            return false;
+        }
+        
         const selectedGroupAlias = localStorage.getItem('selected_group_alias');
         document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
+        
+        return true;
     }
 
     // --- Fonctions de gestion des joueurs (NÉCESSAIRE pour la conversion ID->Nom) ---
@@ -133,7 +144,7 @@
     }
 
 
-    // --- Fonctions de gestion des propriétaires (Aucun changement) ---
+    // --- Fonctions de gestion des propriétaires ---
     async function chargerProprietaires() {
         try {
             const { data, error } = await supabase
@@ -148,7 +159,7 @@
             console.error("Erreur lors du chargement des propriétaires:", error);
         }
     }
-    // ... (mettreAJourSelectProprietaires, ajouterNouveauProprietaire, proprietaireJeuSelect.addEventListener restent inchangés) ...
+
     function mettreAJourSelectProprietaires() {
         const options = Array.from(proprietaireJeuSelect.options).filter(opt => opt.value === "" || opt.value === "ajouter-proprietaire");
         proprietaireJeuSelect.innerHTML = '';
@@ -188,18 +199,13 @@
         }
     }
 
-    proprietaireJeuSelect.addEventListener('change', (e) => {
-        if (e.target.value === 'ajouter-proprietaire') {
-            ajouterNouveauProprietaire();
-        }
-    });
-
-    // --- Fonctions de gestion des photos avec Supabase Storage (Aucun changement) ---
+    // --- Fonctions de gestion des photos avec Supabase Storage ---
     async function uploaderPhotos(photosFiles) {
         const photosUrls = [];
         for (const file of photosFiles) {
             const fileExt = file.name.split('.').pop();
-            const fileName = `${selectedGroupId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            // Utiliser Date.now() pour garantir l'unicité
+            const fileName = `${selectedGroupId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`; 
             const { data, error } = await supabase.storage.from(photosBucket).upload(fileName, file);
 
             if (error) {
@@ -222,40 +228,45 @@
 
     async function supprimerPhotos(photosUrls) {
         if (!photosUrls || !Array.isArray(photosUrls) || photosUrls.length === 0) {
-            console.log("Aucune photo à supprimer ou l'argument n'est pas un tableau.");
             return;
         }
         
         const filePaths = photosUrls.map(url => {
-            const pathSegments = url.split('/');
-            return pathSegments[pathSegments.length - 2] + '/' + pathSegments[pathSegments.length - 1];
-        });
+            // Extrait le chemin 'groupeId/nomDuFichier.ext' du publicUrl
+            const urlPath = new URL(url).pathname;
+            const bucketName = `/${photosBucket}/`;
+            const pathStart = urlPath.indexOf(bucketName);
+            if (pathStart === -1) return null;
+            return urlPath.substring(pathStart + bucketName.length);
+        }).filter(path => path !== null);
 
-        const { data, error } = await supabase.storage.from(photosBucket).remove(filePaths);
+        if (filePaths.length === 0) return;
+
+        const { error } = await supabase.storage.from(photosBucket).remove(filePaths);
         if (error) {
             console.error("Erreur lors de la suppression des images du storage:", error);
         }
     }
 
-    // --- Fonction de chargement des statistiques de parties (MAJEURE MODIFICATION) ---
+    // --- Fonction de chargement des statistiques de parties (CORRIGÉE) ---
     async function chargerStatistiquesParties() {
+        if (!selectedGroupId || joueurIdToNom.size === 0) return new Map();
+
         try {
-            // 1. Charger toutes les lignes de jointure pour ce groupe (partie_id, joueur_id, est_gagnant)
+            // 1. Charger les jointures avec le nom du jeu via la relation
             const { data: jointureData, error: jointureError } = await supabase
                 .from('parties_joueurs')
                 .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)')
-                .eq('parties.groupe_id', selectedGroupId); // Filtrage côté BDD via la relation
+                .eq('parties.groupe_id', selectedGroupId); 
 
             if (jointureError) throw jointureError;
 
-            // 2. Initialiser la map de statistiques
-            const stats = new Map(); // Clé: nom_jeu, Valeur: { parties: Number, scores: Map<String, Number> }
-
-            // 3. Compter les parties et les victoires par jeu
-            const partiesComptees = new Set();
+            const stats = new Map(); 
+            const partiesComptees = new Set(); // Pour compter chaque partie une seule fois
 
             jointureData.forEach(line => {
                 const nomJeu = line.parties.nom_jeu;
+                // Utilisation de la map pour obtenir le nom du joueur
                 const nomJoueur = joueurIdToNom.get(line.joueur_id); 
                 const partieId = line.partie_id;
 
@@ -265,7 +276,7 @@
 
                 const jeuStats = stats.get(nomJeu);
 
-                // Compter le nombre de parties jouées (une fois par partie)
+                // Compter le nombre de parties jouées
                 if (!partiesComptees.has(`${nomJeu}-${partieId}`)) {
                     jeuStats.parties++;
                     partiesComptees.add(`${nomJeu}-${partieId}`);
@@ -287,14 +298,14 @@
         }
     }
 
-    // --- Fonctions de gestion des jeux (Peu de changement) ---
+    // --- Fonctions CRUD des jeux ---
     async function chargerJeux() {
         try {
             const { data, error } = await supabase
                 .from('jeux')
                 .select('*, proprietaires(nom)')
                 .eq('groupe_id', selectedGroupId)
-                .order('nom', { ascending: true }); // Triage par défaut dans le chargement
+                .order('nom', { ascending: true }); 
             if (error) throw error;
             return data;
         } catch (error) {
@@ -304,7 +315,6 @@
         }
     }
 
-    // ... (ajouterJeu, modifierJeu, supprimerJeu restent inchangés) ...
     async function ajouterJeu(jeuData) {
         try {
             const { data, error } = await supabase
@@ -355,19 +365,22 @@
         }
     }
 
-    // --- Fonctions de contrôle et d'affichage (MODIFICATION) ---
+    // --- Fonctions de contrôle et d'affichage ---
+    
     async function chargerEtAfficherJeux() {
-        console.log("Chargement et affichage des jeux et stats depuis Supabase...");
+        if (!selectedGroupId) return;
         
-        // 1. Charger joueurs et créer la map (pour la conversion ID -> Nom dans les stats)
+        console.log("Chargement et affichage des jeux et stats...");
+        
+        // 1. Charger joueurs et créer la map (pour les stats)
         joueurs = await chargerJoueurs();
         joueurIdToNom.clear();
         joueurs.forEach(j => joueurIdToNom.set(j.id, j.nom));
 
-        // 2. Charger les jeux et les statistiques (dépend de la map)
-        [jeux] = await Promise.all([
-            chargerJeux(),
-            chargerStatistiquesParties() // Charge et remplit partiesStats
+        // 2. Charger les jeux et les statistiques 
+        await Promise.all([
+            chargerJeux().then(data => jeux = data),
+            chargerStatistiquesParties() 
         ]);
         
         afficherListeJeux();
@@ -375,42 +388,37 @@
 
 
     function afficherListeJeux() {
-        console.log("Affichage de la liste des jeux...");
         listeJeux.innerHTML = '';
         const filterText = inputRecherche.value.toLowerCase();
-        const jeuxTries = [...jeux].sort((a, b) => a.nom.localeCompare(b.nom));
+        
+        let jeuxFiltres = [...jeux].sort((a, b) => a.nom.localeCompare(b.nom)).filter(jeu => {
+            if (filterText && !jeu.nom.toLowerCase().includes(filterText)) return false;
+            if (currentAlphaFilter && !jeu.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) return false;
+            return true;
+        });
 
-        // ... (Logique de filtres alpha/texte inchangée) ...
-        if (jeuxTries.length === 0 && !filterText && !currentAlphaFilter) {
+        if (jeuxFiltres.length === 0 && !filterText && !currentAlphaFilter) {
             listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu n\'est enregistré. Ajoutez-en un !</p>';
             return;
         }
-        let jeuxFiltres = jeuxTries.filter(jeu => {
-            if (filterText && !jeu.nom.toLowerCase().includes(filterText)) {
-                return false;
-            }
-            if (currentAlphaFilter && !jeu.nom.toLowerCase().startsWith(currentAlphaFilter.toLowerCase())) {
-                return false;
-            }
-            return true;
-        });
         if (jeuxFiltres.length === 0) {
             listeJeux.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Aucun jeu ne correspond à vos critères de recherche.</p>';
             return;
         }
         
-        // --- MISE À JOUR DE L'AFFICHAGE DES STATISTIQUES ---
         jeuxFiltres.forEach((jeu) => {
             const card = document.createElement('div');
             card.className = 'jeu-card';
             
-            // ... (Affichage de l'image, tags propriétaire/prêté/emprunté, infos joueurs) ...
+            // Image
             const img = document.createElement('img');
             img.src = (jeu.photos && jeu.photos.length > 0)
                 ? jeu.photos[0]
                 : 'https://via.placeholder.com/280x160?text=Pas+de+photo';
             img.alt = `Image de ${jeu.nom}`;
             card.appendChild(img);
+            
+            // Tags (Propriétaire / Emprunté / Prêté)
             if (jeu.proprietaires && jeu.proprietaires.nom) {
                 const tagProprietaire = document.createElement('span');
                 tagProprietaire.className = 'tag-proprietaire';
@@ -432,11 +440,15 @@
                 overlayPrete.appendChild(overlayText);
                 card.appendChild(overlayPrete);
             }
+            
             const contentDiv = document.createElement('div');
             contentDiv.className = 'jeu-content';
+            
             const titre = document.createElement('h3');
             titre.textContent = jeu.nom;
             contentDiv.appendChild(titre);
+            
+            // Infos Joueurs
             const infosComplementaires = document.createElement('div');
             infosComplementaires.className = 'infos-complementaires';
             if (jeu.min_joueurs && jeu.max_joueurs && !isNaN(jeu.min_joueurs) && !isNaN(jeu.max_joueurs)) {
@@ -451,26 +463,17 @@
                 }
                 joueursIcons.innerHTML = `<span>${joueursTexte} (${jeu.min_joueurs}-${jeu.max_joueurs})</span> <span class="info-label">Joueurs</span>`;
                 infosComplementaires.appendChild(joueursIcons);
-            } else if (jeu.min_joueurs && !isNaN(jeu.min_joueurs)) {
-                 const joueursIcons = document.createElement('p');
-                 joueursIcons.innerHTML = `<span>${'&#128100;'.repeat(jeu.min_joueurs)}+</span> <span class="info-label">Joueurs</span>`;
-                 infosComplementaires.appendChild(joueursIcons);
-            } else if (jeu.max_joueurs && !isNaN(jeu.max_joueurs)) {
-                 const joueursIcons = document.createElement('p');
-                 joueursIcons.innerHTML = `<span>Jusqu'à ${'&#128100;'.repeat(jeu.max_joueurs)}</span> <span class="info-label">Joueurs</span>`;
-                 infosComplementaires.appendChild(joueursIcons);
             }
             contentDiv.appendChild(infosComplementaires);
             
-            // Récupération des stats du jeu
+            // Statistiques (Victoires / Meilleur joueur)
             const jeuStats = partiesStats.get(jeu.nom) || { parties: 0, scores: new Map() };
             const nbParties = jeuStats.parties;
-            const scores = jeuStats.scores; // Map<String, Number>
+            const scores = jeuStats.scores; 
 
             let meilleur = null;
             let max = 0;
             
-            // Trouver le meilleur joueur
             for (const [joueur, score] of scores.entries()) {
                 if (score > max) {
                     max = score;
@@ -486,9 +489,10 @@
             `;
             contentDiv.appendChild(stats);
             
-            // ... (Boutons Modifier/Supprimer/Parties) ...
+            // Boutons d'action
             const btns = document.createElement('div');
             btns.className = 'btns-card';
+            
             const btnModifier = document.createElement('button');
             btnModifier.className = 'btn-card btn-modifier';
             btnModifier.textContent = '✏️ Modifier';
@@ -497,6 +501,7 @@
                 ouvrirModaleModifier(jeu.id);
             });
             btns.appendChild(btnModifier);
+            
             const btnSupprimer = document.createElement('button');
             btnSupprimer.className = 'btn-card btn-supprimer';
             btnSupprimer.textContent = '🗑️ Supprimer';
@@ -513,6 +518,7 @@
                 }
             });
             btns.appendChild(btnSupprimer);
+            
             const btnParties = document.createElement('button');
             btnParties.className = 'btn-card btn-parties';
             btnParties.textContent = '▶️ Voir parties';
@@ -521,38 +527,72 @@
                 window.location.href = `parties.html?jeu=${encodeURIComponent(jeu.nom)}`;
             });
             btns.appendChild(btnParties);
+            
             contentDiv.appendChild(btns);
             card.appendChild(contentDiv);
             listeJeux.appendChild(card);
         });
     }
 
-    // ... (ouvrirModaleModifier et autres listeners restent inchangés) ...
+    // --- Gestion de la Modale et des Formulaires ---
+    
+    function resetForm() {
+        formAjout.reset();
+        jeuIdInput.value = '';
+        btnSubmit.textContent = 'Ajouter le jeu';
+        photosPreviewContainer.style.display = 'none';
+        photosPreviewDiv.innerHTML = '';
+        oldPhotosUrls = [];
+        // Masquer les champs de prêt/emprunt
+        preteAInput.style.display = 'none';
+        emprunteAInput.style.display = 'none';
+    }
+
+    btnAdd.addEventListener('click', () => {
+        resetForm();
+        modal.style.display = 'flex';
+    });
+    
+    btnFermer.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    // Écouteur pour masquer/afficher le champ Prêté À
+    preteCheckbox.addEventListener('change', () => {
+        preteAInput.style.display = preteCheckbox.checked ? 'block' : 'none';
+        if (!preteCheckbox.checked) preteAInput.value = '';
+    });
+    
+    // Écouteur pour masquer/afficher le champ Emprunté À
+    emprunteCheckbox.addEventListener('change', () => {
+        emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
+        if (!emprunteCheckbox.checked) emprunteAInput.value = '';
+    });
+
     function ouvrirModaleModifier(id) {
-        console.log("Ouverture modale pour modification, ID:", id);
+        resetForm();
         const jeu = jeux.find(j => j.id === id);
-        if (!jeu) {
-            console.error("Jeu non trouvé avec l'ID:", id);
-            alert("Erreur: Impossible de charger les données du jeu.");
-            return;
-        }
+        if (!jeu) return alert("Erreur: Impossible de charger les données du jeu.");
+
         jeuIdInput.value = jeu.id;
         nomJeuInput.value = jeu.nom;
         proprietaireJeuSelect.value = jeu.proprietaire_id || '';
         minJoueursInput.value = jeu.min_joueurs !== undefined ? jeu.min_joueurs : '';
         maxJoueursInput.value = jeu.max_joueurs !== undefined ? jeu.max_joueurs : '';
+        
         preteCheckbox.checked = jeu.prete === true;
         preteAInput.value = jeu.prete_a || '';
         preteAInput.style.display = preteCheckbox.checked ? 'block' : 'none';
+        
         emprunteCheckbox.checked = jeu.emprunte === true;
         emprunteAInput.value = jeu.emprunte_a || '';
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
 
+        oldPhotosUrls = Array.isArray(jeu.photos) ? [...jeu.photos] : [];
         photosPreviewDiv.innerHTML = '';
-        const photos = Array.isArray(jeu.photos) ? jeu.photos : [];
-        if (photos.length > 0) {
+        if (oldPhotosUrls.length > 0) {
             photosPreviewContainer.style.display = 'block';
-            photos.forEach(url => {
+            oldPhotosUrls.forEach(url => {
                 const img = document.createElement('img');
                 img.src = url;
                 img.style.width = '100px';
@@ -565,10 +605,93 @@
             photosPreviewContainer.style.display = 'none';
         }
 
-        formAjout.querySelector('button[type="submit"]').textContent = 'Modifier le jeu';
+        btnSubmit.textContent = 'Modifier le jeu';
         modal.style.display = 'flex';
     }
 
+    formAjout.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const id = jeuIdInput.value;
+        const photosFiles = photosJeuInput.files;
+        
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = id ? "Modification..." : "Ajout...";
+
+        let newPhotosUrls = [];
+        if (photosFiles.length > 0) {
+            newPhotosUrls = await uploaderPhotos(photosFiles);
+        }
+
+        const finalPhotosUrls = [...oldPhotosUrls, ...newPhotosUrls];
+        
+        const jeuData = {
+            nom: nomJeuInput.value,
+            proprietaire_id: proprietaireJeuSelect.value || null,
+            photos: finalPhotosUrls,
+            min_joueurs: parseInt(minJoueursInput.value, 10) || null,
+            max_joueurs: parseInt(maxJoueursInput.value, 10) || null,
+            prete: preteCheckbox.checked,
+            prete_a: preteCheckbox.checked ? preteAInput.value : null,
+            emprunte: emprunteCheckbox.checked,
+            emprunte_a: emprunteCheckbox.checked ? emprunteAInput.value : null
+        };
+        
+        let result;
+        if (id) {
+            result = await modifierJeu(parseInt(id, 10), jeuData);
+        } else {
+            result = await ajouterJeu(jeuData);
+        }
+        
+        btnSubmit.disabled = false;
+        
+        if (result.success) {
+            alert(`Jeu ${id ? 'modifié' : 'ajouté'} avec succès !`);
+            modal.style.display = 'none';
+            await chargerEtAfficherJeux();
+        } else {
+            // Afficher l'erreur est géré dans les fonctions CRUD
+        }
+    });
+
+
+    // --- Filtres alphabétiques ---
+    function generateAlphaFilters() {
+        alphaFilterContainer.innerHTML = '';
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+        const allBtn = document.createElement('button');
+        allBtn.textContent = 'Tous';
+        allBtn.className = 'alpha-filter-btn active';
+        allBtn.setAttribute('data-filter', '');
+        allBtn.addEventListener('click', handleAlphaFilter);
+        alphaFilterContainer.appendChild(allBtn);
+
+        letters.forEach(letter => {
+            const btn = document.createElement('button');
+            btn.textContent = letter;
+            btn.className = 'alpha-filter-btn';
+            btn.setAttribute('data-filter', letter);
+            btn.addEventListener('click', handleAlphaFilter);
+            alphaFilterContainer.appendChild(btn);
+        });
+    }
+
+    function handleAlphaFilter(e) {
+        currentAlphaFilter = e.target.getAttribute('data-filter');
+        document.querySelectorAll('.alpha-filter-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        inputRecherche.value = '';
+        afficherListeJeux();
+    }
+
+    // --- Écouteurs restants ---
+    proprietaireJeuSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'ajouter-proprietaire') {
+            ajouterNouveauProprietaire();
+        }
+    });
 
     inputRecherche.addEventListener('input', () => {
         currentAlphaFilter = '';
@@ -578,7 +701,9 @@
         afficherListeJeux();
     });
 
+    // --- Lancement ---
     document.addEventListener('DOMContentLoaded', async () => {
+        if (!await checkAuthAndGroup()) return;
         generateAlphaFilters();
         await chargerProprietaires();
         await chargerEtAfficherJeux();
@@ -586,14 +711,13 @@
 
     document.addEventListener('visibilitychange', async () => {
       if (document.visibilityState === 'visible') {
-        await chargerEtAfficherJeux();
+        if (selectedGroupId) await chargerEtAfficherJeux();
       }
     });
-
-    // ... (Service Worker script reste inchangé) ...
   </script>
 
   <script>
+    // Script Service Worker (inchangé)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')

@@ -5,6 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oh My Games - Gestion du Groupe</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Styles spécifiques pour cette page si non inclus dans styles.css */
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        .form-section h3 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        .action-buttons button, .form-section button[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        #groupe-id-cree {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            color: #dc3545;
+            margin-bottom: 20px !important;
+        }
+    </style>
 </head>
 <body class="login-page"> 
     <img src="omg_img.png" alt="Fond" class="background-image" />
@@ -15,7 +52,7 @@
         
         <button type="button" id="btn-logout" class="btn-supprimer" style="margin-bottom: 20px; display: none;">Déconnexion</button>
 
-        <div id="action-selection" class="action-buttons">
+        <div id="action-selection" class="action-buttons" style="display: none;">
             <p>Que souhaitez-vous faire ?</p>
             <button id="btn-select-group">Sélectionner un groupe existant</button>
             <button id="btn-create-group">Créer un nouveau groupe</button>
@@ -27,7 +64,7 @@
                 <label for="groupe-code-select">Code du Groupe (6 caractères) :</label>
                 <input type="text" id="groupe-code-select" placeholder="Ex: ABCD12" maxlength="6" required>
                 <button type="submit" class="btn-add" style="margin-top: 15px;">Accéder au groupe</button>
-                <button type="button" class="btn-back btn-supprimer" style="margin-top: 10px;">Annuler</button>
+                <button type="button" class="btn-back btn-supprimer" data-target="action-selection" style="margin-top: 10px;">Annuler</button>
             </form>
         </div>
 
@@ -40,13 +77,14 @@
                 <label for="groupe-alias-create">Alias du Groupe (Optionnel) :</label>
                 <input type="text" id="groupe-alias-create" placeholder="Ex: Groupe du Vendredi Soir" maxlength="50">
                 <button type="submit" class="btn-add" style="margin-top: 15px;">Confirmer la création</button>
-                <button type="button" class="btn-back btn-supprimer" style="margin-top: 10px;">Annuler</button>
+                <button type="button" class="btn-back btn-supprimer" data-target="action-selection" style="margin-top: 10px;">Annuler</button>
             </form>
         </div>
     </div>
 
     <script type="module">
-        import { supabase } from './supabase-config.js'; // Assurez-vous que ce chemin est correct
+        // CORRECTION 404: Utilisation du chemin absolu
+        import { supabase } from '/supabase-config.js'; 
 
         // --- Références DOM ---
         const actionSelectionDiv = document.getElementById('action-selection');
@@ -56,7 +94,7 @@
         const btnSelectGroup = document.getElementById('btn-select-group');
         const btnCreateGroup = document.getElementById('btn-create-group');
         const btnBacks = document.querySelectorAll('.btn-back');
-        const btnLogout = document.getElementById('btn-logout'); // Nouveau
+        const btnLogout = document.getElementById('btn-logout'); 
 
         const formSelection = document.getElementById('form-selection');
         const groupeCodeSelect = document.getElementById('groupe-code-select');
@@ -88,18 +126,15 @@
             sectionToShow.style.display = 'block';
         }
 
+        /** Affiche la vue initiale après la connexion (sélection d'action) */
         function resetToInitialView() {
-            // Affiche toujours la sélection d'action quand l'utilisateur est connecté
-            actionSelectionDiv.style.display = 'block'; 
-            selectionGroupeDiv.style.display = 'none';
-            creationGroupeDiv.style.display = 'none';
+            showSection(actionSelectionDiv);
         }
 
         /** Stocke l'ID INTERNE du groupe et redirige */
         function selectAndRedirect(id_interne, alias) {
-            // id_interne est le BIGINT auto-incrémenté
             localStorage.setItem('selected_group_id', id_interne); 
-            localStorage.setItem('selected_group_alias', alias || 'Groupe sans alias');
+            localStorage.setItem('selected_group_alias', alias || id_interne);
             alert(`Groupe sélectionné : ${alias || id_interne}`);
             location.href = 'index.html';
         }
@@ -113,7 +148,7 @@
                 localStorage.removeItem('selected_group_id');
                 localStorage.removeItem('selected_group_alias');
                 alert("Vous êtes déconnecté. Redirection vers la page de connexion.");
-                location.href = 'auth.html'; // Redirige vers la nouvelle page d'authentification
+                location.href = 'auth.html'; 
             } else {
                 console.error("Erreur de déconnexion:", error);
                 alert("Erreur de déconnexion. Veuillez réessayer.");
@@ -134,7 +169,10 @@
         });
 
         btnBacks.forEach(button => {
-            button.addEventListener('click', resetToInitialView);
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                resetToInitialView();
+            });
         });
 
         // Soumission du formulaire de SÉLECTION/REJOINDRE
@@ -142,13 +180,22 @@
             e.preventDefault();
             const inputCodeAcces = groupeCodeSelect.value.toUpperCase(); 
 
+            // Désactiver le bouton pendant le chargement
+            const btnSubmit = e.submitter;
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Recherche...";
+
             const { data, error } = await supabase
                 .from('groupes')
                 .select('id, alias') 
-                .eq('code_acces', inputCodeAcces) // CRITIQUE : on filtre sur code_acces (text)
+                .eq('code_acces', inputCodeAcces)
                 .single();
+            
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = "Accéder au groupe";
 
-            if (error && error.code !== 'PGRST116') { 
+
+            if (error && error.code !== 'PGRST116') { // PGRST116 = ligne non trouvée
                 alert("Erreur de connexion : " + error.message);
                 console.error(error);
                 return;
@@ -169,9 +216,14 @@
             const codeAcces = generatedCodeAcces; 
             
             if (!codeAcces) {
-                alert("Erreur: Le code du groupe n'a pas été généré.");
+                alert("Erreur: Le code du groupe n'a pas été généré. Veuillez annuler et réessayer.");
                 return;
             }
+
+            // Désactiver le bouton pendant le chargement
+            const btnSubmit = e.submitter;
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Création...";
             
             // 1. Insérer le nouveau groupe dans Supabase
             const { data, error } = await supabase
@@ -182,11 +234,14 @@
                         alias: newAlias 
                     }
                 ])
-                .select('id, alias'); // On demande le retour de l'ID généré
+                .select('id, alias'); 
                 
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = "Confirmer la création";
+
             if (error) {
                 console.error("Erreur détaillée lors de la création du groupe:", error); 
-                alert(`Erreur lors de la création du groupe : ${error.message}. Code: ${error.code}.`);
+                alert(`Erreur lors de la création du groupe : ${error.message}.`);
                 return;
             }
             
@@ -211,22 +266,23 @@
             // Utilisateur CONNECTÉ : On affiche le bouton de déconnexion
             btnLogout.style.display = 'block';
 
-            // 2. On exécute la logique de vérification de groupe (le code existant)
+            // 2. Vérification du groupe déjà sélectionné
             const currentGroupId = localStorage.getItem('selected_group_id');
             const currentGroupAlias = localStorage.getItem('selected_group_alias');
 
             if (currentGroupId) {
                 // Si un groupe était déjà sélectionné
-                const confirmSwitch = confirm(`Groupe actuel : ${currentGroupAlias || currentGroupId}. Voulez-vous continuer ou changer de groupe ?`);
+                const confirmSwitch = confirm(`Groupe actuel : ${currentGroupAlias}. Voulez-vous continuer avec ce groupe ou en changer ?`);
                 if (confirmSwitch) {
-                    location.href = 'index.html';
+                    location.href = 'index.html'; // Continuer
                 } else {
+                    // L'utilisateur veut changer
                     localStorage.removeItem('selected_group_id');
                     localStorage.removeItem('selected_group_alias');
                     resetToInitialView(); 
                 }
             } else {
-                // Si l'utilisateur est connecté mais n'a pas de groupe sélectionné
+                // L'utilisateur est connecté mais doit choisir un groupe
                 resetToInitialView();
             }
         });

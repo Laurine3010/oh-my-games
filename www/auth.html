@@ -1,160 +1,207 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oh My Games - Connexion</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Oh My Games - Connexion / Inscription</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        /* Styles spécifiques pour centrer et styliser le formulaire d'authentification */
+        .auth-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .auth-container h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .message-box {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: none;
+            text-align: center;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .toggle-auth {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .toggle-auth a {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .toggle-auth a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
-<body class="login-page"> 
+<body>
+    <h1>Oh My Games</h1>
     <img src="omg_img.png" alt="Fond" class="background-image" />
-    
-    <div class="container">
-        <h1>Oh My Games</h1>
-        <h2>Connexion / Inscription</h2>
+
+    <div class="auth-container">
+        <h2 id="auth-title">Connexion</h2>
         
+        <div id="auth-message" class="message-box"></div>
+
         <form id="auth-form">
-            <label for="auth-email">Adresse Email :</label>
-            <input type="email" id="auth-email" required>
+            <label for="email">Email :</label><br />
+            <input type="email" id="email" name="email" required><br />
+
+            <label for="password">Mot de passe :</label><br />
+            <input type="password" id="password" name="password" required><br /><br />
             
-            <label for="auth-password">Mot de passe :</label>
-            <input type="password" id="auth-password" required minlength="6">
-            
-            <button type="submit" id="btn-login" class="btn-add">Se connecter</button>
-            
-            <button type="button" id="btn-signup" class="btn-add" style="margin-top: 10px;">Créer un compte</button>
-            <button type="button" id="btn-forgot-password" class="btn-supprimer" style="margin-top: 10px;">Mot de passe oublié ?</button>
+            <button type="submit" id="auth-button" class="btn-add">Se connecter</button>
         </form>
-        
-        <p id="auth-message" style="margin-top: 15px; color: #333;"></p>
+
+        <div class="toggle-auth">
+            <p>
+                <span id="toggle-text">Pas encore de compte ?</span>
+                <a id="toggle-link">S'inscrire</a>
+            </p>
+        </div>
     </div>
 
     <script type="module">
-        import { supabase } from './supabase-config.js'; 
+        console.log("Script auth.html chargé.");
 
-        // --- Références DOM ---
+        // IMPORTANT : Utilisation du chemin absolu pour résoudre le 404
+        import { supabase } from '/supabase-config.js'; 
+
+        // DOM References
         const authForm = document.getElementById('auth-form');
-        const authEmail = document.getElementById('auth-email');
-        const authPassword = document.getElementById('auth-password');
-        const btnSignup = document.getElementById('btn-signup');
-        const btnForgotPassword = document.getElementById('btn-forgot-password');
+        const authTitle = document.getElementById('auth-title');
+        const authButton = document.getElementById('auth-button');
+        const toggleText = document.getElementById('toggle-text');
+        const toggleLink = document.getElementById('toggle-link');
         const authMessage = document.getElementById('auth-message');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
 
-        // --- Fonctions d'Authentification ---
+        let isSigningUp = false; // État initial: Connexion
 
-        function setAuthMessage(text, color = '#333') {
-            authMessage.style.color = color;
+        // --- Fonctions d'aide ---
+
+        function showMessage(text, isError = false) {
             authMessage.textContent = text;
-        }
-        
-        function validateInputs(email, password) {
-            if (!email || !password) {
-                setAuthMessage("Veuillez entrer une adresse email ET un mot de passe.", 'red');
-                return false;
-            }
-            if (password.length < 6) {
-                setAuthMessage("Le mot de passe doit contenir au moins 6 caractères.", 'red');
-                return false;
-            }
-            // Ajoutez ici une validation d'email plus poussée si nécessaire
-            return true;
+            authMessage.className = 'message-box ' + (isError ? 'error' : 'success');
+            authMessage.style.display = 'block';
         }
 
+        function clearMessage() {
+            authMessage.style.display = 'none';
+        }
 
-        // Gère la CONNEXION
-        async function handleSignIn(email, password) {
-            if (!validateInputs(email, password)) return;
-
-            setAuthMessage("Connexion en cours...");
-            
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            
-            if (error) {
-                setAuthMessage(`Erreur de connexion : ${error.message}`, 'red');
+        function updateFormState() {
+            if (isSigningUp) {
+                authTitle.textContent = 'Inscription';
+                authButton.textContent = "S'inscrire";
+                toggleText.textContent = 'Déjà un compte ?';
+                toggleLink.textContent = 'Se connecter';
             } else {
-                setAuthMessage("Connexion réussie ! Redirection vers la sélection de groupe...", 'green');
-                setTimeout(() => {
-                    location.href = 'login.html'; 
-                }, 1500);
+                authTitle.textContent = 'Connexion';
+                authButton.textContent = 'Se connecter';
+                toggleText.textContent = 'Pas encore de compte ?';
+                toggleLink.textContent = "S'inscrire";
             }
+            clearMessage();
         }
 
-        // Gère l'INSCRIPTION
-        async function handleSignUp(email, password) {
-            if (!validateInputs(email, password)) return;
+        // --- Gestion de l'authentification ---
 
-            setAuthMessage("Inscription en cours...", '#333');
+        async function handleAuth(e) {
+            e.preventDefault();
+            clearMessage();
 
-            const { data, error } = await supabase.auth.signUp({ email, password });
+            const email = emailInput.value;
+            const password = passwordInput.value;
 
-            if (error) {
-                setAuthMessage(`Erreur d'inscription : ${error.message}`, 'red');
-            } else if (data.user) {
-                // Utilisateur créé et connecté (si confirmation par email désactivée)
-                setAuthMessage("Inscription et connexion réussies ! Redirection...", 'green');
-                setTimeout(() => {
-                    location.href = 'login.html'; 
-                }, 1500);
-            } else if (data.session === null && data.user === null) {
-                // Confirmation par email requise
-                 setAuthMessage("Inscription réussie ! Un email de confirmation a été envoyé. Veuillez le vérifier avant de vous connecter.", 'orange');
+            authButton.disabled = true;
+            authButton.textContent = isSigningUp ? "Inscription..." : "Connexion...";
+
+            let result;
+
+            if (isSigningUp) {
+                // Tente l'inscription
+                result = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                });
+            } else {
+                // Tente la connexion
+                result = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
             }
-            authPassword.value = '';
-        }
 
-        // Gère le MOT DE PASSE OUBLIÉ
-        async function handleForgotPassword() {
-            const email = authEmail.value;
-            if (!email) {
-                setAuthMessage("Veuillez entrer votre adresse email pour la réinitialisation.", 'red');
+            authButton.disabled = false;
+            authButton.textContent = isSigningUp ? "S'inscrire" : "Se connecter";
+
+            if (result.error) {
+                // Gestion des erreurs
+                showMessage(result.error.message, true);
+                console.error("Erreur d'authentification:", result.error);
                 return;
             }
 
-            setAuthMessage("Envoi du lien de réinitialisation en cours...", '#333');
-
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                 // Assurez-vous que cette URL est configurée dans Supabase > URL Configuration
-            });
-
-            if (error) {
-                setAuthMessage(`Erreur : ${error.message}`, 'red');
+            if (isSigningUp) {
+                // Message d'inscription réussi
+                showMessage("Inscription réussie ! Veuillez maintenant vous connecter.", false);
+                // Après l'inscription, passer en mode connexion pour l'étape suivante
+                isSigningUp = false;
+                updateFormState();
             } else {
-                setAuthMessage(`Un email a été envoyé à ${email}. Vérifiez votre boîte de réception (et spams).`, 'green');
+                // Redirection après connexion réussie
+                showMessage("Connexion réussie ! Redirection...", false);
+                // CRITIQUE : Rediriger vers la page de sélection de groupe (login.html)
+                setTimeout(() => {
+                    window.location.href = 'login.html'; 
+                }, 1000);
             }
         }
 
+        // --- Écouteurs d'événements ---
 
-        // --- Événements ---
-
-        // Événement Soumission du formulaire (géré pour la CONNEXION par défaut)
-        authForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Empêche le rechargement de la page
-            await handleSignIn(authEmail.value, authPassword.value); 
+        toggleLink.addEventListener('click', () => {
+            isSigningUp = !isSigningUp;
+            updateFormState();
         });
 
-        // Événement Clic sur INSCRIPTION
-        btnSignup.addEventListener('click', async () => {
-            await handleSignUp(authEmail.value, authPassword.value);
-        });
+        authForm.addEventListener('submit', handleAuth);
 
-        // Événement Clic sur MOT DE PASSE OUBLIÉ
-        btnForgotPassword.addEventListener('click', async () => {
-            await handleForgotPassword();
-        });
-
-
-        // --- Vérification au chargement : Redirection si déjà connecté ! ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Tentative de récupérer la session active
+        // Vérification de la session au chargement pour redirection automatique
+        async function checkInitialSession() {
             const { data: { session } } = await supabase.auth.getSession();
-
             if (session) {
-                setAuthMessage("Vous êtes déjà connecté. Redirection...", 'blue');
-                setTimeout(() => {
-                    location.href = 'login.html'; 
-                }, 1000);
+                // Si l'utilisateur est déjà connecté, le rediriger vers la sélection de groupe
+                console.log("Session active détectée. Redirection vers login.html.");
+                window.location.href = 'login.html';
+            } else {
+                // Si non connecté, initialiser le formulaire en mode connexion
+                updateFormState(); 
             }
-        });
+        }
+
+        checkInitialSession();
+
     </script>
 </body>
 </html>
