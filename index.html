@@ -77,6 +77,7 @@
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
         <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
+        <button id="btn-deconnexion" class="btn-home btn-supprimer" style="position: static; margin-left: 10px; padding: 5px 10px;">Déconnexion</button>
     </div>
 
     <h1>Oh My Games</h1>
@@ -119,24 +120,28 @@
     <script type="module">
         console.log("Script index.html chargé.");
 
-        // IMPORTANT : Si supabase-config.js est dans le même dossier que index.html, utilisez './'
         import { supabase } from './supabase-config.js'; 
 
         let selectedGroupId = null;
         let joueurIdToNom = new Map();
 
+        // --- Fonction de déconnexion ---
+        function handleLogout() {
+            // 1. Supprimer l'ID et l'Alias du groupe du navigateur
+            localStorage.removeItem('selected_group_id');
+            localStorage.removeItem('selected_group_alias');
+
+            // 2. Rediriger l'utilisateur vers la page de connexion
+            location.replace('login.html');
+        }
+
         // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
-        // Cette fonction doit être appelée AVANT tout le reste.
         async function checkAuthAndGroup() {
-            // NOTE: On ne vérifie pas la session Supabase ici, car c'est un site public.
-            // On vérifie uniquement si un groupe a été sélectionné (stocké dans le localStorage).
-            
             selectedGroupId = localStorage.getItem('selected_group_id');
 
             if (!selectedGroupId) {
-                // Rediriger si le groupe n'est pas sélectionné
                 console.log("Groupe non sélectionné. Redirection vers login.html");
-                location.replace('login.html'); // Utiliser replace pour empêcher le retour arrière
+                location.replace('login.html'); 
                 return false;
             }
             
@@ -190,8 +195,6 @@
                 const { data: jointureData, error: jointureError } = await supabase
                     .from('parties_joueurs')
                     .select('partie_id, joueur_id, est_gagnant');
-                    // PAS BESOIN DU FILTRE IN('partie_id', partieIds) car Supabase est intelligent
-                    // et sait que si on filtre sur le groupe_id, on a déjà un sous-ensemble.
 
                 if (jointureError) throw jointureError;
 
@@ -203,7 +206,6 @@
 
                 jointureData.forEach(line => {
                     const partie = partiesMap.get(line.partie_id);
-                    // On ne vérifie pas le groupe_id ici, car partiesBase est déjà filtré par groupe.
                     const nomJoueur = joueurIdToNom.get(line.joueur_id); 
 
                     if (partie && nomJoueur && line.est_gagnant) {
@@ -211,7 +213,7 @@
                     }
                 });
 
-                // 4. Retourner les objets parties reconstruites (maintenues triées par la première requête)
+                // 4. Retourner les objets parties reconstruites 
                 return Array.from(partiesMap.values());
 
             } catch (error) {
@@ -248,7 +250,6 @@
         }
 
         // --- Fonction principale de chargement ---
-
         async function loadDashboardData() {
             // ** VÉRIFICATION DE LA REDIRECTION IMMÉDIATE **
             if (!await checkAuthAndGroup()) {
@@ -320,7 +321,15 @@
         }
 
         // Appel de la fonction de chargement au chargement de la page
-        document.addEventListener('DOMContentLoaded', loadDashboardData);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardData();
+            
+            // Écouteur pour le bouton de déconnexion
+            const btnDeconnexion = document.getElementById('btn-deconnexion');
+            if (btnDeconnexion) {
+                btnDeconnexion.addEventListener('click', handleLogout);
+            }
+        });
 
         // Recharger les données quand la page redevient visible
         document.addEventListener('visibilitychange', () => {
