@@ -77,7 +77,7 @@
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
         <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
-        <button id="btn-deconnexion" class="btn-home btn-supprimer" style="position: static; margin-left: 10px; padding: 5px 10px;">Déconnexion</button>
+        <button onclick="quickLogout()" class="btn-home btn-supprimer" style="position: static; margin-left: 10px; padding: 5px 10px;">Déconnexion</button>
     </div>
 
     <h1>Oh My Games</h1>
@@ -125,17 +125,16 @@
         let selectedGroupId = null;
         let joueurIdToNom = new Map();
 
-        // --- Fonction de déconnexion (LOGOUT SUPABASE) ---
-        async function handleLogout() {
-            console.log("Déconnexion de l'utilisateur (Supabase) et redirection vers auth.html...");
+        // --- Fonction de déconnexion (LOGOUT SUPABASE) - Accessible globalement via window.quickLogout ---
+        window.quickLogout = async function() {
+            console.log("Déconnexion de l'utilisateur (Supabase) via onclick et redirection vers auth.html...");
             
             // 1. Déconnexion de la session Supabase
             const { error } = await supabase.auth.signOut();
             
             if (error) {
                 console.error("Erreur lors de la déconnexion Supabase:", error);
-                alert(`Erreur lors de la déconnexion: ${error.message}`);
-                // Continuer la déconnexion locale même en cas d'erreur API
+                // On n'alerte pas, on continue la déconnexion locale même en cas d'échec API
             }
 
             // 2. Supprimer les identifiants de groupe locaux (Nettoyage)
@@ -156,7 +155,7 @@
                 return false;
             }
 
-            // Vérification du groupe local (si l'utilisateur est connecté mais n'a pas sélectionné de groupe)
+            // Vérification du groupe local
             selectedGroupId = localStorage.getItem('selected_group_id');
 
             if (!selectedGroupId) {
@@ -271,7 +270,7 @@
 
         // --- Fonction principale de chargement ---
         async function loadDashboardData() {
-            // ** VÉRIFICATION DE LA REDIRECTION IMMÉDIATE (vers auth.html ou login.html) **
+            // ** VÉRIFICATION DE LA REDIRECTION IMMÉDIATE **
             if (!await checkAuthAndGroup()) {
                 return; // Arrête l'exécution si la redirection a eu lieu
             }
@@ -343,16 +342,7 @@
         // --- Gestion des Événements et Initialisation ---
         
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. ATTACHER L'ÉCOUTEUR DE DÉCONNEXION EN PREMIER
-            const btnDeconnexion = document.getElementById('btn-deconnexion');
-            if (btnDeconnexion) {
-                btnDeconnexion.addEventListener('click', handleLogout);
-                console.log("Écouteur de déconnexion attaché.");
-            } else {
-                console.error("Erreur: Bouton de déconnexion (btn-deconnexion) non trouvé.");
-            }
-            
-            // 2. Lancer le chargement des données (qui contient la vérification/redirection)
+            // Le bouton de déconnexion est maintenant géré par 'onclick="quickLogout()"'
             loadDashboardData();
         });
 
