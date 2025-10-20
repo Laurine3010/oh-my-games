@@ -1,0 +1,4 @@
+[[redirects]]
+  from = "/"
+  to = "/auth.html"
+  status = 302
