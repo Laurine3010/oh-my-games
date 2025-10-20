@@ -77,8 +77,7 @@
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
         <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
-        <button onclick="quickLogout()" class="btn-home btn-supprimer" style="position: static; margin-left: 10px; padding: 5px 10px;">Déconnexion</button>
-    </div>
+        </div>
 
     <h1>Oh My Games</h1>
     <h2>Que la partie commence!</h2>
@@ -125,29 +124,9 @@
         let selectedGroupId = null;
         let joueurIdToNom = new Map();
 
-        // --- Fonction de déconnexion (LOGOUT SUPABASE) - Accessible globalement via window.quickLogout ---
-        window.quickLogout = async function() {
-            console.log("Déconnexion de l'utilisateur (Supabase) via onclick et redirection vers auth.html...");
-            
-            // 1. Déconnexion de la session Supabase
-            const { error } = await supabase.auth.signOut();
-            
-            if (error) {
-                console.error("Erreur lors de la déconnexion Supabase:", error);
-                // On n'alerte pas, on continue la déconnexion locale même en cas d'échec API
-            }
-
-            // 2. Supprimer les identifiants de groupe locaux (Nettoyage)
-            localStorage.removeItem('selected_group_id');
-            localStorage.removeItem('selected_group_alias');
-            
-            // 3. Rediriger l'utilisateur vers la page d'authentification
-            location.replace('auth.html'); 
-        }
-
         // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
         async function checkAuthAndGroup() {
-            // Vérification de la session utilisateur Supabase
+            // 1. Vérification de la session utilisateur Supabase
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 console.log("Session utilisateur Supabase expirée ou inexistante. Redirection vers auth.html.");
@@ -155,7 +134,7 @@
                 return false;
             }
 
-            // Vérification du groupe local
+            // 2. Vérification du groupe local
             selectedGroupId = localStorage.getItem('selected_group_id');
 
             if (!selectedGroupId) {
@@ -342,7 +321,7 @@
         // --- Gestion des Événements et Initialisation ---
         
         document.addEventListener('DOMContentLoaded', () => {
-            // Le bouton de déconnexion est maintenant géré par 'onclick="quickLogout()"'
+            // Appel de la fonction de chargement au chargement de la page
             loadDashboardData();
         });
 
