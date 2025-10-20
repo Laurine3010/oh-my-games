@@ -80,10 +80,10 @@
     </div>
 
     <script type="module">
-        console.log("Script auth.html chargé.");
+        console.log("Script auth.html chargé et prêt."); // NOUVEAU LOG POUR VÉRIFICATION
 
-        // IMPORTANT : Utilisation du chemin absolu pour résoudre le 404
-        import { supabase } from '/supabase-config.js'; 
+        // Utilisation du chemin relatif, plus sûr dans certains environnements
+        import { supabase } from './supabase-config.js'; 
 
         // DOM References
         const authForm = document.getElementById('auth-form');
@@ -129,6 +129,7 @@
         async function handleAuth(e) {
             e.preventDefault();
             clearMessage();
+            console.log(`Tentative d'authentification en mode: ${isSigningUp ? 'Inscription' : 'Connexion'}`); // LOG CRITIQUE
 
             const email = emailInput.value;
             const password = passwordInput.value;
@@ -158,9 +159,11 @@
             if (result.error) {
                 // Gestion des erreurs
                 showMessage(result.error.message, true);
-                console.error("Erreur d'authentification:", result.error);
+                console.error("Erreur d'authentification Supabase:", result.error);
                 return;
             }
+
+            // --- SUCCÈS ---
 
             if (isSigningUp) {
                 // Message d'inscription réussi
@@ -170,8 +173,8 @@
                 updateFormState();
             } else {
                 // Redirection après connexion réussie
-                showMessage("Connexion réussie ! Redirection...", false);
-                // CRITIQUE : Rediriger vers la page de sélection de groupe (login.html)
+                showMessage("Connexion réussie ! Redirection vers la sélection de groupe...", false);
+                // Rediriger vers la page de sélection de groupe (login.html)
                 setTimeout(() => {
                     window.location.href = 'login.html'; 
                 }, 1000);
@@ -200,7 +203,7 @@
             }
         }
 
-        checkInitialSession();
+        document.addEventListener('DOMContentLoaded', checkInitialSession);
 
     </script>
 </body>
