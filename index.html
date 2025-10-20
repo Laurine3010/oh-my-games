@@ -320,15 +320,17 @@
             }
         }
 
-        // Appel de la fonction de chargement au chargement de la page
+        // --- Gestion des Événements et Initialisation ---
+        
         document.addEventListener('DOMContentLoaded', () => {
-            loadDashboardData();
-            
-            // Écouteur pour le bouton de déconnexion
+            // 1. ATTACHER L'ÉCOUTEUR DE DÉCONNEXION EN PREMIER
             const btnDeconnexion = document.getElementById('btn-deconnexion');
             if (btnDeconnexion) {
                 btnDeconnexion.addEventListener('click', handleLogout);
             }
+            
+            // 2. Lancer le chargement des données (qui contient la vérification/redirection)
+            loadDashboardData();
         });
 
         // Recharger les données quand la page redevient visible
