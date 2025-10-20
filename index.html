@@ -125,22 +125,42 @@
         let selectedGroupId = null;
         let joueurIdToNom = new Map();
 
-        // --- Fonction de déconnexion ---
-        function handleLogout() {
-            // 1. Supprimer l'ID et l'Alias du groupe du navigateur
+        // --- Fonction de déconnexion (LOGOUT SUPABASE) ---
+        async function handleLogout() {
+            console.log("Déconnexion de l'utilisateur (Supabase) et redirection vers auth.html...");
+            
+            // 1. Déconnexion de la session Supabase
+            const { error } = await supabase.auth.signOut();
+            
+            if (error) {
+                console.error("Erreur lors de la déconnexion Supabase:", error);
+                alert(`Erreur lors de la déconnexion: ${error.message}`);
+                // Continuer la déconnexion locale même en cas d'erreur API
+            }
+
+            // 2. Supprimer les identifiants de groupe locaux (Nettoyage)
             localStorage.removeItem('selected_group_id');
             localStorage.removeItem('selected_group_alias');
-
-            // 2. Rediriger l'utilisateur vers la page de connexion
-            location.replace('login.html');
+            
+            // 3. Rediriger l'utilisateur vers la page d'authentification
+            location.replace('auth.html'); 
         }
 
         // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
         async function checkAuthAndGroup() {
+            // Vérification de la session utilisateur Supabase
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                console.log("Session utilisateur Supabase expirée ou inexistante. Redirection vers auth.html.");
+                location.replace('auth.html');
+                return false;
+            }
+
+            // Vérification du groupe local (si l'utilisateur est connecté mais n'a pas sélectionné de groupe)
             selectedGroupId = localStorage.getItem('selected_group_id');
 
             if (!selectedGroupId) {
-                console.log("Groupe non sélectionné. Redirection vers login.html");
+                console.log("Groupe non sélectionné. Redirection vers login.html pour sélection.");
                 location.replace('login.html'); 
                 return false;
             }
@@ -251,7 +271,7 @@
 
         // --- Fonction principale de chargement ---
         async function loadDashboardData() {
-            // ** VÉRIFICATION DE LA REDIRECTION IMMÉDIATE **
+            // ** VÉRIFICATION DE LA REDIRECTION IMMÉDIATE (vers auth.html ou login.html) **
             if (!await checkAuthAndGroup()) {
                 return; // Arrête l'exécution si la redirection a eu lieu
             }
@@ -327,6 +347,9 @@
             const btnDeconnexion = document.getElementById('btn-deconnexion');
             if (btnDeconnexion) {
                 btnDeconnexion.addEventListener('click', handleLogout);
+                console.log("Écouteur de déconnexion attaché.");
+            } else {
+                console.error("Erreur: Bouton de déconnexion (btn-deconnexion) non trouvé.");
             }
             
             // 2. Lancer le chargement des données (qui contient la vérification/redirection)
