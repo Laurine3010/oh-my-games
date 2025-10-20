@@ -1,0 +1,6 @@
+{
+  "appId": "com.laurine.ohmygames",
+  "appName": "Oh My Games",
+  "webDir": "www", 
+  "bundledWebRuntime": false 
+}

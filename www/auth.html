@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oh My Games - Connexion</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="login-page"> 
+    <img src="omg_img.png" alt="Fond" class="background-image" />
+    
+    <div class="container">
+        <h1>Oh My Games</h1>
+        <h2>Connexion / Inscription</h2>
+        
+        <form id="auth-form">
+            <label for="auth-email">Adresse Email :</label>
+            <input type="email" id="auth-email" required>
+            
+            <label for="auth-password">Mot de passe :</label>
+            <input type="password" id="auth-password" required minlength="6">
+            
+            <button type="submit" id="btn-login" class="btn-add">Se connecter</button>
+            
+            <button type="button" id="btn-signup" class="btn-add" style="margin-top: 10px;">Créer un compte</button>
+            <button type="button" id="btn-forgot-password" class="btn-supprimer" style="margin-top: 10px;">Mot de passe oublié ?</button>
+        </form>
+        
+        <p id="auth-message" style="margin-top: 15px; color: #333;"></p>
+    </div>
+
+    <script type="module">
+        import { supabase } from './supabase-config.js'; 
+
+        // --- Références DOM ---
+        const authForm = document.getElementById('auth-form');
+        const authEmail = document.getElementById('auth-email');
+        const authPassword = document.getElementById('auth-password');
+        const btnSignup = document.getElementById('btn-signup');
+        const btnForgotPassword = document.getElementById('btn-forgot-password');
+        const authMessage = document.getElementById('auth-message');
+
+        // --- Fonctions d'Authentification ---
+
+        function setAuthMessage(text, color = '#333') {
+            authMessage.style.color = color;
+            authMessage.textContent = text;
+        }
+        
+        function validateInputs(email, password) {
+            if (!email || !password) {
+                setAuthMessage("Veuillez entrer une adresse email ET un mot de passe.", 'red');
+                return false;
+            }
+            if (password.length < 6) {
+                setAuthMessage("Le mot de passe doit contenir au moins 6 caractères.", 'red');
+                return false;
+            }
+            // Ajoutez ici une validation d'email plus poussée si nécessaire
+            return true;
+        }
+
+
+        // Gère la CONNEXION
+        async function handleSignIn(email, password) {
+            if (!validateInputs(email, password)) return;
+
+            setAuthMessage("Connexion en cours...");
+            
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                setAuthMessage(`Erreur de connexion : ${error.message}`, 'red');
+            } else {
+                setAuthMessage("Connexion réussie ! Redirection vers la sélection de groupe...", 'green');
+                setTimeout(() => {
+                    location.href = 'login.html'; 
+                }, 1500);
+            }
+        }
+
+        // Gère l'INSCRIPTION
+        async function handleSignUp(email, password) {
+            if (!validateInputs(email, password)) return;
+
+            setAuthMessage("Inscription en cours...", '#333');
+
+            const { data, error } = await supabase.auth.signUp({ email, password });
+
+            if (error) {
+                setAuthMessage(`Erreur d'inscription : ${error.message}`, 'red');
+            } else if (data.user) {
+                // Utilisateur créé et connecté (si confirmation par email désactivée)
+                setAuthMessage("Inscription et connexion réussies ! Redirection...", 'green');
+                setTimeout(() => {
+                    location.href = 'login.html'; 
+                }, 1500);
+            } else if (data.session === null && data.user === null) {
+                // Confirmation par email requise
+                 setAuthMessage("Inscription réussie ! Un email de confirmation a été envoyé. Veuillez le vérifier avant de vous connecter.", 'orange');
+            }
+            authPassword.value = '';
+        }
+
+        // Gère le MOT DE PASSE OUBLIÉ
+        async function handleForgotPassword() {
+            const email = authEmail.value;
+            if (!email) {
+                setAuthMessage("Veuillez entrer votre adresse email pour la réinitialisation.", 'red');
+                return;
+            }
+
+            setAuthMessage("Envoi du lien de réinitialisation en cours...", '#333');
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                 // Assurez-vous que cette URL est configurée dans Supabase > URL Configuration
+            });
+
+            if (error) {
+                setAuthMessage(`Erreur : ${error.message}`, 'red');
+            } else {
+                setAuthMessage(`Un email a été envoyé à ${email}. Vérifiez votre boîte de réception (et spams).`, 'green');
+            }
+        }
+
+
+        // --- Événements ---
+
+        // Événement Soumission du formulaire (géré pour la CONNEXION par défaut)
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Empêche le rechargement de la page
+            await handleSignIn(authEmail.value, authPassword.value); 
+        });
+
+        // Événement Clic sur INSCRIPTION
+        btnSignup.addEventListener('click', async () => {
+            await handleSignUp(authEmail.value, authPassword.value);
+        });
+
+        // Événement Clic sur MOT DE PASSE OUBLIÉ
+        btnForgotPassword.addEventListener('click', async () => {
+            await handleForgotPassword();
+        });
+
+
+        // --- Vérification au chargement : Redirection si déjà connecté ! ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Tentative de récupérer la session active
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                setAuthMessage("Vous êtes déjà connecté. Redirection...", 'blue');
+                setTimeout(() => {
+                    location.href = 'login.html'; 
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

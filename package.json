@@ -1,0 +1,26 @@
+{
+  "name": "omg",
+  "version": "1.0.0",
+  "description": "Application de gestion de jeux de société, de joueurs et de parties",
+  "main": "supabase-config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Laurine3010/oh-my-games.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Laurine3010/oh-my-games/issues"
+  },
+  "homepage": "https://github.com/Laurine3010/oh-my-games#readme",
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3"
+  }
+}
