@@ -75,122 +75,133 @@
         </p>
     </div>
 
-    <script type="module">
-        import { supabase } from './supabase-config.js'; // Assurez-vous que ce chemin est correct
+<script type="module">
+    import { supabase } from './supabase-config.js'; // Assurez-vous que ce chemin est correct
 
-        const authForm = document.getElementById('auth-form');
-        const authTitle = document.getElementById('auth-title');
-        const authButton = document.getElementById('auth-button');
-        const toggleText = document.getElementById('toggle-text');
-        const toggleLink = document.getElementById('toggle-link-action');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const messageBox = document.getElementById('message-box');
+    const authForm = document.getElementById('auth-form');
+    const authTitle = document.getElementById('auth-title');
+    const authButton = document.getElementById('auth-button');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleLink = document.getElementById('toggle-link-action');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const messageBox = document.getElementById('message-box');
+    
+    let isSigningUp = false; // Par défaut : mode Connexion
+
+    // --- Fonctions d'interface ---
+
+    function showMessage(message, isError = true) {
+        messageBox.textContent = message;
+        messageBox.className = 'message-box ' + (isError ? 'error' : 'success');
+        messageBox.style.display = 'block';
+    }
+
+    function hideMessage() {
+        messageBox.style.display = 'none';
+    }
+
+    function updateFormState() {
+        hideMessage();
+        if (isSigningUp) {
+            authTitle.textContent = 'Inscription';
+            authButton.textContent = "S'inscrire";
+            toggleText.textContent = 'Déjà un compte ?';
+            toggleLink.textContent = 'Se connecter';
+        } else {
+            authTitle.textContent = 'Connexion';
+            authButton.textContent = 'Se connecter';
+            toggleText.textContent = "Pas encore de compte ?";
+            toggleLink.textContent = "S'inscrire";
+        }
+    }
+
+    // --- Logique d'authentification Supabase ---
+
+    async function handleAuth(e) {
+        e.preventDefault();
+        hideMessage();
         
-        let isSigningUp = false; // Par défaut : mode Connexion
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
 
-        // --- Fonctions d'interface ---
+        if (isSigningUp) {
+            // Mode INSCRIPTION
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+            });
 
-        function showMessage(message, isError = true) {
-            messageBox.textContent = message;
-            messageBox.className = 'message-box ' + (isError ? 'error' : 'success');
-            messageBox.style.display = 'block';
-        }
-
-        function hideMessage() {
-            messageBox.style.display = 'none';
-        }
-
-        function updateFormState() {
-            hideMessage();
-            if (isSigningUp) {
-                authTitle.textContent = 'Inscription';
-                authButton.textContent = "S'inscrire";
-                toggleText.textContent = 'Déjà un compte ?';
-                toggleLink.textContent = 'Se connecter';
-            } else {
-                authTitle.textContent = 'Connexion';
-                authButton.textContent = 'Se connecter';
-                toggleText.textContent = "Pas encore de compte ?";
-                toggleLink.textContent = "S'inscrire";
+            if (error) {
+                // Gère les erreurs de validation (ex: mot de passe trop court, email déjà utilisé)
+                showMessage(`Erreur d'inscription : ${error.message}`, true);
+                return;
             }
-        }
 
-        // --- Logique d'authentification Supabase ---
+            // CORRECTION CRITIQUE : Gérer le cas de la confirmation par email
+            // Si data.session est null, l'inscription est OK, mais l'utilisateur doit confirmer par email.
+            if (data.session === null) {
+                showMessage(
+                    "Inscription réussie ! Un e-mail de confirmation vous a été envoyé. Veuillez le vérifier avant de vous connecter.", 
+                    false
+                );
+                // On bascule sur le formulaire de connexion, car l'utilisateur ne peut pas se connecter avant confirmation
+                isSigningUp = false;
+                updateFormState();
+                return; // 🛑 Sortir après affichage du message
+            }
 
-        async function handleAuth(e) {
-            e.preventDefault();
-            hideMessage();
+            // Si data.session n'est pas null, la confirmation par email est désactivée (ou a échoué étrangement)
+            // On procède à la connexion et à la redirection immédiate.
+            showMessage("Inscription réussie et connexion automatique ! Redirection vers la sélection de groupe...", false);
+            setTimeout(() => {
+                window.location.href = 'groupes.html';
+            }, 1000);
+
+        } else {
+            // Mode CONNEXION (Login)
+            const { error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                // Gère les erreurs de connexion (ex: identifiants invalides, email non confirmé)
+                showMessage(`Erreur de connexion : ${error.message}`, true);
+                return;
+            }
             
-            const email = emailInput.value.trim();
-            const password = passwordInput.value.trim();
-
-            if (isSigningUp) {
-                // Mode INSCRIPTION
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                });
-
-                if (error) {
-                    showMessage(`Erreur d'inscription : ${error.message}`, true);
-                } else if (data.user) {
-                    // Inscription réussie : l'utilisateur doit confirmer son email
-                    showMessage("Inscription réussie. Vérifiez votre boîte mail pour confirmer votre compte.", false);
-                    
-                    // Après l'inscription, passer en mode connexion pour l'étape suivante
-                    isSigningUp = false;
-                    updateFormState();
-                } else {
-                    // Message spécifique si la confirmation est en attente (selon les paramètres Supabase)
-                     showMessage("Inscription réussie ! Redirection vers la sélection de groupe...", false);
-                     setTimeout(() => {
-                         window.location.href = 'groupes.html';
-                     }, 1000);
-                }
-            } else {
-                // Mode CONNEXION
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password,
-                });
-
-                if (error) {
-                    showMessage(`Erreur de connexion : ${error.message}`, true);
-                } else {
-                    // Redirection après connexion réussie
-                    showMessage("Connexion réussie ! Redirection vers la sélection de groupe...", false);
-                    // Rediriger vers la page de sélection de groupe (groupes.html)
-                    setTimeout(() => {
-                        window.location.href = 'groupes.html'; // ✅ CORRECTION : Redirection vers la page de groupe
-                    }, 1000);
-                }
-            }
+            // Connexion réussie
+            showMessage("Connexion réussie ! Redirection vers la sélection de groupe...", false);
+            setTimeout(() => {
+                window.location.href = 'groupes.html'; 
+            }, 1000);
         }
+    }
 
-        // --- Écouteurs d'événements ---
+    // --- Écouteurs d'événements ---
 
-        toggleLink.addEventListener('click', () => {
-            isSigningUp = !isSigningUp;
-            updateFormState();
-        });
+    toggleLink.addEventListener('click', () => {
+        isSigningUp = !isSigningUp;
+        updateFormState();
+    });
 
-        authForm.addEventListener('submit', handleAuth);
+    authForm.addEventListener('submit', handleAuth);
 
-        // Vérification de la session au chargement pour redirection automatique
-        async function checkInitialSession() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                // Si l'utilisateur est déjà connecté, le rediriger vers la sélection de groupe
-                console.log("Session active détectée. Redirection vers groupes.html.");
-                window.location.href = 'groupes.html'; // ✅ CORRECTION : Redirection vers la page de groupe
-            } else {
-                // Si non connecté, initialiser le formulaire en mode connexion
-                updateFormState(); 
-            }
+    // Vérification de la session au chargement pour redirection automatique
+    async function checkInitialSession() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            // Si l'utilisateur est déjà connecté, le rediriger vers la page de sélection de groupe
+            console.log("Session active détectée. Redirection vers groupes.html.");
+            window.location.href = 'groupes.html'; 
+        } else {
+            // Si non connecté, initialiser le formulaire en mode connexion
+            updateFormState(); 
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', checkInitialSession);
-    </script>
+    document.addEventListener('DOMContentLoaded', checkInitialSession);
+</script>
 </body>
 </html>
