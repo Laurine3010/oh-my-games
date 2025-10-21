@@ -10,7 +10,7 @@
 <body>
   <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
     <span id="current-group-alias"></span>
-    <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
+    <button onclick="location.href='groupes.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
   </div>
   <h1>Oh My Games</h1>
   <h2>Liste des jeux</h2>
@@ -26,7 +26,7 @@
   <div id="liste-jeux">
     </div>
 
-  <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
+  <button class="btn-home" onclick="location.href='home.html'">🏠 Home</button>
 
   <div id="modal-ajout" class="modal">
     <div id="modal-content" class="modal-content">
@@ -118,7 +118,7 @@
         selectedGroupId = localStorage.getItem('selected_group_id');
 
         if (!session || !selectedGroupId) {
-            location.href = 'login.html'; 
+            location.href = 'groupes.html'; 
             return false;
         }
         

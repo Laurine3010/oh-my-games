@@ -1118,13 +1118,13 @@ tr:hover {
 /* === Styles spécifiques à la page LOGIN === */
 /* ========================================= */
 
-/* Nouvelle classe pour forcer le centrage de tout le body (utilisée sur login.html) */
+/* Nouvelle classe pour forcer le centrage de tout le body (utilisée sur groupes.html) */
 .login-page {
     padding-bottom: 20px; 
 }
 
 
-/* Style général pour le conteneur central (utilisé sur login.html) */
+/* Style général pour le conteneur central (utilisé sur groupes.html) */
 .login-page .container {
     max-width: 450px; 
     width: 100%;

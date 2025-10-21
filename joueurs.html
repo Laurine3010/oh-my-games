@@ -67,7 +67,7 @@
 <body>
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
+        <button onclick="location.href='groupes.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
     </div>
     
     <img src="omg_img.png" alt="Fond" class="background-image" />
@@ -99,7 +99,7 @@
         </div>
     </div>
     
-    <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
+    <button class="btn-home" onclick="location.href='home.html'">🏠 Home</button>
 
     <script type="module">
         console.log("Script joueurs.html chargé.");
@@ -134,7 +134,7 @@
 
             if (!session || !selectedGroupId) {
                 // Rediriger si non connecté ou si le groupe n'est pas sélectionné
-                location.href = 'login.html'; 
+                location.href = 'groupes.html'; 
                 return false;
             }
             

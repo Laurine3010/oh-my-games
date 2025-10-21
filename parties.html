@@ -96,13 +96,13 @@
 <body>
     <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
         <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
+        <button onclick="location.href='groupes.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
     </div>
   <h1>Oh My Games</h1>
   <h2>Nouvelle partie</h2>
 
   <img src="omg_img.png" alt="Fond" class="background-image" />
-  <button class="btn-home" onclick="location.href='index.html'">&#127968; Home</button>
+  <button class="btn-home" onclick="location.href='home.html'">&#127968; Home</button>
 
   <form id="form-partie">
     <label for="jeu-input">Jeu :</label><br />
@@ -220,7 +220,7 @@
 
         if (!session || !selectedGroupId) {
             // Rediriger si non connecté ou si le groupe n'est pas sélectionné
-            location.href = 'auth.html'; 
+            location.href = 'index.html'; 
             return false;
         }
         

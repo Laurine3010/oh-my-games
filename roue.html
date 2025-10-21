@@ -125,7 +125,7 @@
   <h2>Roue des jeux</h2>
   <div id="group-info" style="text-align: right; margin-top: -30px; margin-right: 10px;">
     <span id="current-group-alias"></span>
-    <button onclick="location.href='login.html'" style="margin-left: 10px;">Changer de groupe</button>
+    <button onclick="location.href='groupes.html'" style="margin-left: 10px;">Changer de groupe</button>
   </div>
   <img src="omg_img.png" alt="Fond" class="background-image" />
   
@@ -149,7 +149,7 @@
     <button id="btn-spin" disabled>Faire tourner la roue !</button>
   </main>
 
-  <button class="btn-home" onclick="location.href='index.html'">🏠 Home</button>
+  <button class="btn-home" onclick="location.href='home.html'">🏠 Home</button>
 
   <script type="module">
     console.log("Script roue.html chargé.");
@@ -178,7 +178,7 @@
     // --- Initialisation du Groupe ---
     selectedGroupId = localStorage.getItem('selected_group_id');
     if (!selectedGroupId) {
-        location.href = 'login.html';
+        location.href = 'groupes.html';
         throw new Error("Groupe non sélectionné.");
     }
     const selectedGroupAlias = localStorage.getItem('selected_group_alias');

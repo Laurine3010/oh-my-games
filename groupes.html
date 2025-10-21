@@ -136,7 +136,7 @@
             localStorage.setItem('selected_group_id', id_interne); 
             localStorage.setItem('selected_group_alias', alias || id_interne);
             alert(`Groupe sélectionné : ${alias || id_interne}`);
-            location.href = 'index.html';
+            location.href = 'home.html';
         }
 
         // --- Logique de gestion de groupe ---
@@ -148,7 +148,7 @@
                 localStorage.removeItem('selected_group_id');
                 localStorage.removeItem('selected_group_alias');
                 alert("Vous êtes déconnecté. Redirection vers la page de connexion.");
-                location.href = 'auth.html'; 
+                location.href = 'index.html'; 
             } else {
                 console.error("Erreur de déconnexion:", error);
                 alert("Erreur de déconnexion. Veuillez réessayer.");
@@ -259,7 +259,7 @@
             if (error || !session) {
                 // Utilisateur NON CONNECTÉ : Redirection immédiate vers la page d'authentification
                 alert("Veuillez vous connecter pour accéder à la sélection de groupe.");
-                location.href = 'auth.html'; 
+                location.href = 'index.html'; 
                 return; 
             }
             
@@ -274,7 +274,7 @@
                 // Si un groupe était déjà sélectionné
                 const confirmSwitch = confirm(`Groupe actuel : ${currentGroupAlias}. Voulez-vous continuer avec ce groupe ou en changer ?`);
                 if (confirmSwitch) {
-                    location.href = 'index.html'; // Continuer
+                    location.href = 'home.html'; // Continuer
                 } else {
                     // L'utilisateur veut changer
                     localStorage.removeItem('selected_group_id');

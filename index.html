@@ -1,336 +1,210 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <title>Oh My Games</title>
-    <link rel="stylesheet" href="styles.css">
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oh My Games - Connexion / Inscription</title>
+    <link rel="stylesheet" href="styles.css" />
     <style>
-        /* Les styles devraient idéalement être dans styles.css */
-        .dashboard-section {
-            margin-top: 40px;
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .stats-overview {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        .stat-card {
-            background-color: #f0f8ff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            min-width: 150px;
-        }
-        .stat-card h3 {
-            color: #333;
-            margin-top: 0;
-            font-size: 1em;
-        }
-        .stat-card p {
-            font-size: 2em;
-            font-weight: bold;
-            color: #007bff;
-            margin: 5px 0 0 0;
-        }
-        .recent-games-section {
+        /* Styles spécifiques pour centrer et styliser le formulaire d'authentification */
+        .auth-container {
             max-width: 400px;
-            width: 100%;
-            background: #fff;
+            margin: 50px auto;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        .recent-game-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px dashed #eee;
+        .auth-container h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
         }
-        .recent-game-item:last-child {
-            border-bottom: none;
-        }
-        .recent-game-item .date {
-            font-size: 0.85em;
-            color: #666;
-        }
-        .btn-goto-parties {
-            width: 100%;
-            margin-top: 15px;
+        .message-box {
             padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: none;
+            text-align: center;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .toggle-auth {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .toggle-auth a {
+            color: #007bff;
             cursor: pointer;
-            font-size: 1em;
+            text-decoration: none;
+        }
+        .toggle-auth a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <div id="group-info" style="text-align: right; margin-top: 10px; margin-right: 10px;">
-        <span id="current-group-alias"></span>
-        <button onclick="location.href='login.html'" class="btn-home" style="position: static; margin-left: 10px; padding: 5px 10px;">Changer de groupe</button>
-        </div>
-
     <h1>Oh My Games</h1>
-    <h2>Que la partie commence!</h2>
+    <img src="omg_img.png" alt="Fond" class="background-image" />
 
-    <img src="omg_img.png" alt="Fond" class="background-image">
+    <div class="auth-container">
+        <h2 id="auth-title">Connexion</h2>
+        
+        <div id="auth-message" class="message-box"></div>
 
-    <div class="buttons-container">
-        <button class="btn-jeux" onclick="location.href='jeux.html'">&#127919; Jeux</button>
-        <button class="btn-joueurs" onclick="location.href='joueurs.html'">&#128100; Joueurs</button>
-        <button class="btn-parties" onclick="location.href='parties.html'">&#127942; Parties</button>
-        <button class="btn-roue" onclick="location.href='roue.html'">&#127921; Roue des jeux</button>
-    </div>
+        <form id="auth-form">
+            <label for="email">Email :</label><br />
+            <input type="email" id="email" name="email" required><br />
 
-    <div class="dashboard-section">
-        <div class="stats-overview">
-            <div class="stat-card">
-                <h3>Total Jeux</h3>
-                <p id="total-jeux">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Total Joueurs</h3>
-                <p id="total-joueurs">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Total Parties</h3>
-                <p id="total-parties">0</p>
-            </div>
-        </div>
+            <label for="password">Mot de passe :</label><br />
+            <input type="password" id="password" name="password" required><br /><br />
+            
+            <button type="submit" id="auth-button" class="btn-add">Se connecter</button>
+        </form>
 
-        <div class="recent-games-section">
-            <h3>Dernières Parties Jouées</h3>
-            <div id="recent-games-list">
-                <p class="no-recent-games">Chargement en cours...</p>
-            </div>
-            <button class="btn-goto-parties" onclick="location.href='parties.html'">Voir toutes les parties</button>
+        <div class="toggle-auth">
+            <p>
+                <span id="toggle-text">Pas encore de compte ?</span>
+                <a id="toggle-link">S'inscrire</a>
+            </p>
         </div>
     </div>
 
     <script type="module">
-        console.log("Script index.html chargé.");
+        console.log("Script index.html chargé et prêt."); // NOUVEAU LOG POUR VÉRIFICATION
 
+        // Utilisation du chemin relatif, plus sûr dans certains environnements
         import { supabase } from './supabase-config.js'; 
 
-        let selectedGroupId = null;
-        let joueurIdToNom = new Map();
+        // DOM References
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const authButton = document.getElementById('auth-button');
+        const toggleText = document.getElementById('toggle-text');
+        const toggleLink = document.getElementById('toggle-link');
+        const authMessage = document.getElementById('auth-message');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
 
-        // --- Vérification de l'authentification et du groupe (CRITIQUE) ---
-        async function checkAuthAndGroup() {
-            // 1. Vérification de la session utilisateur Supabase
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                console.log("Session utilisateur Supabase expirée ou inexistante. Redirection vers auth.html.");
-                location.replace('auth.html');
-                return false;
-            }
+        let isSigningUp = false; // État initial: Connexion
 
-            // 2. Vérification du groupe local
-            selectedGroupId = localStorage.getItem('selected_group_id');
+        // --- Fonctions d'aide ---
 
-            if (!selectedGroupId) {
-                console.log("Groupe non sélectionné. Redirection vers login.html pour sélection.");
-                location.replace('login.html'); 
-                return false;
-            }
-            
-            const selectedGroupAlias = localStorage.getItem('selected_group_alias');
-            document.getElementById('current-group-alias').textContent = `Groupe : ${selectedGroupAlias}`;
-            
-            return true;
+        function showMessage(text, isError = false) {
+            authMessage.textContent = text;
+            authMessage.className = 'message-box ' + (isError ? 'error' : 'success');
+            authMessage.style.display = 'block';
         }
 
-        // --- Fonctions de communication avec Supabase (filtrées par groupe) ---
-
-        async function chargerJeux() {
-            if (!selectedGroupId) return null;
-            const { data, error } = await supabase
-                .from('jeux')
-                .select('id')
-                .eq('groupe_id', selectedGroupId);
-            if (error) { console.error("Erreur lors du chargement des jeux:", error); return null; }
-            return data;
+        function clearMessage() {
+            authMessage.style.display = 'none';
         }
 
-        async function chargerJoueurs() {
-            if (!selectedGroupId) return null;
-            const { data, error } = await supabase
-                .from('joueurs')
-                .select('id, nom')
-                .eq('groupe_id', selectedGroupId);
-            if (error) { console.error("Erreur lors du chargement des joueurs:", error); return null; }
-            return data;
-        }
-
-        async function chargerParties() {
-            if (!selectedGroupId) return [];
-
-            try {
-                // 1. Charger les N dernières parties de ce groupe (pour le tableau de bord)
-                const { data: partiesBase, error: partiesError } = await supabase
-                    .from('parties')
-                    .select('id, date, nom_jeu')
-                    .eq('groupe_id', selectedGroupId)
-                    .order('date', { ascending: false })
-                    .limit(10); // Limiter à 10 pour le tableau de bord
-
-                if (partiesError) throw partiesError;
-
-                const partieIds = partiesBase.map(p => p.id);
-
-                if (partieIds.length === 0) return partiesBase.map(p => ({ ...p, vainqueurs: [] }));
-
-                // 2. Charger toutes les lignes de jointure (participants/gagnants) pour ces parties
-                const { data: jointureData, error: jointureError } = await supabase
-                    .from('parties_joueurs')
-                    .select('partie_id, joueur_id, est_gagnant');
-
-                if (jointureError) throw jointureError;
-
-                // 3. Reconstruire l'objet 'parties'
-                const partiesMap = new Map(partiesBase.map(p => [p.id, {
-                    ...p,
-                    vainqueurs: [] // Liste de noms
-                }]));
-
-                jointureData.forEach(line => {
-                    const partie = partiesMap.get(line.partie_id);
-                    const nomJoueur = joueurIdToNom.get(line.joueur_id); 
-
-                    if (partie && nomJoueur && line.est_gagnant) {
-                        partie.vainqueurs.push(nomJoueur);
-                    }
-                });
-
-                // 4. Retourner les objets parties reconstruites 
-                return Array.from(partiesMap.values());
-
-            } catch (error) {
-                console.error("Erreur lors du chargement des parties:", error);
-                return [];
-            }
-        }
-        
-        // --- Assurer l'existence du joueur par défaut ---
-        async function ensureDefaultPlayerExists(groupId) {
-            const defaultPlayerName = "Laurine";
-            
-            try {
-                let { data } = await supabase
-                    .from('joueurs')
-                    .select('id')
-                    .eq('nom', defaultPlayerName)
-                    .eq('groupe_id', groupId)
-                    .limit(1);
-
-                if (!data || data.length === 0) {
-                    console.log(`Création du joueur par défaut: ${defaultPlayerName}`);
-                    await supabase
-                        .from('joueurs')
-                        .insert({ 
-                            nom: defaultPlayerName,
-                            alias: defaultPlayerName, 
-                            groupe_id: groupId
-                        });
-                }
-            } catch (error) {
-                console.error("Erreur lors de la gestion du joueur par défaut 'Laurine':", error);
-            }
-        }
-
-        // --- Fonction principale de chargement ---
-        async function loadDashboardData() {
-            // ** VÉRIFICATION DE LA REDIRECTION IMMÉDIATE **
-            if (!await checkAuthAndGroup()) {
-                return; // Arrête l'exécution si la redirection a eu lieu
-            }
-
-            const totalJeuxElement = document.getElementById('total-jeux');
-            const totalJoueursElement = document.getElementById('total-joueurs');
-            const totalPartiesElement = document.getElementById('total-parties');
-            const recentGamesList = document.getElementById('recent-games-list');
-
-            // 1. Assurer 'Laurine' existe (avant de charger la liste des joueurs)
-            await ensureDefaultPlayerExists(selectedGroupId);
-
-            // 2. Afficher état de chargement
-            if (recentGamesList) { recentGamesList.innerHTML = '<p class="no-recent-games">Chargement en cours...</p>'; }
-            
-            // 3. Chargement des données (Joueurs d'abord pour la map ID -> Nom)
-            const [jeux, joueurs] = await Promise.all([chargerJeux(), chargerJoueurs()]);
-            
-            // Initialisation de la map ID -> Nom
-            if (joueurs) {
-                joueurIdToNom.clear();
-                joueurs.forEach(j => {
-                    joueurIdToNom.set(j.id, j.nom);
-                });
-            }
-
-            // 4. Chargement des parties (maintenant que la map est prête)
-            const parties = await chargerParties();
-
-            // 5. Mise à jour des statistiques
-            totalJeuxElement.textContent = jeux ? jeux.length : "0";
-            totalJoueursElement.textContent = joueurs ? joueurs.length : "0";
-            totalPartiesElement.textContent = parties ? parties.length : "0";
-
-            // 6. Affichage des dernières parties
-            recentGamesList.innerHTML = '';
-            
-            if (parties && parties.length > 0) {
-                const maxRecentGames = 5;
-
-                for (let i = 0; i < Math.min(parties.length, maxRecentGames); i++) {
-                    const partie = parties[i]; 
-                    const gameItem = document.createElement('div');
-                    gameItem.className = 'recent-game-item';
-
-                    const dateObj = new Date(partie.date);
-                    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
-                        year: 'numeric', month: 'short', day: 'numeric' 
-                    });
-                    
-                    const vainqueur = partie.vainqueurs.join(', ');
-                    const gagnantInfo = (vainqueur && String(vainqueur).trim() !== '') ?
-                        ` (Gagnant : <strong>${vainqueur}</strong>)` :
-                        '';
-
-                    gameItem.innerHTML = `
-                        <div>
-                            <strong>${partie.nom_jeu}</strong>${gagnantInfo}
-                        </div>
-                        <span class="date">${formattedDate}</span>
-                    `;
-                    recentGamesList.appendChild(gameItem);
-                }
+        function updateFormState() {
+            if (isSigningUp) {
+                authTitle.textContent = 'Inscription';
+                authButton.textContent = "S'inscrire";
+                toggleText.textContent = 'Déjà un compte ?';
+                toggleLink.textContent = 'Se connecter';
             } else {
-                recentGamesList.innerHTML = '<p class="no-recent-games">Aucune partie récente enregistrée.</p>';
+                authTitle.textContent = 'Connexion';
+                authButton.textContent = 'Se connecter';
+                toggleText.textContent = 'Pas encore de compte ?';
+                toggleLink.textContent = "S'inscrire";
+            }
+            clearMessage();
+        }
+
+        // --- Gestion de l'authentification ---
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            clearMessage();
+            console.log(`Tentative d'authentification en mode: ${isSigningUp ? 'Inscription' : 'Connexion'}`); // LOG CRITIQUE
+
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            authButton.disabled = true;
+            authButton.textContent = isSigningUp ? "Inscription..." : "Connexion...";
+
+            let result;
+
+            if (isSigningUp) {
+                // Tente l'inscription
+                result = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                });
+            } else {
+                // Tente la connexion
+                result = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+            }
+
+            authButton.disabled = false;
+            authButton.textContent = isSigningUp ? "S'inscrire" : "Se connecter";
+
+            if (result.error) {
+                // Gestion des erreurs
+                showMessage(result.error.message, true);
+                console.error("Erreur d'authentification Supabase:", result.error);
+                return;
+            }
+
+            // --- SUCCÈS ---
+
+            if (isSigningUp) {
+                // Message d'inscription réussi
+                showMessage("Inscription réussie ! Veuillez maintenant vous connecter.", false);
+                // Après l'inscription, passer en mode connexion pour l'étape suivante
+                isSigningUp = false;
+                updateFormState();
+            } else {
+                // Redirection après connexion réussie
+                showMessage("Connexion réussie ! Redirection vers la sélection de groupe...", false);
+                // Rediriger vers la page de sélection de groupe (groupes.html)
+                setTimeout(() => {
+                    window.location.href = 'groupes.html'; 
+                }, 1000);
             }
         }
 
-        // --- Gestion des Événements et Initialisation ---
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            // Appel de la fonction de chargement au chargement de la page
-            loadDashboardData();
+        // --- Écouteurs d'événements ---
+
+        toggleLink.addEventListener('click', () => {
+            isSigningUp = !isSigningUp;
+            updateFormState();
         });
 
-        // Recharger les données quand la page redevient visible
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                loadDashboardData();
+        authForm.addEventListener('submit', handleAuth);
+
+        // Vérification de la session au chargement pour redirection automatique
+        async function checkInitialSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                // Si l'utilisateur est déjà connecté, le rediriger vers la sélection de groupe
+                console.log("Session active détectée. Redirection vers groupes.html.");
+                window.location.href = 'groupes.html';
+            } else {
+                // Si non connecté, initialiser le formulaire en mode connexion
+                updateFormState(); 
             }
-        });
+        }
+
+        document.addEventListener('DOMContentLoaded', checkInitialSession);
+
     </script>
 </body>
 </html>
