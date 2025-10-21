@@ -108,7 +108,8 @@
         import { supabase } from '/supabase-config.js';
 
         let joueurs = [];
-        let partiesStats = []; 
+        // Renommé en partiesData pour refléter le contenu réel (les données brutes des parties)
+        let partiesData = []; 
         let joueurIdToNom = new Map();
         
         const modalAjout = document.getElementById('modal-ajout');
@@ -149,13 +150,13 @@
         async function chargerJoueurs() { 
              try {
                 const { data, error } = await supabase
-                    .from('joueurs')
+                    .from('omg_app.joueurs') // <-- CORRECTION SCHÉMA
                     .select('id, nom') 
                     .eq('groupe_id', selectedGroupId)
                     .order('nom', { ascending: true });
                 if (error) throw error;
                 
-                // Mettre à jour la map ID -> Nom (utile même si pas utilisée ici)
+                // Mettre à jour la map ID -> Nom
                 joueurIdToNom.clear();
                 data.forEach(j => joueurIdToNom.set(j.id, j.nom));
 
@@ -167,13 +168,18 @@
             }
         }
 
-        async function chargerPartiesStats() { 
+        async function chargerPartiesData() { // Renommée pour plus de clarté
              try {
-                // Charge toutes les lignes de jointure parties_joueurs pour le groupe
+                // Requête adaptée à la nouvelle structure omg_app.parties (array joueurs_ids et gagnant_id)
                 const { data, error } = await supabase
-                    .from('parties_joueurs')
-                    .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)') 
-                    .eq('parties.groupe_id', selectedGroupId); // Filtre via la relation
+                    .from('omg_app.parties') // <-- CORRECTION SCHÉMA
+                    .select(`
+                        id, 
+                        joueurs_ids, 
+                        gagnant_id, 
+                        jeu:jeu_id(nom) // Nom du jeu via la relation
+                    `) 
+                    .eq('groupe_id', selectedGroupId); 
                 
                 if (error) throw error;
                 return data;
@@ -187,21 +193,21 @@
             if (id) {
                 // Modification
                 const { error } = await supabase
-                    .from('joueurs')
+                    .from('omg_app.joueurs') // <-- CORRECTION SCHÉMA
                     .update({ nom: nom })
                     .eq('id', id);
                 if (error) throw error;
             } else {
                 // Ajout
                 const { error } = await supabase
-                    .from('joueurs')
-                    // Utilisation du nom comme alias par défaut
-                    .insert([{ nom: nom, alias: nom, groupe_id: selectedGroupId }]); 
+                    .from('omg_app.joueurs') // <-- CORRECTION SCHÉMA
+                    // Suppression de 'alias: nom' car la colonne alias n'existe plus
+                    .insert([{ nom: nom, groupe_id: selectedGroupId }]); 
                 if (error) throw error;
             }
         }
 
-        // --- Listeners MODALE AJOUT/MODIF ---
+        // --- Listeners MODALE AJOUT/MODIF (inchangés) ---
 
         btnAdd.addEventListener('click', () => {
             formAjout.reset();
@@ -236,7 +242,8 @@
             try {
                 await ajouterOuModifierJoueur(joueurId, nom);
                 modalAjout.style.display = 'none';
-                await chargerEtAfficherJoueurs();
+                // La fonction a été modifiée pour charger les nouvelles données
+                await chargerEtAfficherJoueurs(); 
                 alert(`Joueur ${joueurId ? 'modifié' : 'ajouté'} avec succès!`);
             } catch (error) {
                 console.error("Erreur lors de l'opération joueur:", error);
@@ -277,26 +284,26 @@
             listeJoueurs.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Chargement des données...</p>';
 
             joueurs = await chargerJoueurs();
-            partiesStats = await chargerPartiesStats(); 
+            partiesData = await chargerPartiesData(); // Appel de la fonction corrigée
             generateAlphaFilters();
             afficherListeJoueurs();
         }
 
         function calculerStats(joueurId) {
-            const stats = { partiesJouees: 0, victoires: 0, partiesGagneesParJeu: new Map(), partiesJoueesSet: new Set() };
+            // Mise à jour de la logique pour utiliser le tableau de parties
+            const stats = { partiesJouees: 0, victoires: 0, partiesGagneesParJeu: new Map() }; 
             
-            partiesStats.forEach(line => {
-                const nomJeu = line.parties && line.parties.nom_jeu ? line.parties.nom_jeu : 'Jeu Inconnu';
+            partiesData.forEach(partie => {
+                // Assure que le nom du jeu est correctement extrait de l'objet joint (jeu)
+                const nomJeu = partie.jeu && partie.jeu.nom ? partie.jeu.nom : 'Jeu Inconnu';
                 
-                if (line.joueur_id === joueurId) {
-                    const partieId = line.partie_id;
+                // 1. Vérifie si le joueur est dans le tableau des participants (joueurs_ids)
+                if (partie.joueurs_ids && Array.isArray(partie.joueurs_ids) && partie.joueurs_ids.includes(joueurId)) {
                     
-                    if (!stats.partiesJoueesSet.has(partieId)) {
-                        stats.partiesJouees++;
-                        stats.partiesJoueesSet.add(partieId);
-                    }
+                    stats.partiesJouees++;
                     
-                    if (line.est_gagnant) {
+                    // 2. Vérifie si le joueur est le gagnant (gagnant_id)
+                    if (partie.gagnant_id === joueurId) { 
                         stats.victoires++;
                         const currentCount = stats.partiesGagneesParJeu.get(nomJeu) || 0;
                         stats.partiesGagneesParJeu.set(nomJeu, currentCount + 1);
@@ -386,8 +393,11 @@
         window.supprimerJoueurEtRecharger = async function (id, nom) {
             if (confirm(`Supprimer le joueur "${nom}" ? ATTENTION: Cela supprime aussi ses participations et victoires dans toutes les parties enregistrées de ce groupe.`)) {
                 try {
-                    // La BDD devrait gérer la suppression en cascade des parties_joueurs
-                    const { error } = await supabase.from('joueurs').delete().eq('id', id);
+                    // La BDD gère la suppression en cascade des tables qui référencent joueurs
+                    const { error } = await supabase
+                        .from('omg_app.joueurs') // <-- CORRECTION SCHÉMA
+                        .delete()
+                        .eq('id', id);
                     if (error) throw error;
                     await chargerEtAfficherJoueurs();
                     alert(`Le joueur ${nom} a été supprimé.`);

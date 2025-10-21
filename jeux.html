@@ -147,6 +147,7 @@
     // --- Fonctions de gestion des propriétaires ---
     async function chargerProprietaires() {
         try {
+            // Sélectionne les propriétaires liés au groupe actuel
             const { data, error } = await supabase
                 .from('proprietaires')
                 .select('*')
@@ -161,14 +162,17 @@
     }
 
     function mettreAJourSelectProprietaires() {
+        // Garde uniquement les options statiques ("Sélectionner..." et "Ajouter...")
         const options = Array.from(proprietaireJeuSelect.options).filter(opt => opt.value === "" || opt.value === "ajouter-proprietaire");
         proprietaireJeuSelect.innerHTML = '';
         options.forEach(opt => proprietaireJeuSelect.appendChild(opt));
 
+        // Ajoute les propriétaires chargés de la BDD
         proprietaires.forEach(p => {
             const option = document.createElement('option');
             option.value = p.id;
             option.textContent = p.nom;
+            // Insère avant l'option "Ajouter un propriétaire" (la dernière option)
             proprietaireJeuSelect.insertBefore(option, proprietaireJeuSelect.options[proprietaireJeuSelect.options.length - 1]);
         });
     }
@@ -177,6 +181,7 @@
         const nom = prompt("Entrez le nom du nouveau propriétaire :");
         if (nom && nom.trim() !== '') {
             try {
+                // Ajout du nouveau propriétaire dans la table 'proprietaires' avec le groupe_id
                 const { data, error } = await supabase.from('proprietaires')
                     .insert({ nom: nom.trim(), groupe_id: selectedGroupId })
                     .select();
@@ -187,10 +192,11 @@
                         throw error;
                     }
                 } else {
+                    // Mise à jour de la liste locale et du <select>
                     proprietaires.push(data[0]);
                     proprietaires.sort((a, b) => a.nom.localeCompare(b.nom));
                     mettreAJourSelectProprietaires();
-                    proprietaireJeuSelect.value = data[0].id;
+                    proprietaireJeuSelect.value = data[0].id; // Sélectionne le nouveau propriétaire
                 }
             } catch (error) {
                 console.error("Erreur lors de l'ajout du propriétaire:", error);
@@ -204,7 +210,7 @@
         const photosUrls = [];
         for (const file of photosFiles) {
             const fileExt = file.name.split('.').pop();
-            // Utiliser Date.now() pour garantir l'unicité
+            // Utiliser Date.now() pour garantir l'unicité du nom de fichier dans le bucket du groupe
             const fileName = `${selectedGroupId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`; 
             const { data, error } = await supabase.storage.from(photosBucket).upload(fileName, file);
 
@@ -254,15 +260,18 @@
 
         try {
             // 1. Charger les jointures avec le nom du jeu via la relation
+            // Utilise la jointure implicite pour lier parties_joueurs -> parties -> jeux
+            // Pour des performances optimales, on pourrait aussi joindre 'parties(jeu(nom))' si la structure de la BDD le permet,
+            // mais ici on utilise le `nom_jeu` stocké dans la table `parties` (selon la structure supposée).
             const { data: jointureData, error: jointureError } = await supabase
                 .from('parties_joueurs')
-                .select('partie_id, joueur_id, est_gagnant, parties(nom_jeu)')
+                .select('partie_id, joueur_id, est_gagnant, parties!inner(nom_jeu)') // 'parties!inner' pour ne prendre que les lignes qui existent
                 .eq('parties.groupe_id', selectedGroupId); 
 
             if (jointureError) throw jointureError;
 
             const stats = new Map(); 
-            const partiesComptees = new Set(); // Pour compter chaque partie une seule fois
+            const partiesComptees = new Set(); // Pour compter chaque partie une seule fois par jeu
 
             jointureData.forEach(line => {
                 const nomJeu = line.parties.nom_jeu;
@@ -276,7 +285,7 @@
 
                 const jeuStats = stats.get(nomJeu);
 
-                // Compter le nombre de parties jouées
+                // Compter le nombre de parties jouées (une seule fois par jeu et partieId)
                 if (!partiesComptees.has(`${nomJeu}-${partieId}`)) {
                     jeuStats.parties++;
                     partiesComptees.add(`${nomJeu}-${partieId}`);
@@ -301,9 +310,10 @@
     // --- Fonctions CRUD des jeux ---
     async function chargerJeux() {
         try {
+            // Jointure pour obtenir le nom du propriétaire via l'ID
             const { data, error } = await supabase
                 .from('jeux')
-                .select('*, proprietaires(nom)')
+                .select('*, proprietaires(nom)') // Récupère toutes les colonnes de 'jeux' et le 'nom' du propriétaire associé
                 .eq('groupe_id', selectedGroupId)
                 .order('nom', { ascending: true }); 
             if (error) throw error;
@@ -348,10 +358,14 @@
 
     async function supprimerJeu(id) {
         try {
+            // 1. Supprimer les photos du storage avant de supprimer l'entrée de la BDD
             const jeuASupprimer = jeux.find(j => j.id === id);
             if (jeuASupprimer && Array.isArray(jeuASupprimer.photos) && jeuASupprimer.photos.length > 0) {
                 await supprimerPhotos(jeuASupprimer.photos);
             }
+            
+            // 2. Supprimer l'entrée de la BDD
+            // ATTENTION: La suppression en cascade des parties doit être configurée dans Supabase si nécessaire.
             const { error } = await supabase
                 .from('jeux')
                 .delete()
@@ -377,7 +391,7 @@
         joueurIdToNom.clear();
         joueurs.forEach(j => joueurIdToNom.set(j.id, j.nom));
 
-        // 2. Charger les jeux et les statistiques 
+        // 2. Charger les jeux et les statistiques en parallèle
         await Promise.all([
             chargerJeux().then(data => jeux = data),
             chargerStatistiquesParties() 
@@ -474,6 +488,7 @@
             let meilleur = null;
             let max = 0;
             
+            // Trouve le joueur avec le plus de victoires pour ce jeu
             for (const [joueur, score] of scores.entries()) {
                 if (score > max) {
                     max = score;
@@ -588,6 +603,7 @@
         emprunteAInput.value = jeu.emprunte_a || '';
         emprunteAInput.style.display = emprunteCheckbox.checked ? 'block' : 'none';
 
+        // Gestion des photos existantes
         oldPhotosUrls = Array.isArray(jeu.photos) ? [...jeu.photos] : [];
         photosPreviewDiv.innerHTML = '';
         if (oldPhotosUrls.length > 0) {
@@ -623,6 +639,7 @@
             newPhotosUrls = await uploaderPhotos(photosFiles);
         }
 
+        // Combine les anciennes photos conservées et les nouvelles uploadées
         const finalPhotosUrls = [...oldPhotosUrls, ...newPhotosUrls];
         
         const jeuData = {
@@ -651,7 +668,7 @@
             modal.style.display = 'none';
             await chargerEtAfficherJeux();
         } else {
-            // Afficher l'erreur est géré dans les fonctions CRUD
+            // L'affichage de l'erreur est géré dans les fonctions CRUD
         }
     });
 

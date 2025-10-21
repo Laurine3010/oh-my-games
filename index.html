@@ -38,78 +38,71 @@
             color: #155724;
             border: 1px solid #c3e6cb;
         }
-        .toggle-auth {
+        .toggle-link {
             text-align: center;
             margin-top: 15px;
         }
-        .toggle-auth a {
+        .toggle-link a {
             color: #007bff;
-            cursor: pointer;
             text-decoration: none;
-        }
-        .toggle-auth a:hover {
-            text-decoration: underline;
+            cursor: pointer;
+            font-weight: bold;
         }
     </style>
 </head>
-<body>
-    <h1>Oh My Games</h1>
+<body class="login-page">
     <img src="omg_img.png" alt="Fond" class="background-image" />
 
     <div class="auth-container">
+        <h1>Oh My Games</h1>
         <h2 id="auth-title">Connexion</h2>
         
-        <div id="auth-message" class="message-box"></div>
+        <div id="message-box" class="message-box"></div>
 
         <form id="auth-form">
-            <label for="email">Email :</label><br />
-            <input type="email" id="email" name="email" required><br />
+            <label for="email">Email :</label>
+            <input type="email" id="email" required>
 
-            <label for="password">Mot de passe :</label><br />
-            <input type="password" id="password" name="password" required><br /><br />
-            
-            <button type="submit" id="auth-button" class="btn-add">Se connecter</button>
+            <label for="password">Mot de passe :</label>
+            <input type="password" id="password" required>
+
+            <button type="submit" class="btn-add" id="auth-button" style="margin-top: 20px;">Se connecter</button>
         </form>
 
-        <div class="toggle-auth">
-            <p>
-                <span id="toggle-text">Pas encore de compte ?</span>
-                <a id="toggle-link">S'inscrire</a>
-            </p>
-        </div>
+        <p class="toggle-link">
+            <span id="toggle-text">Pas encore de compte ?</span>
+            <a id="toggle-link-action">S'inscrire</a>
+        </p>
     </div>
 
     <script type="module">
-        console.log("Script index.html chargé et prêt."); // NOUVEAU LOG POUR VÉRIFICATION
+        import { supabase } from './supabase-config.js'; // Assurez-vous que ce chemin est correct
 
-        // Utilisation du chemin relatif, plus sûr dans certains environnements
-        import { supabase } from './supabase-config.js'; 
-
-        // DOM References
         const authForm = document.getElementById('auth-form');
         const authTitle = document.getElementById('auth-title');
         const authButton = document.getElementById('auth-button');
         const toggleText = document.getElementById('toggle-text');
-        const toggleLink = document.getElementById('toggle-link');
-        const authMessage = document.getElementById('auth-message');
+        const toggleLink = document.getElementById('toggle-link-action');
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
+        const messageBox = document.getElementById('message-box');
+        
+        let isSigningUp = false; // Par défaut : mode Connexion
 
-        let isSigningUp = false; // État initial: Connexion
+        // --- Fonctions d'interface ---
 
-        // --- Fonctions d'aide ---
-
-        function showMessage(text, isError = false) {
-            authMessage.textContent = text;
-            authMessage.className = 'message-box ' + (isError ? 'error' : 'success');
-            authMessage.style.display = 'block';
+        function showMessage(message, isError = true) {
+            messageBox.textContent = message;
+            messageBox.className = 'message-box ' + (isError ? 'error' : 'success');
+            messageBox.style.display = 'block';
         }
 
-        function clearMessage() {
-            authMessage.style.display = 'none';
+        function hideMessage() {
+            messageBox.style.display = 'none';
         }
 
         function updateFormState() {
+            hideMessage();
             if (isSigningUp) {
                 authTitle.textContent = 'Inscription';
                 authButton.textContent = "S'inscrire";
@@ -118,66 +111,60 @@
             } else {
                 authTitle.textContent = 'Connexion';
                 authButton.textContent = 'Se connecter';
-                toggleText.textContent = 'Pas encore de compte ?';
+                toggleText.textContent = "Pas encore de compte ?";
                 toggleLink.textContent = "S'inscrire";
             }
-            clearMessage();
         }
 
-        // --- Gestion de l'authentification ---
+        // --- Logique d'authentification Supabase ---
 
         async function handleAuth(e) {
             e.preventDefault();
-            clearMessage();
-            console.log(`Tentative d'authentification en mode: ${isSigningUp ? 'Inscription' : 'Connexion'}`); // LOG CRITIQUE
-
-            const email = emailInput.value;
-            const password = passwordInput.value;
-
-            authButton.disabled = true;
-            authButton.textContent = isSigningUp ? "Inscription..." : "Connexion...";
-
-            let result;
+            hideMessage();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
 
             if (isSigningUp) {
-                // Tente l'inscription
-                result = await supabase.auth.signUp({
+                // Mode INSCRIPTION
+                const { data, error } = await supabase.auth.signUp({
                     email: email,
                     password: password,
                 });
+
+                if (error) {
+                    showMessage(`Erreur d'inscription : ${error.message}`, true);
+                } else if (data.user) {
+                    // Inscription réussie : l'utilisateur doit confirmer son email
+                    showMessage("Inscription réussie. Vérifiez votre boîte mail pour confirmer votre compte.", false);
+                    
+                    // Après l'inscription, passer en mode connexion pour l'étape suivante
+                    isSigningUp = false;
+                    updateFormState();
+                } else {
+                    // Message spécifique si la confirmation est en attente (selon les paramètres Supabase)
+                     showMessage("Inscription réussie ! Redirection vers la sélection de groupe...", false);
+                     setTimeout(() => {
+                         window.location.href = 'groupes.html';
+                     }, 1000);
+                }
             } else {
-                // Tente la connexion
-                result = await supabase.auth.signInWithPassword({
+                // Mode CONNEXION
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password,
                 });
-            }
 
-            authButton.disabled = false;
-            authButton.textContent = isSigningUp ? "S'inscrire" : "Se connecter";
-
-            if (result.error) {
-                // Gestion des erreurs
-                showMessage(result.error.message, true);
-                console.error("Erreur d'authentification Supabase:", result.error);
-                return;
-            }
-
-            // --- SUCCÈS ---
-
-            if (isSigningUp) {
-                // Message d'inscription réussi
-                showMessage("Inscription réussie ! Veuillez maintenant vous connecter.", false);
-                // Après l'inscription, passer en mode connexion pour l'étape suivante
-                isSigningUp = false;
-                updateFormState();
-            } else {
-                // Redirection après connexion réussie
-                showMessage("Connexion réussie ! Redirection vers la sélection de groupe...", false);
-                // Rediriger vers la page de sélection de groupe (groupes.html)
-                setTimeout(() => {
-                    window.location.href = 'groupes.html'; 
-                }, 1000);
+                if (error) {
+                    showMessage(`Erreur de connexion : ${error.message}`, true);
+                } else {
+                    // Redirection après connexion réussie
+                    showMessage("Connexion réussie ! Redirection vers la sélection de groupe...", false);
+                    // Rediriger vers la page de sélection de groupe (groupes.html)
+                    setTimeout(() => {
+                        window.location.href = 'groupes.html'; // ✅ CORRECTION : Redirection vers la page de groupe
+                    }, 1000);
+                }
             }
         }
 
@@ -196,7 +183,7 @@
             if (session) {
                 // Si l'utilisateur est déjà connecté, le rediriger vers la sélection de groupe
                 console.log("Session active détectée. Redirection vers groupes.html.");
-                window.location.href = 'groupes.html';
+                window.location.href = 'groupes.html'; // ✅ CORRECTION : Redirection vers la page de groupe
             } else {
                 // Si non connecté, initialiser le formulaire en mode connexion
                 updateFormState(); 
@@ -204,7 +191,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', checkInitialSession);
-
     </script>
 </body>
 </html>
